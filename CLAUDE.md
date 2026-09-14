@@ -117,9 +117,12 @@ needs a literal (paper, pen inks).
 `sources.B.process`) run treatments and `fx-reframe` only (`FX.laneEligible`)
 on each fitted source before the base. Looks own those lists the same way
 they own the stack. The inspector reads Prepare → Combine → Finish; those
-names are UI only. Library search matches name, description, category, and
-optional `search` keywords on modules and Looks. Projects have a `name`
-(missing / Untitled → unnamed). Exports: PNG (with optional alpha), PNG
-sequence, MP4, print PDF/PNG and ink separations. An optional export folder
-uses the File System Access API and falls back to downloads. Hosted
-`dist/index.html` is the same app; IndexedDB data stays on that device.
+names are UI only. Randomise is scoped to those stages (and Finish
+categories); unchecked state is preserved; scope is session/local UI, not
+saved in projects. Undo/Redo is snapshot-based, session-only, coalesced
+for continuous controls. Library search matches name, description,
+category, and optional `search` keywords on modules and Looks. Projects
+have a `name` (missing / Untitled → unnamed). Exports: PNG (with optional
+alpha), PNG sequence, MP4, print PDF/PNG and ink separations. An optional
+export folder uses the File System Access API and falls back to downloads.
+Hosted `dist/index.html` is the same app; IndexedDB data stays on that device.

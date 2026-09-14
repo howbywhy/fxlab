@@ -27,16 +27,20 @@ async function importAssets(files){
 
 function useAssetAsSource(k, id){
   const a = Assets.get(id), c = Assets.image(id); if (!c) return;
-  Engine.setMedia(k, c, c.width, c.height, false);
-  App.mediaInfo[k] = { name:a.name, thumb:a.thumb, logo:true };
-  state.sources[k].asset = a.id;
-  if (!state.sources[k].fit) state.sources[k].fit = 1;
-  renderSlots(); markDirty();
+  History.record('source', () => {
+    Engine.setMedia(k, c, c.width, c.height, false);
+    App.mediaInfo[k] = { name:a.name, thumb:a.thumb, logo:true };
+    state.sources[k].asset = a.id;
+    if (!state.sources[k].fit) state.sources[k].fit = 1;
+    renderSlots(); markDirty();
+  });
 }
 
 function addLogoModule(id){
-  const inst = makeInst('lg-logo'); inst.params.logo = 'asset:' + id; openNewInst(inst.uid);
-  state.stack.push(inst); renderStack(); markDirty();
+  History.record('module', () => {
+    const inst = makeInst('lg-logo'); inst.params.logo = 'asset:' + id; openNewInst(inst.uid);
+    state.stack.push(inst); renderStack(); markDirty();
+  });
   toast(`Added a Logo layer to Finish`);
 }
 

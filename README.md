@@ -68,8 +68,11 @@ sources A/B  →  optional Prepare A/B  →  base / combine  →  stack / finish
   They can still sample the bound A/B (`fx-matte` does this) but not a second
   processed layer from the stack.
 - A Look owns Prepare the same way it owns the stack. Missing `process` means
-  `[]`. Changing the photograph keeps the lane; randomise does not put modules
-  in lanes.
+  `[]`. Changing the photograph keeps the lane. Randomise is scoped (Prepare /
+  Combine / Finish, plus Finish categories) and never adds ineligible modules
+  to Prepare. Unchecked stages stay as they are. Scope is a UI preference,
+  not project content. Undo / Redo (⌘Z / Ctrl+Z) covers composition edits
+  as one snapshot each; slider drags coalesce; history is session-only.
 - Modules are either **GLSL** (a fragment function `fx(uv)`) or **Canvas 2D**
   (`kind:'2d'` with a `draw(ctx, api)`). 2D stack modules receive the incoming
   processed frame as `api.input` (the current preview or print-tile buffer).

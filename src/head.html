@@ -37,7 +37,15 @@ button.primary{background:var(--lamp);color:#16201d;border-color:var(--lamp);fon
 button.primary:hover{background:#dffaef}
 button.ghost{background:transparent;border-color:transparent;color:var(--muted);padding:0 6px}
 button.ghost:hover{color:var(--ink);background:var(--raise)}
+button.ghost:disabled{opacity:.35;pointer-events:none}
 button.icon{width:26px;padding:0;display:inline-grid;place-items:center}
+.randwrap{position:relative;display:flex;align-items:center;gap:2px}
+#randMenu{position:absolute;top:calc(100% + 6px);right:0;z-index:20;min-width:228px;padding:8px 10px 10px;background:var(--panel);border:1px solid var(--rule2);border-radius:4px;box-shadow:0 10px 28px rgba(0,0,0,.35)}
+#randMenu[hidden]{display:none}
+.randrow{display:flex;flex-wrap:wrap;gap:6px 12px;padding:3px 0}
+.randrow + .randrow{border-top:1px solid var(--rule)}
+.randcats{padding-top:6px}
+.randcats label{font-size:12px}
 label.chk{display:flex;gap:6px;align-items:center;color:var(--muted);cursor:pointer;white-space:nowrap}
 /* library */
 #lib{grid-area:lib;background:var(--panel);border-right:1px solid var(--rule);display:flex;flex-direction:column;min-height:0}
@@ -329,7 +337,29 @@ input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-
       <label class="chk"><input type="checkbox" id="safeToggle"> Safe zones</label>
     </div>
     <div class="tgroup push">
-      <button id="btnRandom" title="Random Combine and Finish">Randomise</button>
+      <button id="btnUndo" class="ghost" disabled>Undo</button>
+      <button id="btnRedo" class="ghost" disabled>Redo</button>
+      <div class="randwrap" id="randWrap">
+        <button id="btnRandom" title="Randomise the checked stages">Randomise</button>
+        <button id="btnRandScope" class="ghost icon" title="What Randomise may change" aria-expanded="false" aria-controls="randMenu">▾</button>
+        <div id="randMenu" hidden>
+          <div class="randrow">
+            <label class="chk"><input type="checkbox" data-rand="prepareA"> Prepare A</label>
+            <label class="chk"><input type="checkbox" data-rand="prepareB"> Prepare B</label>
+          </div>
+          <div class="randrow">
+            <label class="chk"><input type="checkbox" data-rand="combine"> Combine</label>
+            <label class="chk"><input type="checkbox" data-rand="finish"> Finish</label>
+          </div>
+          <div class="randrow randcats" id="randCats">
+            <label class="chk"><input type="checkbox" data-rand="type"> Type</label>
+            <label class="chk"><input type="checkbox" data-rand="logo"> Logo</label>
+            <label class="chk"><input type="checkbox" data-rand="treatment"> Treatments</label>
+            <label class="chk"><input type="checkbox" data-rand="fx"> Effects</label>
+            <label class="chk"><input type="checkbox" data-rand="overlay"> Overlays</label>
+          </div>
+        </div>
+      </div>
       <button id="btnOpen" class="ghost">Open…</button>
       <button id="btnSave" class="ghost">Save</button>
       <button id="btnSaveAs" class="ghost">Save As…</button>

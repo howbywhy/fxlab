@@ -92,13 +92,13 @@ FX.register({ id:'trt-pixelate', name:'Mosaic', cat:'treatment', desc:'Pixel blo
 }` });
 
 FX.register({ id:'trt-ascii', name:'ASCII', cat:'treatment', desc:'Rebuilds the frame from characters.',
-  params:[ R('cell','Cell size',12,4,48,1), S('charset','Characters',['Classic',  'Dense', 'Blocks', 'Binary', 'Dots']), S('colorMode','Colour',['From image','Single ink']), C('fg','Ink','#c9f5e4'), C('bg','Ground','#0c0d0e'), R('contrast','Contrast',1.2,0,3), R('boost','Colour boost',1.3,.5,3), T('invert','Invert') ],
+  params:[ F('font','Font','Helvetica','text'), R('cell','Cell size',12,4,48,1), S('charset','Characters',['Classic',  'Dense', 'Blocks', 'Binary', 'Dots']), S('colorMode','Colour',['From image','Single ink']), C('fg','Ink','#c9f5e4'), C('bg','Ground','#0c0d0e'), R('contrast','Contrast',1.2,0,3), R('boost','Colour boost',1.3,.5,3), T('invert','Invert') ],
   auxSize(P){ const sets = [' .:-=+*#%@', ' .\'`^",:;Il!i><~+_-?][}{1)(|/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$', ' ░▒▓█', ' 01', ' ·•●']; return [sets[P.charset|0].length * 64, 64]; },
   aux(ctx, P, w, h){
     const sets = [' .:-=+*#%@', ' .\'`^",:;Il!i><~+_-?][}{1)(|/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$', ' ░▒▓█', ' 01', ' ·•●'];
     const chars = [...sets[P.charset|0]];
     ctx.fillStyle = '#000'; ctx.fillRect(0, 0, w, h);
-    ctx.fillStyle = '#fff'; ctx.font = `500 52px ${Util.fonts[2]}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#fff'; ctx.font = `500 52px ${Util.family(P)}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     chars.forEach((ch, i) => ctx.fillText(ch, i * 64 + 32, 34));
     return [chars.length, 64, 0, 0];
   },

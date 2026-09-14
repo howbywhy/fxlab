@@ -265,6 +265,178 @@ JS = """() => {
   if (JSON.stringify(proj).includes('stageOpen') || /"ui"/.test(JSON.stringify(proj)))
     bad.push('project stored inspector UI state');
 
+  /* ----- Randomise scope, ASCII font, drag highlight, undo ----- */
+  const snapIds = () => ({
+    A: ids(S.sources.A.process).join(),
+    B: ids(S.sources.B.process).join(),
+    base: S.base && S.base.id,
+    stack: ids(S.stack).join(),
+  });
+  const cloneLane = list => (list || []).map(i => ({ id:i.id, on:i.on, params:JSON.parse(JSON.stringify(i.params)) }));
+  S.sources.A.process = [mk('trt-duotone')];
+  S.sources.B.process = [mk('trt-halftone')];
+  S.base = mk('mx-gradient');
+  S.stack = [mk('kt-plane'), mk('fx-reframe'), mk('ovl-letterbox')];
+  f.refresh();
+  const keepA = cloneLane(S.sources.A.process), keepB = cloneLane(S.sources.B.process);
+  const keepBase = S.base.id, keepType = S.stack[0].id, keepTypeP = JSON.stringify(S.stack[0].params);
+  f.setRandScope({ prepareA:false, prepareB:false, combine:false, finish:true, type:false, logo:false, treatment:false, fx:true, overlay:false });
+  f.randomise();
+  if (JSON.stringify(cloneLane(S.sources.A.process)) !== JSON.stringify(keepA)) bad.push('scoped randomise mutated Prepare A');
+  if (JSON.stringify(cloneLane(S.sources.B.process)) !== JSON.stringify(keepB)) bad.push('scoped randomise mutated Prepare B');
+  if (S.base.id !== keepBase) bad.push('scoped randomise mutated Combine');
+  if (S.stack[0].id !== keepType || JSON.stringify(S.stack[0].params) !== keepTypeP) bad.push('scoped randomise mutated Type');
+  if (!S.stack.some(i => f.FX.byId[i.id] && f.FX.byId[i.id].cat === 'fx')) bad.push('scoped randomise missed Effects');
+  if (S.sources.A.process.some(i => !eligible.has(i.id))) bad.push('randomise put ineligible module on Prepare A');
+  f.setRandScope({ prepareA:true, prepareB:false, combine:false, finish:false, type:true, logo:true, treatment:true, fx:true, overlay:true });
+  const bBefore = cloneLane(S.sources.B.process);
+  const stackBefore = ids(S.stack).join();
+  f.randomise();
+  if (JSON.stringify(cloneLane(S.sources.B.process)) !== JSON.stringify(bBefore)) bad.push('Prepare A randomise touched B');
+  if (ids(S.stack).join() !== stackBefore) bad.push('Prepare A randomise touched Finish');
+  if (S.sources.A.process.some(i => !eligible.has(i.id))) bad.push('Prepare A randomise added ineligible');
+  const menu = document.getElementById('randMenu');
+  if (!menu) bad.push('missing Randomise scope menu');
+  if (!document.getElementById('btnRandScope')) bad.push('missing Randomise scope button');
+
+  const ascii = mk('trt-ascii');
+  if (!f.FX.byId['trt-ascii'].params.some(p => p.id === 'font' && p.type === 'font'))
+    bad.push('trt-ascii has no Font param');
+  const fonts = f.Assets.fonts();
+  if (f.Assets.identity.autoApply && (f.Assets.identity.type.text || fonts.length)){
+    if (ascii.params.font !== 'role:text') bad.push('ascii default is ' + ascii.params.font + ', not role:text');
+  } else if (ascii.params.font !== 'Helvetica') bad.push('ascii fallback font is ' + ascii.params.font);
+  const auxOf = font => {
+    const inst = mk('trt-ascii', { font, cell:16 });
+    S.base = mk('src-a'); S.stack = [inst];
+    f.renderAt(0);
+    return inst._auxCanvas ? inst._auxCanvas.toDataURL() : '';
+  };
+  const auxHelv = auxOf('Helvetica'), auxMono = auxOf('Mono'), auxSerif = auxOf('Serif');
+  if (!auxHelv || auxHelv === auxMono) bad.push('ascii Helvetica/Mono aux identical');
+  if (auxHelv === auxSerif) bad.push('ascii Helvetica/Serif aux identical');
+  if (fonts.length){
+    const auxAsset = auxOf('asset:' + fonts[0].id);
+    if (!auxAsset || auxAsset === auxHelv) bad.push('ascii imported font aux did not change');
+    if (f.Assets.identity.type.display){
+      const auxRole = auxOf('role:display');
+      if (!auxRole) bad.push('ascii role:display produced no aux');
+    }
+  }
+
+  const w = document.getElementById('stageWrap');
+  const slot = document.querySelector('.slot');
+  const dt = new DataTransfer();
+  dt.items.add(new File(['x'], 'note.txt', { type:'text/plain' }));
+  w.classList.add('drag'); slot.classList.add('drag'); f.App.dragDepth = 3;
+  slot.dispatchEvent(new DragEvent('drop', { bubbles:true, cancelable:true, dataTransfer:dt }));
+  if (w.classList.contains('drag')) bad.push('slot drop left stage highlight');
+  if (slot.classList.contains('drag')) bad.push('slot drop left slot highlight');
+  w.classList.add('drag'); f.App.dragDepth = 2;
+  window.dispatchEvent(new DragEvent('drop', { bubbles:true, cancelable:true, dataTransfer:dt }));
+  if (w.classList.contains('drag') || f.App.dragDepth) bad.push('window drop did not clear highlight');
+  w.classList.add('drag'); f.App.dragDepth = 1;
+  window.dispatchEvent(new DragEvent('dragend', { bubbles:true }));
+  if (w.classList.contains('drag')) bad.push('dragend left stage highlight');
+  w.classList.add('drag');
+  document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
+  if (w.classList.contains('drag')) bad.push('Escape left stage highlight');
+
+  S.base = mk('src-a');
+  S.stack = [mk('trt-grain', { amount:.08 })];
+  S.sources.A.process = [mk('trt-duotone')];
+  S.sources.B.process = [];
+  f.refresh();
+  f.History.reset();
+  const grainAmt = S.stack[0].params.amount;
+  document.querySelector('[data-add="finish"]').click();
+  const addBox = document.querySelector('#libList .item[data-id="ovl-letterbox"]');
+  if (!addBox) bad.push('could not add letterbox for undo test');
+  else {
+    addBox.click();
+    if (ids(S.stack).join() !== 'trt-grain,ovl-letterbox') bad.push('add module failed: ' + ids(S.stack));
+    if (!f.History.undo()) bad.push('undo add returned false');
+    if (ids(S.stack).join() !== 'trt-grain') bad.push('undo add did not restore: ' + ids(S.stack));
+    if (!f.History.redo()) bad.push('redo add returned false');
+    if (ids(S.stack).join() !== 'trt-grain,ovl-letterbox') bad.push('redo add did not restore');
+  }
+  f.History.record('replace', () => { f.replaceInst(S.stack, 0, 'trt-halftone'); f.refresh(); });
+  if (S.stack[0].id !== 'trt-halftone') bad.push('replace for undo failed');
+  f.History.undo();
+  if (S.stack[0].id !== 'trt-grain') bad.push('undo replace did not restore grain');
+  f.History.record('reorder', () => { S.stack.push(S.stack.shift()); f.refresh(); });
+  const afterOrd = ids(S.stack).join();
+  f.History.undo();
+  if (ids(S.stack).join() === afterOrd && S.stack.length > 1) bad.push('undo reorder did nothing');
+  const slider = document.querySelector('#secStack .prm input[type=range]');
+  if (slider){
+    const start = +slider.value;
+    slider.value = String(Math.min(+slider.max, start + (+slider.step || .01)));
+    slider.dispatchEvent(new Event('input', { bubbles:true }));
+    slider.value = String(Math.min(+slider.max, start + 4 * (+slider.step || .01)));
+    slider.dispatchEvent(new Event('input', { bubbles:true }));
+    slider.dispatchEvent(new Event('change', { bubbles:true }));
+    if (S.stack[0].params[f.FX.byId[S.stack[0].id].params.find(p => p.type === 'range').id] === start)
+      bad.push('slider input did not change param');
+    f.History.undo();
+    const pid = f.FX.byId[S.stack[0].id].params.find(p => p.type === 'range').id;
+    if (Math.abs(S.stack[0].params[pid] - start) > 1e-6) bad.push('undo slider did not restore pre-drag value');
+  } else {
+    f.History.record('param', () => { S.stack[0].params.amount = .4; });
+    f.History.undo();
+    if (S.stack[0].params.amount !== grainAmt) bad.push('undo param failed');
+  }
+  const prepN = S.sources.A.process.length;
+  f.History.record('module', () => { S.sources.A.process.push(mk('trt-riso')); f.refresh(); });
+  if (S.sources.A.process.length !== prepN + 1) bad.push('prepare edit did not add');
+  f.History.undo();
+  if (S.sources.A.process.length !== prepN) bad.push('undo prepare edit failed');
+  f.setRandScope({ prepareA:false, prepareB:false, combine:true, finish:true, type:true, logo:true, treatment:true, fx:true, overlay:true });
+  const recipe = JSON.stringify(f.projectFromState());
+  f.randomise();
+  if (JSON.stringify(f.projectFromState()) === recipe) bad.push('randomise produced no change');
+  const randPast = f.History.past.length;
+  f.History.undo();
+  if (JSON.stringify(f.projectFromState()) !== recipe) bad.push('undo randomise did not restore recipe');
+  if (f.History.past.length !== randPast - 1) bad.push('randomise was not a single undo step');
+  const look = f.STARTER_LOOKS[0];
+  if (look){
+    const beforeLook = JSON.stringify(f.lookFromState());
+    f.applyLook(look.data);
+    if (JSON.stringify(f.lookFromState()) === beforeLook) bad.push('apply look made no change');
+    f.History.undo();
+    if (JSON.stringify(f.lookFromState()) !== beforeLook) bad.push('undo look did not restore');
+  }
+  f.History.record('module', () => { S.stack.push(mk('trt-vignette')); });
+  f.History.undo();
+  if (!f.History.future.length) bad.push('undo did not populate redo');
+  f.History.record('module', () => { S.stack.push(mk('trt-bloom')); });
+  if (f.History.future.length) bad.push('new edit after undo did not clear redo');
+  f.History.record('module', () => { S.stack.push(mk('ovl-edge')); });
+  const loaded = { app:'fxlab', version:1, size:{ id:'ig-portrait', w:1080, h:1350 }, bg:'#000',
+    timeline:{ duration:4, fps:30, loopMode:'once', easing:'Linear', hold:0 },
+    sources:{ A:{ fit:0, zoom:1, x:0, y:0 }, B:{ fit:0, zoom:1, x:0, y:0 } },
+    base:{ id:'src-a', on:true, params:{} }, stack:[] };
+  f.loadProject(JSON.stringify(loaded));
+  if (f.History.past.length || f.History.future.length || f.History.txn)
+    bad.push('load project did not reset history');
+  f.History.reset();
+  f.App.ui.stages.prepare = false;
+  document.getElementById('search').value = 'spatial';
+  document.getElementById('search').dispatchEvent(new Event('input', { bubbles:true }));
+  document.querySelector('#secFinish .stage-h').click();
+  if (f.History.past.length) bad.push('collapse/search created history');
+  const search = document.getElementById('search');
+  search.focus();
+  const kz = new KeyboardEvent('keydown', { key:'z', code:'KeyZ', metaKey:true, ctrlKey:true, bubbles:true, cancelable:true });
+  search.dispatchEvent(kz);
+  if (kz.defaultPrevented) bad.push('Cmd-Z hijacked library search');
+  const finalProj = f.projectFromState();
+  if (finalProj.randScope || finalProj.history || finalProj.ui || JSON.stringify(finalProj).includes('fxlab-rand-scope'))
+    bad.push('project stored randomise scope or history');
+  if (JSON.stringify(finalProj).includes('"past"') && /history/i.test(JSON.stringify(finalProj)))
+    bad.push('project serialised undo history');
+
   return {
     bad, png, raw,
     starters: f.STARTER_LOOKS.length,

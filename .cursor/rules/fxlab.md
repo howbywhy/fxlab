@@ -67,7 +67,7 @@ Check whether a helper already exists before adding one.
 
 `mx-*` modules are **base** modules. They composite sources A and B (fitted, or prepared by a source process list) into the starting frame. They are not stack compositors. The stack sees `uInput` (plus A/B still bound). `fx-matte` is the stack primitive: it mattes the current processed frame against bound A, bound B or a colour. It is not a second processed input from the stack.
 
-Prepare A/B (`sources.A.process` / `sources.B.process`) may contain only `FX.laneEligible` modules — Treatments and `fx-reframe`. Not a second stack, not a precomp, not independently timed. Empty lists must be a no-op. A Look owns Prepare the same way it owns the stack (missing field → `[]`). Changing the photograph keeps the lane. `FX.laneEligible` is the only eligibility list.
+Prepare A/B (`sources.A.process` / `sources.B.process`) may contain only `FX.laneEligible` modules — Treatments and `fx-reframe`. Not a second stack, not a precomp, not independently timed. Empty lists must be a no-op. A Look owns Prepare the same way it owns the stack (missing field → `[]`). Changing the photograph keeps the lane. `FX.laneEligible` is the only eligibility list. Randomise is scoped to Prepare / Combine / Finish (and Finish categories); it must never add ineligible Prepare modules. Undo/Redo is snapshot-based and session-only.
 
 ## Canvas 2D incoming frame
 

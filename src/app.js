@@ -73,6 +73,120 @@ function renderAt(t){
   Engine.frame(state, t, globalsAt(t));
 }
 const markDirty = () => { App.dirty = true; };
+
+/* Session-only snapshot history. Not saved in projects. Media stays as refs. */
+const HIST_LIMIT = 80;
+const RAND_CATS = ['type', 'logo', 'treatment', 'fx', 'overlay'];
+function defaultRandScope(){
+  return { prepareA:false, prepareB:false, combine:true, finish:true, type:true, logo:true, treatment:true, fx:true, overlay:true };
+}
+function loadRandScope(){
+  try {
+    const o = JSON.parse(localStorage.getItem('fxlab-rand-scope') || 'null');
+    return o && typeof o === 'object' ? { ...defaultRandScope(), ...o } : defaultRandScope();
+  } catch { return defaultRandScope(); }
+}
+function saveRandScope(){
+  try { localStorage.setItem('fxlab-rand-scope', JSON.stringify(App.randScope)); } catch { /* private mode */ }
+}
+App.randScope = loadRandScope();
+App.dragDepth = 0;
+
+const History = {
+  past:[], future:[], txn:null, silent:false,
+  snap(){
+    return {
+      project: JSON.parse(JSON.stringify(projectFromState())),
+      media:{
+        A: Engine.media.A ? { el:Engine.media.A.el, w:Engine.media.A.w, h:Engine.media.A.h, video:!!Engine.media.A.video } : null,
+        B: Engine.media.B ? { el:Engine.media.B.el, w:Engine.media.B.w, h:Engine.media.B.h, video:!!Engine.media.B.video } : null,
+        infoA: App.mediaInfo.A, infoB: App.mediaInfo.B,
+      },
+    };
+  },
+  same(a, b){
+    if (!a || !b) return false;
+    if (JSON.stringify(a.project) !== JSON.stringify(b.project)) return false;
+    const el = (s, k) => s.media && s.media[k] && s.media[k].el;
+    return el(a, 'A') === el(b, 'A') && el(a, 'B') === el(b, 'B');
+  },
+  begin(label){
+    if (this.silent || this.txn) return;
+    this.txn = { before:this.snap(), label:label || 'edit' };
+  },
+  end(){
+    if (this.silent || !this.txn) return;
+    const after = this.snap();
+    if (this.same(this.txn.before, after)){ this.txn = null; return; }
+    this.past.push({ before:this.txn.before, after, label:this.txn.label });
+    if (this.past.length > HIST_LIMIT) this.past.shift();
+    this.future = [];
+    this.txn = null;
+    syncHistoryBtns();
+  },
+  record(label, fn){
+    if (this.silent){ fn(); return; }
+    if (this.txn) this.end();
+    this.begin(label);
+    try { fn(); } finally { this.end(); }
+  },
+  apply(entry, which){
+    const snap = entry[which];
+    this.silent = true;
+    try { restoreProject(snap.project); restoreMedia(snap.media); renderSlots(); }
+    finally { this.silent = false; }
+  },
+  undo(){
+    if (this.txn) this.end();
+    const e = this.past.pop(); if (!e) return false;
+    this.apply(e, 'before');
+    this.future.push(e);
+    syncHistoryBtns();
+    return true;
+  },
+  redo(){
+    if (this.txn) this.end();
+    const e = this.future.pop(); if (!e) return false;
+    this.apply(e, 'after');
+    this.past.push(e);
+    syncHistoryBtns();
+    return true;
+  },
+  reset(){
+    this.past = []; this.future = []; this.txn = null;
+    syncHistoryBtns();
+  },
+};
+function restoreMedia(media){
+  if (!media) return;
+  for (const k of ['A', 'B']){
+    const m = media[k];
+    if (m && m.el) Engine.setMedia(k, m.el, m.w, m.h, m.video);
+    const info = k === 'A' ? media.infoA : media.infoB;
+    if (info) App.mediaInfo[k] = info;
+  }
+}
+function syncHistoryBtns(){
+  const u = $('#btnUndo'), r = $('#btnRedo');
+  if (u) u.disabled = !History.past.length && !History.txn;
+  if (r) r.disabled = !History.future.length;
+}
+function typingField(el){
+  if (!el) return false;
+  if (el.isContentEditable) return true;
+  const tag = el.tagName;
+  if (tag === 'TEXTAREA' || tag === 'SELECT') return true;
+  if (tag === 'INPUT') return !/^(range|color|checkbox|radio|file|button|submit)$/i.test(el.type || '');
+  return false;
+}
+function bindLive(el, label){
+  el.addEventListener('pointerdown', () => History.begin(label));
+  el.addEventListener('pointerup', () => History.end());
+  el.addEventListener('pointercancel', () => History.end());
+  el.addEventListener('change', () => History.end());
+  el.addEventListener('blur', () => History.end());
+}
+
 function stageIsOpen(id){ return App.ui.stages[id] !== false; }
 function setStageOpen(id, open){ App.ui.stages[id] = !!open; }
 function instIsOpen(uid){ return App.ui.inst[uid] !== false; }
@@ -119,8 +233,10 @@ function loadFile(k, file){
     const v = document.createElement('video');
     Object.assign(v, { src:url, muted:true, loop:true, playsInline:true, autoplay:true, crossOrigin:'anonymous' });
     v.addEventListener('loadeddata', () => {
-      Engine.setMedia(k, v, v.videoWidth, v.videoHeight, true); v.play().catch(() => {});
-      App.mediaInfo[k] = { name:file.name, thumb:null, video:v }; renderSlots(); markDirty();
+      History.record('source', () => {
+        Engine.setMedia(k, v, v.videoWidth, v.videoHeight, true); v.play().catch(() => {});
+        App.mediaInfo[k] = { name:file.name, thumb:null, video:v }; renderSlots(); markDirty();
+      });
       toast(`${k}: ${file.name} (${v.videoWidth}×${v.videoHeight}, video)`);
     }, { once:true });
     v.addEventListener('error', () => toast(`Could not read ${file.name}. Try MP4 (H.264) or WebM.`, true));
@@ -130,8 +246,10 @@ function loadFile(k, file){
       let src = img, w = img.naturalWidth, h = img.naturalHeight;
       const max = Math.min(8192, Engine.gl ? Engine.gl.getParameter(Engine.gl.MAX_TEXTURE_SIZE) : 4096);
       if (Math.max(w, h) > max){ const s = max / Math.max(w, h); const c = document.createElement('canvas'); c.width = Math.round(w * s); c.height = Math.round(h * s); c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); src = c; w = c.width; h = c.height; }
-      Engine.setMedia(k, src, w, h, false);
-      App.mediaInfo[k] = { name:file.name, thumb:url }; renderSlots(); markDirty();
+      History.record('source', () => {
+        Engine.setMedia(k, src, w, h, false);
+        App.mediaInfo[k] = { name:file.name, thumb:url }; renderSlots(); markDirty();
+      });
       toast(`${k}: ${file.name} (${img.naturalWidth}×${img.naturalHeight})`);
     };
     img.onerror = () => toast(`Could not read ${file.name}. Use JPG, PNG, WebP or GIF.`, true);
@@ -157,16 +275,23 @@ function initTopBar(){
     $('#btnPrint').classList.toggle('on', !!state.print);
   };
   sel.onchange = () => {
-    if (sel.value.startsWith('p-')){ if (sel.value === 'p-custom') openPrintDialog(); else setPrintPreset(sel.value); return; }
-    state.print = null; Print.syncPreview();
-    const s = SIZES.find(z => z.id === sel.value); if (s.w){ state.W = s.w; state.H = s.h; } state.sizeId = s.id; syncFields(); applySize();
+    if (sel.value.startsWith('p-')){ if (sel.value === 'p-custom') openPrintDialog(); else History.record('size', () => setPrintPreset(sel.value)); return; }
+    History.record('size', () => {
+      state.print = null; Print.syncPreview();
+      const s = SIZES.find(z => z.id === sel.value); if (s.w){ state.W = s.w; state.H = s.h; } state.sizeId = s.id; syncFields(); applySize();
+    });
   };
   $('#btnPrint').onclick = openPrintDialog;
-  const custom = () => { state.print = null; const even = v => Math.round(Util.clamp(+v || 1080, 16, 4096) / 2) * 2; state.W = even($('#outW').value); state.H = even($('#outH').value); const m = SIZES.find(z => z.w === state.W && z.h === state.H); state.sizeId = m ? m.id : 'custom'; syncFields(); applySize(); };
+  const custom = () => History.record('size', () => { state.print = null; const even = v => Math.round(Util.clamp(+v || 1080, 16, 4096) / 2) * 2; state.W = even($('#outW').value); state.H = even($('#outH').value); const m = SIZES.find(z => z.w === state.W && z.h === state.H); state.sizeId = m ? m.id : 'custom'; syncFields(); applySize(); });
   $('#outW').onchange = custom; $('#outH').onchange = custom;
   $('#quality').onchange = e => { state.quality = +e.target.value; applySize(); };
   $('#safeToggle').onchange = () => { $('#safe').classList.toggle('on', $('#safeToggle').checked); layoutSafe(); };
-  $('#btnRandom').onclick = randomise;
+  initRandomiseUi();
+  $('#btnUndo').onclick = () => History.undo();
+  $('#btnRedo').onclick = () => History.redo();
+  const mac = /Mac|iPhone|iPad/.test(navigator.platform);
+  $('#btnUndo').title = mac ? 'Undo (⌘Z)' : 'Undo (Ctrl+Z)';
+  $('#btnRedo').title = mac ? 'Redo (⇧⌘Z)' : 'Redo (Ctrl+Y)';
   $('#btnSave').onclick = () => saveProject(false);
   $('#btnSaveAs').onclick = saveProjectAs;
   $('#btnFolder').onclick = pickExportFolder;
@@ -365,7 +490,10 @@ function replaceInst(list, idx, id){
 }
 function chooseModule(id){
   const m = FX.byId[id];
-  const ctx = App.libTarget;
+  if (!m) return;
+  History.record('module', () => chooseModuleNow(id, m, App.libTarget));
+}
+function chooseModuleNow(id, m, ctx){
   if (ctx === 'replacePrepareA' || ctx === 'replacePrepareB'){
     if (!FX.laneEligible(m)) return;
     const list = state.sources[ctx === 'replacePrepareA' ? 'A' : 'B'].process;
@@ -417,13 +545,15 @@ function paramRow(inst, p, onChange){
   const row = el('div', 'prm');
   const lab = el('label', null, p.label); row.append(lab);
   const val = inst.params[p.id];
-  const commit = v => { inst.params[p.id] = v; onChange && onChange(); markDirty(); };
+  const commit = v => { History.begin('param'); inst.params[p.id] = v; onChange && onChange(); markDirty(); };
+  const commitOnce = v => { commit(v); History.end(); };
   if (p.type === 'range'){
     const r = el('input'); Object.assign(r, { type:'range', min:p.min, max:p.max, step:p.step, value:val });
     const num = el('input', 'val'); num.type = 'text'; num.value = fmt(val, p.step);
     r.oninput = () => { num.value = fmt(+r.value, p.step); commit(+r.value); };
-    num.onchange = () => { const v = Util.clamp(parseFloat(num.value), p.min, p.max); if (!isNaN(v)){ r.value = v; num.value = fmt(v, p.step); commit(v); } };
-    lab.title = 'Double-click to reset'; lab.ondblclick = () => { r.value = p.def; num.value = fmt(p.def, p.step); commit(p.def); };
+    bindLive(r, 'param');
+    num.onchange = () => { const v = Util.clamp(parseFloat(num.value), p.min, p.max); if (!isNaN(v)){ r.value = v; num.value = fmt(v, p.step); commitOnce(v); } };
+    lab.title = 'Double-click to reset'; lab.ondblclick = () => { r.value = p.def; num.value = fmt(p.def, p.step); commitOnce(p.def); };
     row.append(r, num);
   } else if (p.type === 'color'){
     row.classList.add('wide');
@@ -438,15 +568,16 @@ function paramRow(inst, p, onChange){
     const mark = () => { sw.querySelectorAll('.role').forEach(b => b.classList.toggle('on', b.dataset.role === inst.params[p.id])); lab.classList.toggle('linked', String(inst.params[p.id]).startsWith('role:')); lab.title = String(inst.params[p.id]).startsWith('role:') ? `Linked to ${Identity.roleLabel(inst.params[p.id])}` : ''; };
     const commitCol = () => { commit(join(c.value, +ar.value)); setSwatch(); mark(); };
     c.oninput = commitCol; ar.oninput = commitCol;
+    bindLive(c, 'param'); bindLive(ar, 'param');
     setSwatch();
     const pair = el('div', 'colpair'); pair.append(c, ar);
     row.append(pair);
     if (Identity.active()){
-      Identity.COLOR_ROLES.forEach(([r, name]) => { const b = el('button', 'role'); b.dataset.role = 'role:' + r; b.style.background = Identity.colourway()[r]; b.title = `Link to ${name}`; b.setAttribute('aria-label', `Link to ${name}`); b.textContent = name[0] + (r === 'accent2' ? '2' : ''); b.style.color = Identity.readable(Identity.colourway()[r]); b.onclick = () => { commit('role:' + r); const sp = split('role:' + r); c.value = sp.rgb; ar.value = sp.a; setSwatch(); mark(); }; sw.append(b); });
+      Identity.COLOR_ROLES.forEach(([r, name]) => { const b = el('button', 'role'); b.dataset.role = 'role:' + r; b.style.background = Identity.colourway()[r]; b.title = `Link to ${name}`; b.setAttribute('aria-label', `Link to ${name}`); b.textContent = name[0] + (r === 'accent2' ? '2' : ''); b.style.color = Identity.readable(Identity.colourway()[r]); b.onclick = () => { commitOnce('role:' + r); const sp = split('role:' + r); c.value = sp.rgb; ar.value = sp.a; setSwatch(); mark(); }; sw.append(b); });
       if (Assets.palette.length) sw.append(el('span', 'swsep'));
     }
-    Assets.palette.forEach(pc => { const b = el('button'); b.style.background = pc.hex; b.title = `${pc.name} ${pc.hex.toUpperCase()}`; b.setAttribute('aria-label', pc.name); b.onclick = () => { c.value = pc.hex; commitCol(); }; sw.append(b); });
-    { const b = el('button', 'clearsw'); b.title = 'Transparent'; b.setAttribute('aria-label', 'Transparent'); b.onclick = () => { ar.value = 0; commitCol(); }; sw.append(b); }
+    Assets.palette.forEach(pc => { const b = el('button'); b.style.background = pc.hex; b.title = `${pc.name} ${pc.hex.toUpperCase()}`; b.setAttribute('aria-label', pc.name); b.onclick = () => { c.value = pc.hex; commitCol(); History.end(); }; sw.append(b); });
+    { const b = el('button', 'clearsw'); b.title = 'Transparent'; b.setAttribute('aria-label', 'Transparent'); b.onclick = () => { ar.value = 0; commitCol(); History.end(); }; sw.append(b); }
     if (sw.children.length) row.append(sw);
     mark();
   } else if (p.type === 'font'){
@@ -458,7 +589,7 @@ function paramRow(inst, p, onChange){
     const g2 = el('optgroup'); g2.label = 'System'; Util.fontNames.forEach(n => { const o = el('option', null, n); o.value = n; g2.append(o); }); s.append(g2);
     const cur = typeof val === 'number' ? Util.fontNames[val] : val;
     if (typeof cur === 'string' && cur.startsWith('asset:') && !Assets.get(cur)){ const o = el('option', null, 'Missing font (add it in Assets)'); o.value = cur; s.prepend(o); }
-    s.value = cur; s.onchange = () => commit(s.value); row.append(s);
+    s.value = cur; s.onchange = () => commitOnce(s.value); row.append(s);
   } else if (p.type === 'asset'){
     row.classList.add('wide');
     const imgs = Assets.images();
@@ -472,20 +603,20 @@ function paramRow(inst, p, onChange){
       const ag = el('optgroup'); ag.label = 'All logos'; imgs.forEach(a => { const o = el('option', null, a.name); o.value = 'asset:' + a.id; ag.append(o); }); s.append(ag);
       if (val && !Assets.get(val)){ const o = el('option', null, 'Missing logo (add it in Assets)'); o.value = val; s.append(o); }
       const show = () => { const a = Assets.get(s.value); mini.style.backgroundImage = a ? `url("${a.thumb}")` : 'none'; };
-      s.value = val; show(); s.onchange = () => { show(); commit(s.value); };
+      s.value = val; show(); s.onchange = () => { show(); commitOnce(s.value); };
       wrap.append(s, mini); row.append(wrap);
     }
   } else if (p.type === 'toggle'){
     row.classList.add('wide');
-    const c = el('input'); c.type = 'checkbox'; c.checked = !!val; c.onchange = () => commit(c.checked); row.append(c);
+    const c = el('input'); c.type = 'checkbox'; c.checked = !!val; c.onchange = () => commitOnce(c.checked); row.append(c);
   } else if (p.type === 'select'){
     row.classList.add('wide');
     const s = el('select'); p.options.forEach((o, i) => { const op = el('option', null, o); op.value = i; s.append(op); }); s.value = val;
-    s.onchange = () => commit(+s.value); row.append(s);
+    s.onchange = () => commitOnce(+s.value); row.append(s);
   } else if (p.type === 'text'){
     row.classList.add('wide');
     const t = p.multiline ? el('textarea') : el('input'); if (!p.multiline) t.type = 'text'; else t.rows = 2;
-    t.value = val; t.oninput = () => commit(t.value); row.append(t);
+    t.value = val; t.oninput = () => commit(t.value); bindLive(t, 'param'); row.append(t);
   }
   return row;
 }
@@ -499,7 +630,7 @@ function eyeBtn(inst, name, redraw){
   eye.title = inst.on ? 'Turn off' : 'Turn on';
   eye.setAttribute('aria-label', `${inst.on ? 'Turn off' : 'Turn on'} ${name}`);
   eye.setAttribute('aria-pressed', String(!inst.on));
-  eye.onclick = () => { inst.on = !inst.on; redraw(); markDirty(); };
+  eye.onclick = () => History.record('toggle', () => { inst.on = !inst.on; redraw(); markDirty(); });
   return eye;
 }
 function addMod(label, target){
@@ -576,7 +707,7 @@ function renderBase(){
   const title = el('span'); title.append(el('b', null, m.name));
   if (cat) title.append(el('small', null, cat.label));
   const acts = el('span');
-  if (m.params.length){ const rb = el('button', 'ghost', 'Reset'); rb.onclick = () => { state.base = makeInst(m.id); renderBase(); markDirty(); }; acts.append(rb); }
+  if (m.params.length){ const rb = el('button', 'ghost', 'Reset'); rb.onclick = () => History.record('reset', () => { state.base = makeInst(m.id); renderBase(); markDirty(); }); acts.append(rb); }
   const chg = el('button', 'ghost', 'Change'); chg.dataset.add = 'combine'; chg.onclick = () => setLibTarget('combine'); acts.append(chg);
   head.append(title, acts);
   sec.append(head, el('p', 'desc', m.desc || ''));
@@ -605,10 +736,10 @@ function renderStack(){
     nm.onclick = ev => { ev.stopPropagation(); setInstOpen(inst.uid, !instIsOpen(inst.uid)); card.classList.toggle('collapsed', !instIsOpen(inst.uid)); };
     const mk = (txt, title, fn) => { const b = el('button', 'ghost icon', txt); b.title = title; b.onclick = fn; return b; };
     ch.append(eyeBtn(inst, m.name, renderStack), num, nm, changeBtn('finish', idx),
-      mk('↑', 'Move up', () => { if (idx > 0){ [state.stack[idx - 1], state.stack[idx]] = [state.stack[idx], state.stack[idx - 1]]; renderStack(); markDirty(); } }),
-      mk('↓', 'Move down', () => { if (idx < state.stack.length - 1){ [state.stack[idx + 1], state.stack[idx]] = [state.stack[idx], state.stack[idx + 1]]; renderStack(); markDirty(); } }),
-      mk('⧉', 'Duplicate', () => { const c = makeInst(inst.id); c.params = JSON.parse(JSON.stringify(inst.params)); openNewInst(c.uid); state.stack.splice(idx + 1, 0, c); renderStack(); markDirty(); }),
-      mk('×', 'Remove', () => { Engine.resetFeedback([inst]); state.stack.splice(idx, 1); renderStack(); markDirty(); }));
+      mk('↑', 'Move up', () => { if (idx > 0) History.record('reorder', () => { [state.stack[idx - 1], state.stack[idx]] = [state.stack[idx], state.stack[idx - 1]]; renderStack(); markDirty(); }); }),
+        mk('↓', 'Move down', () => { if (idx < state.stack.length - 1) History.record('reorder', () => { [state.stack[idx + 1], state.stack[idx]] = [state.stack[idx], state.stack[idx + 1]]; renderStack(); markDirty(); }); }),
+      mk('⧉', 'Duplicate', () => History.record('module', () => { const c = makeInst(inst.id); c.params = JSON.parse(JSON.stringify(inst.params)); openNewInst(c.uid); state.stack.splice(idx + 1, 0, c); renderStack(); markDirty(); })),
+      mk('×', 'Remove', () => History.record('module', () => { Engine.resetFeedback([inst]); state.stack.splice(idx, 1); renderStack(); markDirty(); })));
     ch.ondragstart = e => { dragUid = inst.uid; card.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', String(inst.uid)); };
     ch.ondragend = () => { dragUid = null; card.classList.remove('dragging'); };
     card.ondragover = e => { if (dragUid != null){ e.preventDefault(); card.classList.add('over'); } };
@@ -616,7 +747,7 @@ function renderStack(){
     card.ondrop = e => {
       e.preventDefault(); card.classList.remove('over');
       const from = state.stack.findIndex(i => i.uid === dragUid); if (from < 0 || from === idx) return;
-      const [it] = state.stack.splice(from, 1); state.stack.splice(idx, 0, it); renderStack(); markDirty();
+      History.record('reorder', () => { const [it] = state.stack.splice(from, 1); state.stack.splice(idx, 0, it); renderStack(); markDirty(); });
     };
     const cb = el('div', 'cb');
     if (m.desc) cb.append(el('p', 'desc', m.desc));
@@ -642,13 +773,13 @@ function renderSlots(){
     fi.onchange = () => { loadFile(k, fi.files[0]); fi.value = ''; };
     th.onclick = () => fi.click();
     slot.ondragover = e => { e.preventDefault(); e.stopPropagation(); slot.classList.add('drag'); };
-    slot.ondragleave = () => slot.classList.remove('drag');
-    slot.ondrop = e => { e.preventDefault(); e.stopPropagation(); slot.classList.remove('drag'); loadFile(k, e.dataTransfer.files[0]); };
+    slot.ondragleave = e => { if (e.relatedTarget && slot.contains(e.relatedTarget)) return; slot.classList.remove('drag'); };
+    slot.ondrop = e => { e.preventDefault(); e.stopPropagation(); clearFileDrag(); loadFile(k, e.dataTransfer.files[0]); };
     const ctl = el('div', 'ctl');
     const fitSel = el('select'); ['Fill (crop)', 'Fit (letterbox)'].forEach((o, i) => { const op = el('option', null, o); op.value = i; fitSel.append(op); });
-    fitSel.value = s.fit; fitSel.onchange = () => { s.fit = +fitSel.value; markDirty(); };
+    fitSel.value = s.fit; fitSel.onchange = () => History.record('source', () => { s.fit = +fitSel.value; markDirty(); });
     fitSel.title = 'How this file first sits in the frame. Reframe in Prepare is a later crop.';
-    const mini = (label, key, min, max, step) => { const row = el('label', 'mini'); const r = el('input'); Object.assign(r, { type:'range', min, max, step, value:s[key] }); r.title = label; r.setAttribute('aria-label', `${k} ${label}`); r.oninput = () => { s[key] = +r.value; markDirty(); }; r.ondblclick = () => { s[key] = key === 'zoom' ? 1 : 0; r.value = s[key]; markDirty(); }; row.title = 'Double-click the slider to reset'; row.append(el('span', null, label), r); return row; };
+    const mini = (label, key, min, max, step) => { const row = el('label', 'mini'); const r = el('input'); Object.assign(r, { type:'range', min, max, step, value:s[key] }); r.title = label; r.setAttribute('aria-label', `${k} ${label}`); r.oninput = () => { History.begin('source'); s[key] = +r.value; markDirty(); }; bindLive(r, 'source'); r.ondblclick = () => History.record('source', () => { s[key] = key === 'zoom' ? 1 : 0; r.value = s[key]; markDirty(); }); row.title = 'Double-click the slider to reset'; row.append(el('span', null, label), r); return row; };
     ctl.append(fitSel, mini('Zoom', 'zoom', .25, 4, .01), mini('X', 'x', -1, 1, .01), mini('Y', 'y', -1, 1, .01));
     if (!Array.isArray(s.process)) s.process = [];
     const proc = el('div', 'proc');
@@ -667,9 +798,9 @@ function renderSlots(){
       nm.onclick = ev => { ev.stopPropagation(); setInstOpen(inst.uid, !instIsOpen(inst.uid)); card.classList.toggle('collapsed', !instIsOpen(inst.uid)); };
       const mk = (txt, title, fn) => { const b = el('button', 'ghost icon', txt); b.title = title; b.onclick = fn; return b; };
       ch.append(eyeBtn(inst, m.name, renderSlots), nm, changeBtn(k, idx),
-        mk('↑', 'Move up', () => { if (idx > 0){ [s.process[idx - 1], s.process[idx]] = [s.process[idx], s.process[idx - 1]]; renderSlots(); markDirty(); } }),
-        mk('↓', 'Move down', () => { if (idx < s.process.length - 1){ [s.process[idx + 1], s.process[idx]] = [s.process[idx], s.process[idx + 1]]; renderSlots(); markDirty(); } }),
-        mk('×', 'Remove', () => { Engine.resetFeedback([inst]); s.process.splice(idx, 1); renderSlots(); markDirty(); }));
+        mk('↑', 'Move up', () => { if (idx > 0) History.record('reorder', () => { [s.process[idx - 1], s.process[idx]] = [s.process[idx], s.process[idx - 1]]; renderSlots(); markDirty(); }); }),
+        mk('↓', 'Move down', () => { if (idx < s.process.length - 1) History.record('reorder', () => { [s.process[idx + 1], s.process[idx]] = [s.process[idx], s.process[idx + 1]]; renderSlots(); markDirty(); }); }),
+        mk('×', 'Remove', () => History.record('module', () => { Engine.resetFeedback([inst]); s.process.splice(idx, 1); renderSlots(); markDirty(); })));
       const cb = el('div', 'cb');
       m.params.forEach(p => cb.append(paramRow(inst, p)));
       card.append(ch, cb); proc.append(card);
@@ -684,11 +815,11 @@ function renderSlots(){
 function initTimeline(){
   const easing = $('#easing'); Object.keys(EASE).forEach(k => easing.append(el('option', null, k)));
   const sync = () => { $('#dur').value = state.duration; $('#fps').value = String(state.fps); $('#loopMode').value = state.loopMode; easing.value = state.easing; $('#hold').value = state.hold; drawCurve(); };
-  $('#dur').onchange = e => { state.duration = Util.clamp(+e.target.value || 4, .5, 60); App.t %= state.duration; sync(); markDirty(); };
-  $('#fps').onchange = e => { state.fps = +e.target.value; markDirty(); };
-  $('#loopMode').onchange = e => { state.loopMode = e.target.value; sync(); markDirty(); };
-  easing.onchange = e => { state.easing = e.target.value; sync(); markDirty(); };
-  $('#hold').onchange = e => { state.hold = Util.clamp(+e.target.value, 0, .45); sync(); markDirty(); };
+  $('#dur').onchange = e => History.record('timeline', () => { state.duration = Util.clamp(+e.target.value || 4, .5, 60); App.t %= state.duration; sync(); markDirty(); });
+  $('#fps').onchange = e => History.record('timeline', () => { state.fps = +e.target.value; markDirty(); });
+  $('#loopMode').onchange = e => History.record('timeline', () => { state.loopMode = e.target.value; sync(); markDirty(); });
+  easing.onchange = e => History.record('timeline', () => { state.easing = e.target.value; sync(); markDirty(); });
+  $('#hold').onchange = e => History.record('timeline', () => { state.hold = Util.clamp(+e.target.value, 0, .45); sync(); markDirty(); });
   const scrub = $('#scrub');
   scrub.oninput = () => { App.playing = false; App.t = +scrub.value / 10000 * state.duration; updatePlayBtn(); markDirty(); };
   $('#btnPlay').onclick = togglePlay;
@@ -719,18 +850,100 @@ function updateTimeUI(){
 }
 
 /* ---------- randomise ---------- */
-function randomise(){
-  const pick = a => a[Math.floor(Math.random() * a.length)];
+function pickMod(list){ return list[Math.floor(Math.random() * list.length)]; }
+function randomPrepare(k){
+  const pool = FX.modules.filter(m => FX.laneEligible(m) && !m.noRandom);
+  if (!pool.length) return;
+  Engine.resetFeedback(state.sources[k].process || []);
+  const n = Math.random() < .25 ? 0 : 1 + (Math.random() < .4 ? 1 : 0);
+  const next = [];
+  for (let i = 0; i < n; i++){
+    const m = pickMod(pool);
+    if (m && FX.laneEligible(m)) next.push(makeInst(m.id, true));
+  }
+  state.sources[k].process = next;
+}
+function randomCombine(){
   const bases = FX.modules.filter(m => ['transition', 'mix', 'generator'].includes(m.cat) && !m.noRandom);
-  const effects = FX.modules.filter(m => catRole(m.cat) === 'stack' && !m.noRandom && m.kind !== '2d');
-  resetAllFeedback();
-  /* Same as today: new base + stack, sources (media, fit, Prepare) stay put. */
-  state.base = makeInst(pick(bases).id, true);
-  state.stack = [];
-  const n = 1 + Math.floor(Math.random() * 3);
-  for (let i = 0; i < n; i++) state.stack.push(makeInst(pick(effects).id, true));
-  renderBase(); renderStack(); renderLibrary(); markDirty();
-  toast(`${FX.byId[state.base.id].name} + ${state.stack.map(s => FX.byId[s.id].name).join(', ')}`);
+  if (!bases.length) return;
+  state.base = makeInst(pickMod(bases).id, true);
+}
+function randomFinish(scope){
+  const enabled = new Set(RAND_CATS.filter(c => scope[c]));
+  if (!enabled.size) return;
+  const next = [];
+  let replaced = 0;
+  for (const inst of state.stack){
+    const m = FX.byId[inst.id];
+    if (!m || !enabled.has(m.cat)){ next.push(inst); continue; }
+    const pool = FX.modules.filter(x => x.cat === m.cat && !x.noRandom);
+    if (!pool.length){ next.push(inst); continue; }
+    next.push(makeInst(pickMod(pool).id, true));
+    replaced++;
+  }
+  if (!replaced){
+    const pool = FX.modules.filter(x => enabled.has(x.cat) && !x.noRandom && catRole(x.cat) === 'stack');
+    if (pool.length){
+      const n = 1 + Math.floor(Math.random() * 3);
+      for (let i = 0; i < n; i++) next.push(makeInst(pickMod(pool).id, true));
+    }
+  }
+  state.stack = next;
+}
+function randomise(){
+  const s = App.randScope;
+  const work = s.prepareA || s.prepareB || s.combine || (s.finish && RAND_CATS.some(c => s[c]));
+  if (!work){ toast('Tick a stage in the Randomise menu first.'); return; }
+  History.record('randomise', () => {
+    resetAllFeedback();
+    if (s.prepareA) randomPrepare('A');
+    if (s.prepareB) randomPrepare('B');
+    if (s.combine) randomCombine();
+    if (s.finish) randomFinish(s);
+    renderBase(); renderStack(); renderSlots(); renderLibrary(); markDirty();
+  });
+  const bits = [];
+  if (s.prepareA) bits.push('Prepare A');
+  if (s.prepareB) bits.push('Prepare B');
+  if (s.combine) bits.push((FX.byId[state.base.id] || {}).name || 'Combine');
+  if (s.finish) bits.push(state.stack.map(x => (FX.byId[x.id] || {}).name).join(', ') || 'Finish');
+  toast(bits.join(' · '));
+}
+function setRandScope(partial){
+  App.randScope = { ...defaultRandScope(), ...App.randScope, ...partial };
+  saveRandScope();
+  syncRandMenu();
+}
+function syncRandMenu(){
+  const s = App.randScope;
+  document.querySelectorAll('#randMenu [data-rand]').forEach(inp => { inp.checked = !!s[inp.dataset.rand]; });
+  const cats = $('#randCats');
+  if (cats) cats.style.opacity = s.finish ? '1' : '.4';
+  document.querySelectorAll('#randCats [data-rand]').forEach(inp => { inp.disabled = !s.finish; });
+}
+function openRandMenu(open){
+  const menu = $('#randMenu'), btn = $('#btnRandScope');
+  if (!menu) return;
+  const on = open == null ? menu.hidden : !!open;
+  menu.hidden = !on;
+  if (btn) btn.setAttribute('aria-expanded', String(on));
+  if (on) syncRandMenu();
+}
+function initRandomiseUi(){
+  syncRandMenu();
+  $('#btnRandom').onclick = () => { openRandMenu(true); randomise(); };
+  $('#btnRandScope').onclick = e => { e.stopPropagation(); openRandMenu(); };
+  document.querySelectorAll('#randMenu [data-rand]').forEach(inp => {
+    inp.onchange = () => {
+      const key = inp.dataset.rand;
+      const next = { [key]: inp.checked };
+      if (key === 'finish' && !inp.checked) { /* cats stay as last preference */ }
+      setRandScope(next);
+    };
+  });
+  document.addEventListener('pointerdown', e => {
+    if (!$('#randMenu').hidden && !e.target.closest('#randWrap')) openRandMenu(false);
+  });
 }
 
 /* ---------- project files ---------- */
@@ -751,9 +964,10 @@ function slugName(name){
 function syncProjectName(){
   const t = $('#projTitle'); if (t) t.textContent = projectName();
 }
-function setProjectName(name){
-  state.name = String(name || '').trim();
-  syncProjectName();
+function setProjectName(name, fromHistory){
+  const next = String(name || '').trim();
+  if (fromHistory || History.silent){ state.name = next; syncProjectName(); return; }
+  History.record('name', () => { state.name = next; syncProjectName(); });
 }
 function askName(initial){
   return new Promise(resolve => {
@@ -781,10 +995,7 @@ async function saveProject(asNew){
   await download(new Blob([body], { type:'application/json' }), `${slugName(projectName())}.fxlab.json`);
 }
 function saveProjectAs(){ return saveProject(true); }
-function loadProject(text){
-  let d; try { d = JSON.parse(text); } catch { toast('That file isn’t valid JSON.', true); return; }
-  if (!d || d.app !== 'fxlab'){ toast('That isn’t an fxlab project file.', true); return; }
-  const missing = [];
+function restoreProject(d, missing){
   resetAllFeedback();
   Object.assign(state, { sizeId:d.size?.id || 'custom', W:d.size?.w || 1080, H:d.size?.h || 1080, bg:d.bg || '#000000' });
   Object.assign(state, d.timeline || {});
@@ -810,6 +1021,15 @@ function loadProject(text){
   $('#clearBg').checked = state.transparent; $('#bgColor').disabled = state.transparent; $('#stageBox').classList.toggle('clear', state.transparent);
   App.syncTop(); App.syncTimeline(); applySize(); Print.syncPreview(); renderBase(); renderStack(); renderSlots(); renderLibrary();
   syncProjectName();
+}
+function loadProject(text){
+  let d; try { d = JSON.parse(text); } catch { toast('That file isn’t valid JSON.', true); return; }
+  if (!d || d.app !== 'fxlab'){ toast('That isn’t an fxlab project file.', true); return; }
+  const missing = [];
+  History.silent = true;
+  try { restoreProject(d, missing); }
+  finally { History.silent = false; }
+  History.reset();
   toast(missing.length ? `Opened, but skipped modules: ${missing.join(', ')}` : 'Project opened. Photos and video aren’t stored in projects; drop them back in. Fonts and logos come from Assets.', !!missing.length, 5000);
 }
 
@@ -973,12 +1193,16 @@ function lookFromState(){
   };
 }
 function applyLook(data, quiet = false){
-  resetAllFeedback();
-  state.base = hydrateInst(data.base) || makeInst('src-a');
-  state.stack = (data.stack || []).map(o => hydrateInst(o)).filter(Boolean);
-  applyProcess(data);
-  if (data.timeline) Object.assign(state, data.timeline);
-  if (!quiet){ App.syncTimeline(); renderBase(); renderStack(); renderSlots(); renderLibrary(); markDirty(); }
+  const run = () => {
+    resetAllFeedback();
+    state.base = hydrateInst(data.base) || makeInst('src-a');
+    state.stack = (data.stack || []).map(o => hydrateInst(o)).filter(Boolean);
+    applyProcess(data);
+    if (data.timeline) Object.assign(state, data.timeline);
+    if (!quiet){ App.syncTimeline(); renderBase(); renderStack(); renderSlots(); renderLibrary(); markDirty(); }
+  };
+  if (quiet || History.silent) run();
+  else History.record('look', run);
 }
 function snapshotThumb(){
   const c = document.createElement('canvas'), s = 240 / Math.max(Engine.canvas.width, Engine.canvas.height);
@@ -1166,14 +1390,32 @@ function exportSequence(){
 }
 
 /* ---------- drop on stage, keyboard ---------- */
+function clearFileDrag(){
+  App.dragDepth = 0;
+  const w = $('#stageWrap'), lib = $('#lib');
+  if (w) w.classList.remove('drag');
+  if (lib) lib.classList.remove('drag');
+  document.querySelectorAll('.slot.drag').forEach(s => s.classList.remove('drag'));
+}
 function initDrop(){
-  const w = $('#stageWrap'); let depth = 0;
-  window.addEventListener('dragenter', e => { if ([...e.dataTransfer.types].includes('Files')){ depth++; const onLib = e.target.closest && e.target.closest('#lib'); w.classList.toggle('drag', !onLib); $('#lib').classList.toggle('drag', !!onLib); } });
-  window.addEventListener('dragleave', () => { depth = Math.max(0, depth - 1); if (!depth){ w.classList.remove('drag'); $('#lib').classList.remove('drag'); } });
-  window.addEventListener('dragover', e => e.preventDefault());
+  const w = $('#stageWrap');
+  const isFiles = e => e.dataTransfer && [...e.dataTransfer.types].includes('Files');
+  window.addEventListener('dragenter', e => {
+    if (!isFiles(e)) return;
+    App.dragDepth++;
+    const onLib = !!(e.target.closest && e.target.closest('#lib'));
+    w.classList.toggle('drag', !onLib);
+    $('#lib').classList.toggle('drag', onLib);
+  });
+  window.addEventListener('dragleave', e => {
+    if (!isFiles(e) && !App.dragDepth) return;
+    App.dragDepth = Math.max(0, App.dragDepth - 1);
+    if (!App.dragDepth) clearFileDrag();
+  });
+  window.addEventListener('dragover', e => { if (isFiles(e)) e.preventDefault(); });
   window.addEventListener('drop', e => {
-    e.preventDefault(); depth = 0; w.classList.remove('drag');
-    $('#lib').classList.remove('drag');
+    e.preventDefault();
+    clearFileDrag();
     const all = [...(e.dataTransfer?.files || [])];
     const assetLike = f => /\.(otf|ttf|woff2?|zip|fxkit)$/i.test(f.name);
     const onAssets = e.target.closest && e.target.closest('#lib') && $('#paneAssets').classList.contains('on');
@@ -1183,12 +1425,29 @@ function initDrop(){
     if (files.length >= 2){ loadFile('A', files[0]); loadFile('B', files[1]); }
     else loadFile(App.mediaInfo.A && App.mediaInfo.A.name !== 'Placeholder' ? 'B' : 'A', files[0]);
   });
+  window.addEventListener('dragend', clearFileDrag);
   document.addEventListener('keydown', e => {
-    if (/input|textarea|select/i.test(e.target.tagName) && e.target.type !== 'range') return;
+    if (e.key === 'Escape') clearFileDrag();
+    const mod = e.metaKey || e.ctrlKey;
+    if (mod && e.code === 'KeyZ'){
+      if (typingField(e.target)) return;
+      e.preventDefault();
+      if (e.shiftKey) History.redo(); else History.undo();
+      return;
+    }
+    if (e.ctrlKey && !e.metaKey && e.code === 'KeyY'){
+      if (typingField(e.target)) return;
+      e.preventDefault();
+      History.redo();
+      return;
+    }
+    if (typingField(e.target) || (/input|textarea|select/i.test(e.target.tagName) && e.target.type !== 'range')) return;
     if (e.code === 'Space'){ e.preventDefault(); togglePlay(); }
     else if (e.code === 'ArrowRight' || e.code === 'ArrowLeft'){ e.preventDefault(); App.playing = false; updatePlayBtn(); App.t = ((App.t + (e.code === 'ArrowRight' ? 1 : -1) / state.fps) % state.duration + state.duration) % state.duration; markDirty(); }
     else if (e.code === 'Home'){ App.t = 0; markDirty(); }
   });
+  window.addEventListener('pointerup', () => History.end());
+  window.addEventListener('pointercancel', () => History.end());
 }
 
 /* ---------- boot ---------- */
@@ -1203,15 +1462,17 @@ function boot(){
   state.stack[1].params.amount = .35;
   initTopBar(); initTimeline(); initDrop();
   $('#clearBg').checked = state.transparent;
-  $('#clearBg').onchange = e => { state.transparent = e.target.checked; $('#stageBox').classList.toggle('clear', state.transparent); $('#bgColor').disabled = state.transparent; markDirty(); };
-  $('#bgColor').value = state.bg; $('#bgColor').oninput = e => { state.bg = e.target.value; document.querySelectorAll('.slot .thumb.logo').forEach(t => t.style.setProperty('--bgc', state.bg)); markDirty(); };
-  $('#btnSwap').onclick = () => {
+  $('#clearBg').onchange = e => History.record('bg', () => { state.transparent = e.target.checked; $('#stageBox').classList.toggle('clear', state.transparent); $('#bgColor').disabled = state.transparent; markDirty(); });
+  $('#bgColor').value = state.bg;
+  $('#bgColor').oninput = e => { History.begin('bg'); state.bg = e.target.value; document.querySelectorAll('.slot .thumb.logo').forEach(t => t.style.setProperty('--bgc', state.bg)); markDirty(); };
+  bindLive($('#bgColor'), 'bg');
+  $('#btnSwap').onclick = () => History.record('swap', () => {
     const m = Engine.media; const a = { ...m.A }, b = { ...m.B };
     Engine.setMedia('A', b.el, b.w, b.h, b.video); Engine.setMedia('B', a.el, a.w, a.h, a.video);
     [App.mediaInfo.A, App.mediaInfo.B] = [App.mediaInfo.B, App.mediaInfo.A];
     [state.sources.A, state.sources.B] = [state.sources.B, state.sources.A];
     renderSlots(); markDirty();
-  };
+  });
   $('#search').oninput = renderLibrary;
   $('#libCtxDone').onclick = () => setLibTarget(null);
   App.setLibTarget = setLibTarget;
@@ -1229,7 +1490,7 @@ function boot(){
     if (App.dirty || Engine.hasVideo()){ renderAt(App.t); App.dirty = false; updateTimeUI(); }
   };
   requestAnimationFrame(tick);
-  window.fxlab = { FX, Engine, Assets, KT, Identity, Print, PRINT_SIZES, setPrintPreset, STARTER_LOOKS, TEST_LOOKS, applyLook, lookFromState, projectFromState, exportBatch, searchLibrary, state, App, renderAt, makeInst, loadProject, randomise, projectName, slugName, setProjectName, saveProject, saveProjectAs, fileStem, replaceInst, refresh:() => { renderLibrary(); renderBase(); renderStack(); renderSlots(); markDirty(); } };
+  window.fxlab = { FX, Engine, Assets, KT, Identity, Print, PRINT_SIZES, setPrintPreset, STARTER_LOOKS, TEST_LOOKS, applyLook, lookFromState, projectFromState, exportBatch, searchLibrary, state, App, History, renderAt, makeInst, loadProject, restoreProject, randomise, setRandScope, projectName, slugName, setProjectName, saveProject, saveProjectAs, fileStem, replaceInst, clearFileDrag, refresh:() => { renderLibrary(); renderBase(); renderStack(); renderSlots(); markDirty(); } };
   initAssetsUI(); initSystemUI();
 }
 

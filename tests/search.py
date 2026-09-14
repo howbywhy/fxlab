@@ -33,6 +33,7 @@ EXPECT = {
     'crop':     {'modules': ['fx-reframe'], 'looks': []},
     'zoom':     {'modules': ['fx-reframe'], 'looks': []},
     'pan':      {'modules': ['fx-reframe'], 'looks': []},
+    'spatial':  {'modules': ['kt-plane', 'kt-depth', 'kt-surface'], 'looks': []},
 }
 
 

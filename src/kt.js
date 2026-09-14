@@ -125,6 +125,27 @@ const KT = (() => {
       const top = o.y - ((n - 1) * lh) / 2 + o.cap / 2;
       return L.lines.map((ln, i) => ({ y: top + i * lh, x: o.align === 0 ? o.x : o.align === 2 ? o.x - ln.width : o.x - ln.width / 2 }));
     },
+    /* Shared camera for spatial type. +Z is away from the camera. Pitch tilts
+       around X, yaw turns around Y. focal is in pixels — smaller = stronger
+       vanishing. point() returns screen x/y, world z, and scale s. */
+    cam:{
+      rotate(x, y, z, pitch, yaw){
+        const cp = Math.cos(pitch), sp = Math.sin(pitch);
+        const y1 = y * cp - z * sp, z1 = y * sp + z * cp;
+        const cy = Math.cos(yaw), sy = Math.sin(yaw);
+        return [x * cy + z1 * sy, y1, -x * sy + z1 * cy];
+      },
+      project(x, y, z, focal){
+        const s = focal / Math.max(8, focal + z);
+        return { x:x * s, y:y * s, z, s };
+      },
+      point(x, y, z, o){
+        const r = K.cam.rotate(x, y, z, o.pitch || 0, o.yaw || 0);
+        const p = K.cam.project(r[0], r[1], r[2], o.focal);
+        return { x:(o.cx || 0) + p.x, y:(o.cy || 0) + p.y, z:r[2], s:p.s };
+      },
+      farToNear:(a, b) => b.z - a.z,
+    },
   };
   return K;
 })();

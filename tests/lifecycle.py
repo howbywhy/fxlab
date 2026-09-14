@@ -234,6 +234,37 @@ JS = """() => {
   const raw = E.canvas.toDataURL('image/png');
   S.sources.A.process = rawA; S.sources.B.process = rawB;
 
+  /* Disclosure is session UI keyed by uid — rebuilds must not reopen collapses. */
+  f.App.ui.stages.prepare = false;
+  f.App.ui.stages.combine = true;
+  f.App.ui.stages.finish = true;
+  f.refresh();
+  if (document.getElementById('secPrepare').classList.contains('open')) bad.push('Prepare collapse lost after refresh');
+  if (!document.getElementById('secFinish').classList.contains('open')) bad.push('Finish open lost after refresh');
+  S.stack = [mk('trt-grain'), mk('ovl-letterbox')];
+  f.refresh();
+  const uGrain = S.stack[0].uid, uBox = S.stack[1].uid;
+  f.App.ui.inst[uGrain] = false; f.App.ui.inst[uBox] = true;
+  f.refresh();
+  const cardsA = [...document.querySelectorAll('#secStack .card')];
+  if (!cardsA[0] || !cardsA[0].classList.contains('collapsed')) bad.push('first Finish collapse lost after rebuild');
+  if (!cardsA[1] || cardsA[1].classList.contains('collapsed')) bad.push('second Finish open lost after rebuild');
+  [S.stack[0], S.stack[1]] = [S.stack[1], S.stack[0]];
+  f.refresh();
+  const cardsB = [...document.querySelectorAll('#secStack .card')];
+  if (cardsB[0].classList.contains('collapsed')) bad.push('reorder did not keep the open module open');
+  if (!cardsB[1].classList.contains('collapsed')) bad.push('reorder did not keep the collapsed module collapsed');
+  f.replaceInst(S.stack, 0, 'trt-halftone');
+  f.refresh();
+  const grain = S.stack.find(i => i.id === 'trt-grain');
+  const grainCard = [...document.querySelectorAll('#secStack .card')][S.stack.findIndex(i => i.id === 'trt-grain')];
+  if (!grain || f.App.ui.inst[grain.uid] !== false || !grainCard || !grainCard.classList.contains('collapsed'))
+    bad.push('replace reopened an unrelated collapsed module');
+  const proj = f.projectFromState();
+  if (proj.stack.some(i => 'collapsed' in i || 'uid' in i)) bad.push('project stored disclosure or uid');
+  if (JSON.stringify(proj).includes('stageOpen') || /"ui"/.test(JSON.stringify(proj)))
+    bad.push('project stored inspector UI state');
+
   return {
     bad, png, raw,
     starters: f.STARTER_LOOKS.length,

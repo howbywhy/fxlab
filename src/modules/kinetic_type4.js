@@ -279,3 +279,157 @@ FX.register({ id:'kt-fold', name:'Fold', cat:'type', kind:'2d', desc:'Letters fo
       }
     });
   } });
+
+function spaceCam(P, w, h, extraYaw = 0, extraPitch = 0){
+  const mn = Math.min(w, h);
+  return {
+    cx:(.5 + (P.x || 0) * .45) * w + (P.vanishX || 0) * .32 * w,
+    cy:(.5 - (P.y || 0) * .45) * h - (P.vanishY || 0) * .32 * h,
+    pitch:(P.tilt || 0) * Math.PI / 180 + extraPitch,
+    yaw:(P.turn || 0) * Math.PI / 180 + extraYaw,
+    focal:mn * (.52 / Math.max(.08, P.perspective || .6)),
+  };
+}
+function spaceDrive(P, api){
+  const drive = P.drive | 0, sp = P.speed | 0;
+  if (drive === 1) return { yaw:api.loop * KT.TAU * sp, pitch:0 };
+  if (drive === 2) return { yaw:0, pitch:Math.sin(api.loop * KT.TAU * sp) * .18 };
+  return { yaw:0, pitch:0 };
+}
+function spaceFill(ctx, P, z, zSpan){
+  const t = Util.clamp((z + zSpan) / (2 * zSpan + .001));
+  ctx.fillStyle = P.far ? KT.mixHex(P.ink, P.far, t * (P.fade ?? 1)) : P.ink;
+  ctx.globalAlpha = 1 - Util.clamp(t) * (P.fade || 0) * .85;
+}
+
+/* ---- Perspective field ---- */
+FX.register({ id:'kt-plane', name:'Perspective field', cat:'type', kind:'2d', nonLocal:true,
+  search:['spatial','perspective','depth','3d','plane'],
+  desc:'Type sits on a plane in space — a floor, a wall or a tilted field — with tilt, turn and a vanishing point.',
+  params:[ ...KT.typeParams('THE FIELD\nIS A PLANE\nIN SPACE'), R('margin','Margin',.06,0,.35), R('leading','Leading',1.02,.6,1.8),
+    R('tilt','Tilt',-62,-80,80,1), R('turn','Turn',16,-80,80,1), R('perspective','Perspective',1.05,.08,2), R('scale','Scale',1.38,.35,2.6),
+    R('x','X',0,-1,1), R('y','Y',.06,-1,1), R('vanishX','Vanishing X',0,-1,1), R('vanishY','Vanishing Y',.28,-1,1),
+    S('drive','Motion',['Static','Turn with the loop','Nod with the loop']), I('speed','Loops per cycle',1,0,6),
+    S('align','Align',['Left','Centre','Right'],1), C('ink','Ink','#e4e2dc'), ...KT.groundParams(0) ],
+  draw(ctx, api){
+    const P = api.params, { w, h } = api; KT.ground(ctx, api);
+    const text = KT.text(P); if (!text.trim()) return;
+    const mn = Math.min(w, h), mg = P.margin * mn, sc = P.scale;
+    const size = KT.fit(ctx, P, text, (w - mg * 2) / sc, (h - mg * 2) / sc, P.leading);
+    ctx.font = KT.font(P, size); const M = KT.metrics(ctx, size);
+    const L = KT.layout(ctx, text, { font:ctx.font, size, tracking:-.02 });
+    const pos = KT.place(L, { size, leading:P.leading, cap:M.cap, align:P.align | 0, x:0, y:0 });
+    const mot = spaceDrive(P, api), cam = spaceCam(P, w, h, mot.yaw, mot.pitch);
+    const marks = [];
+    L.lines.forEach((ln, li) => ln.glyphs.forEach(g => {
+      if (g.space) return;
+      const lx = (pos[li].x + g.x + g.w / 2) * sc, ly = (pos[li].y - M.cap * .35) * sc;
+      const p0 = KT.cam.point(lx, ly, 0, cam);
+      const px = KT.cam.point(lx + 16, ly, 0, cam), py = KT.cam.point(lx, ly + 16, 0, cam);
+      marks.push({ ch:g.ch, p0, xx:(px.x - p0.x) / 16, xy:(px.y - p0.y) / 16, yx:(py.x - p0.x) / 16, yy:(py.y - p0.y) / 16, z:p0.z });
+    }));
+    marks.sort(KT.cam.farToNear);
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = P.ink;
+    for (const m of marks){
+      if (m.p0.s < .04) continue;
+      ctx.save();
+      ctx.setTransform(m.xx, m.xy, m.yx, m.yy, m.p0.x, m.p0.y);
+      ctx.globalAlpha = Util.clamp(.28 + .72 * m.p0.s);
+      ctx.fillText(m.ch, 0, 0);
+      ctx.restore();
+    }
+    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1;
+  } });
+
+/* ---- Depth field ---- */
+FX.register({ id:'kt-depth', name:'Depth field', cat:'type', kind:'2d', nonLocal:true,
+  search:['spatial','perspective','depth','3d'],
+  desc:'Words occupy different depths — a near-to-far stack you can hold still or send traveling toward the camera.',
+  params:[ ...KT.typeParams('NEAR\nMIDDLE\nFAR'), I('copies','Copies (0 = one per line)',0,0,12), R('depth','Depth',.85,.15,2.2),
+    R('spread','Spread',.08,0,.7), R('size','Type size',9,4,36,.1), R('travel','Travel',0,0,1), R('fade','Fade with depth',.5,0,1),
+    R('perspective','Perspective',.85,.08,2), R('x','X',0,-1,1), R('y','Y',.08,-1,1),
+    C('ink','Ink','#e4e2dc'), C('far','Far ink','#6a6864'), ...KT.groundParams(0) ],
+  draw(ctx, api){
+    const P = api.params, { w, h } = api; KT.ground(ctx, api);
+    let items = KT.text(P).split(/\n/).map(s => s.trim()).filter(Boolean);
+    if (!items.length) return;
+    const nCopy = P.copies | 0;
+    if (nCopy > 0) items = Array.from({ length:nCopy }, (_, i) => items[i % items.length]);
+    const n = items.length, mn = Math.min(w, h), span = P.depth * mn;
+    const size = P.size / 100 * mn;
+    ctx.font = KT.font(P, size); const M = KT.metrics(ctx, size);
+    const cam = spaceCam(P, w, h);
+    const marks = items.map((word, i) => {
+      const u = n === 1 ? 0 : i / (n - 1);
+      let z = (u - .5) * span;
+      if (P.travel){ z = ((z + span * .5 + api.loop * P.travel * span) % span + span) % span - span * .5; }
+      const sx = (KT.rnd(i, 3) - .5) * P.spread * w;
+      const sy = (.32 - u) * .2 * h + (KT.rnd(i, 7) - .5) * P.spread * h * .2;
+      const p = KT.cam.point(sx, sy, z, cam);
+      p.s = Util.clamp(p.s, .3, 1.05);
+      return { word, p, z };
+    });
+    marks.sort(KT.cam.farToNear);
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    for (const m of marks){
+      ctx.save();
+      ctx.translate(m.p.x, m.p.y);
+      ctx.scale(m.p.s, m.p.s);
+      spaceFill(ctx, P, m.z, span * .5);
+      ctx.font = KT.font(P, size);
+      ctx.fillText(m.word, 0, M.cap * .15);
+      ctx.restore();
+    }
+    ctx.globalAlpha = 1;
+  } });
+
+/* ---- Type cylinder ---- */
+FX.register({ id:'kt-surface', name:'Type cylinder', cat:'type', kind:'2d', nonLocal:true,
+  search:['spatial','perspective','3d','surface'],
+  desc:'Letters wrap around a cylinder — a shallow curve, a full volume, or a cropped surface in perspective.',
+  params:[ ...KT.typeParams('WRAP AROUND'), R('size','Type size',12,2,20,.1), R('radius','Radius',.42,.08,.7), R('wrap','Wrap',.5,.2,1),
+    I('rows','Rows',1,1,5), I('repeats','Repeats',1,1,8), R('rowGap','Row gap',1.25,.7,2),
+    R('tilt','Tilt',26,-70,70,1), R('turn','Turn',0,-180,180,1), R('perspective','Perspective',.7,.08,2),
+    R('x','X',0,-1,1), R('y','Y',0,-1,1), S('drive','Motion',['Static','Spin with the loop']), I('speed','Loops per cycle',1,-6,6),
+    T('hideBack','Hide the far side',true), C('ink','Ink','#e4e2dc'), C('far','Far side','#7a7772'), ...KT.groundParams(0) ],
+  draw(ctx, api){
+    const P = api.params, { w, h } = api; KT.ground(ctx, api);
+    const text = KT.text(P).replace(/\n/g, ' '); if (!text.trim()) return;
+    const mn = Math.min(w, h), size = P.size / 100 * mn, rad = P.radius * mn;
+    ctx.font = KT.font(P, size); const M = KT.metrics(ctx, size);
+    const unit = KT.layout(ctx, text, { font:ctx.font, size, tracking:0 }).lines[0];
+    if (!unit || !unit.width) return;
+    const reps = Math.max(1, P.repeats | 0), rows = Math.max(1, P.rows | 0);
+    const spin = (P.drive | 0) === 1 ? api.loop * KT.TAU * (P.speed | 0) : 0;
+    const cam = spaceCam(P, w, h, spin, 0);
+    const k = (P.wrap * KT.TAU * rad) / (reps * unit.width);
+    const marks = [];
+    for (let row = 0; row < rows; row++){
+      const ly = (row - (rows - 1) / 2) * size * P.rowGap;
+      for (let r = 0; r < reps; r++) unit.glyphs.forEach(g => {
+        if (g.space) return;
+        const d = r * unit.width + g.x + g.w / 2;
+        const th = d * k / rad - P.wrap * Math.PI;
+        const lx = Math.sin(th) * rad, lz = -Math.cos(th) * rad;
+        const dth = 8 / Math.max(8, rad);
+        const p0 = KT.cam.point(lx, ly, lz, cam);
+        const p1 = KT.cam.point(Math.sin(th + dth) * rad, ly, -Math.cos(th + dth) * rad, cam);
+        const p2 = KT.cam.point(lx, ly + 12, lz, cam);
+        marks.push({ ch:g.ch, p0, xx:(p1.x - p0.x) / 8, xy:(p1.y - p0.y) / 8, yx:(p2.x - p0.x) / 12, yy:(p2.y - p0.y) / 12, z:p0.z, back:lz > .02 * rad });
+      });
+    }
+    marks.sort(KT.cam.farToNear);
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    for (const m of marks){
+      if (P.hideBack && m.back) continue;
+      if (m.p0.s < .05) continue;
+      ctx.save();
+      ctx.setTransform(m.xx, m.xy, m.yx, m.yy, m.p0.x, m.p0.y);
+      ctx.fillStyle = m.back ? P.far : P.ink;
+      ctx.globalAlpha = m.back ? .55 : Util.clamp(.35 + .65 * m.p0.s);
+      ctx.fillText(m.ch, 0, 0);
+      ctx.restore();
+    }
+    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1;
+    void M;
+  } });

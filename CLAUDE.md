@@ -61,7 +61,8 @@ FX.register({
 - GLSL helpers live in the prelude in `src/glsl.js` (`luma fbm hash12 rot
   centered aspect blendMode bayer8 backdrop`…). Add there, not per module.
 - Type modules use `KT` (`KT.fit`, `KT.layout`, `KT.stagger`, `KT.ground`,
-  `KT.wrap`); logo modules use `Brand` and `Assets.image/tinted`.
+  `KT.wrap`); spatial type uses `KT.cam` (`rotate`, `project`, `point`).
+  Logo modules use `Brand` and `Assets.image/tinted`.
 - Outline-level type uses `Glyphs.layout`, which traces contours from any font.
 
 ### Defaults matter
@@ -110,7 +111,7 @@ needs a literal (paper, pen inks).
 
 ## Current shape (keep this roughly up to date)
 
-173 modules: 42 kinetic type, 30 effects, 25 treatments, 22 generators,
+176 modules: 45 kinetic type, 30 effects, 25 treatments, 22 generators,
 19 transitions, 13 logo & brand, 12 mix & mask, 8 overlays, 2 sources.
 17 starter looks. Optional Prepare lists (`sources.A.process` /
 `sources.B.process`) run treatments and `fx-reframe` only (`FX.laneEligible`)

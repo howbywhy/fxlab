@@ -41,7 +41,7 @@ function makeInst(id, randomize = false){
     if (randomize && p.type === 'color' && linked === undefined && Assets.palette.length > 1) v = Assets.palette[Math.floor(Math.random() * Assets.palette.length)].hex;
     params[p.id] = v;
   }
-  return { uid:uidSeq++, id, on:true, params, collapsed:true };
+  return { uid:uidSeq++, id, on:true, params };
 }
 
 const state = {
@@ -53,7 +53,8 @@ const state = {
 const App = {
   t:0, playing:true, dirty:true, exporting:false, cancel:false, mediaInfo:{ A:null, B:null },
   stageOn:{ prepare:true, finish:true },
-  stageOpen:{ prepare:false, combine:false, finish:false },
+  /* Session-only inspector disclosure. Not saved in projects. Key instances by uid. */
+  ui:{ stages:{ prepare:true, combine:true, finish:true }, inst:Object.create(null) },
   libTarget:null, libReplace:null,
   exportDir:null, exportDirPending:null, exportDirPersisted:false,
 };
@@ -72,6 +73,11 @@ function renderAt(t){
   Engine.frame(state, t, globalsAt(t));
 }
 const markDirty = () => { App.dirty = true; };
+function stageIsOpen(id){ return App.ui.stages[id] !== false; }
+function setStageOpen(id, open){ App.ui.stages[id] = !!open; }
+function instIsOpen(uid){ return App.ui.inst[uid] !== false; }
+function setInstOpen(uid, open){ App.ui.inst[uid] = !!open; }
+function openNewInst(uid){ App.ui.inst[uid] = true; }
 
 /* ---------- toast ---------- */
 let toastTimer;
@@ -355,6 +361,7 @@ function replaceInst(list, idx, id){
   const inst = makeInst(id);
   inst.on = old.on !== false;
   list[idx] = inst;
+  openNewInst(inst.uid);
 }
 function chooseModule(id){
   const m = FX.byId[id];
@@ -380,7 +387,8 @@ function chooseModule(id){
   }
   if (ctx === 'prepareA' || ctx === 'prepareB'){
     if (!FX.laneEligible(m)) return;
-    state.sources[ctx === 'prepareA' ? 'A' : 'B'].process.push(makeInst(id));
+    const added = makeInst(id); openNewInst(added.uid);
+    state.sources[ctx === 'prepareA' ? 'A' : 'B'].process.push(added);
     renderSlots(); markDirty();
     return;
   }
@@ -394,12 +402,13 @@ function chooseModule(id){
   }
   if (ctx === 'finish'){
     if (catRole(m.cat) !== 'stack') return;
-    state.stack.push(makeInst(id));
+    const added = makeInst(id); openNewInst(added.uid);
+    state.stack.push(added);
     renderStack(); markDirty();
     return;
   }
   if (catRole(m.cat) === 'base'){ state.base = makeInst(id); renderBase(); renderLibrary(); }
-  else { state.stack.push(makeInst(id)); renderStack(); }
+  else { const added = makeInst(id); openNewInst(added.uid); state.stack.push(added); renderStack(); }
   markDirty();
 }
 
@@ -536,7 +545,7 @@ function renderStageHeads(){
   ];
   stages.forEach(st => {
     const sec = $(`#sec${st.name}`);
-    sec.classList.toggle('open', App.stageOpen[st.id] !== false);
+    sec.classList.toggle('open', stageIsOpen(st.id));
     const hdr = $(`#hdr${st.name}`); hdr.innerHTML = '';
     hdr.append(el('span', 'stage-n', st.n), el('span', 'stage-name', st.name));
     const on = el('span', 'stage-on' + (st.on ? ' on' : '') + (st.canBypass ? '' : ' fixed'));
@@ -554,8 +563,8 @@ function renderStageHeads(){
     hdr.append(el('div', 'stage-sum', st.summary));
     hdr.onclick = e => {
       if (e.target.closest('.stage-on')) return;
-      App.stageOpen[st.id] = !sec.classList.contains('open');
-      sec.classList.toggle('open', App.stageOpen[st.id]);
+      setStageOpen(st.id, !stageIsOpen(st.id));
+      sec.classList.toggle('open', stageIsOpen(st.id));
     };
   });
 }
@@ -587,18 +596,18 @@ function renderStack(){
   }
   state.stack.forEach((inst, idx) => {
     const m = FX.byId[inst.id];
-    const card = el('div', 'card'); if (!inst.on) card.classList.add('off'); if (inst.collapsed) card.classList.add('collapsed');
+    const card = el('div', 'card'); if (!inst.on) card.classList.add('off'); if (!instIsOpen(inst.uid)) card.classList.add('collapsed');
     if (App.libTarget === 'replaceFinish' && App.libReplace === idx) card.classList.add('replacing');
     const ch = el('div', 'ch'); ch.draggable = true;
     const num = el('span', 'step', String(idx + 1)); num.title = `Runs ${['first', 'second', 'third'][idx] || `${idx + 1}th`}`;
     const nm = el('div', 'nm'); nm.append(m.name, el('small', null, (CATS.find(c => c.id === m.cat) || {}).label));
     if (!inst.on) nm.append(el('small', 'hiddenTag', 'off'));
-    nm.onclick = () => { inst.collapsed = !inst.collapsed; card.classList.toggle('collapsed', inst.collapsed); };
+    nm.onclick = ev => { ev.stopPropagation(); setInstOpen(inst.uid, !instIsOpen(inst.uid)); card.classList.toggle('collapsed', !instIsOpen(inst.uid)); };
     const mk = (txt, title, fn) => { const b = el('button', 'ghost icon', txt); b.title = title; b.onclick = fn; return b; };
     ch.append(eyeBtn(inst, m.name, renderStack), num, nm, changeBtn('finish', idx),
       mk('↑', 'Move up', () => { if (idx > 0){ [state.stack[idx - 1], state.stack[idx]] = [state.stack[idx], state.stack[idx - 1]]; renderStack(); markDirty(); } }),
       mk('↓', 'Move down', () => { if (idx < state.stack.length - 1){ [state.stack[idx + 1], state.stack[idx]] = [state.stack[idx], state.stack[idx + 1]]; renderStack(); markDirty(); } }),
-      mk('⧉', 'Duplicate', () => { const c = makeInst(inst.id); c.params = JSON.parse(JSON.stringify(inst.params)); state.stack.splice(idx + 1, 0, c); renderStack(); markDirty(); }),
+      mk('⧉', 'Duplicate', () => { const c = makeInst(inst.id); c.params = JSON.parse(JSON.stringify(inst.params)); openNewInst(c.uid); state.stack.splice(idx + 1, 0, c); renderStack(); markDirty(); }),
       mk('×', 'Remove', () => { Engine.resetFeedback([inst]); state.stack.splice(idx, 1); renderStack(); markDirty(); }));
     ch.ondragstart = e => { dragUid = inst.uid; card.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', String(inst.uid)); };
     ch.ondragend = () => { dragUid = null; card.classList.remove('dragging'); };
@@ -650,12 +659,12 @@ function renderSlots(){
     s.process.forEach((inst, idx) => {
       const m = FX.byId[inst.id];
       if (!m) return;
-      const card = el('div', 'card'); if (!inst.on) card.classList.add('off'); if (inst.collapsed) card.classList.add('collapsed');
+      const card = el('div', 'card'); if (!inst.on) card.classList.add('off'); if (!instIsOpen(inst.uid)) card.classList.add('collapsed');
       if ((App.libTarget === 'replacePrepareA' && k === 'A' || App.libTarget === 'replacePrepareB' && k === 'B') && App.libReplace === idx) card.classList.add('replacing');
       const ch = el('div', 'ch');
       const nm = el('div', 'nm'); nm.append(m.name);
       if (!inst.on) nm.append(el('small', 'hiddenTag', 'off'));
-      nm.onclick = () => { inst.collapsed = !inst.collapsed; card.classList.toggle('collapsed', inst.collapsed); };
+      nm.onclick = ev => { ev.stopPropagation(); setInstOpen(inst.uid, !instIsOpen(inst.uid)); card.classList.toggle('collapsed', !instIsOpen(inst.uid)); };
       const mk = (txt, title, fn) => { const b = el('button', 'ghost icon', txt); b.title = title; b.onclick = fn; return b; };
       ch.append(eyeBtn(inst, m.name, renderSlots), nm, changeBtn(k, idx),
         mk('↑', 'Move up', () => { if (idx > 0){ [s.process[idx - 1], s.process[idx]] = [s.process[idx], s.process[idx - 1]]; renderSlots(); markDirty(); } }),

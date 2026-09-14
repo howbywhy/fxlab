@@ -35,7 +35,7 @@ function useAssetAsSource(k, id){
 }
 
 function addLogoModule(id){
-  const inst = makeInst('lg-logo'); inst.params.logo = 'asset:' + id;
+  const inst = makeInst('lg-logo'); inst.params.logo = 'asset:' + id; openNewInst(inst.uid);
   state.stack.push(inst); renderStack(); markDirty();
   toast(`Added a Logo layer to Finish`);
 }

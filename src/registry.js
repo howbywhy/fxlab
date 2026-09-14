@@ -43,6 +43,7 @@
      uPx (output px per preview px — use for crisp 1px lines at any preview quality)
    Helpers: luma hash12 hash22 vnoise fbm rot centered uncentered
      mirrorUv hsv2rgb rgb2hsv blendMode bayer2/4/8 sdRoundBox sdTri
+   Spatial type: KT.cam.rotate / project / point (pitch, yaw, focal). +Z away.
    Where to paste: the "YOUR MODULES" block just below this header.
    After saving the file, reload the page. Shader errors appear on screen.
    Tip: drive animation with uLoop (cos/sin(uLoop*TAU)) so loops are seamless.

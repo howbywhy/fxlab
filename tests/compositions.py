@@ -228,6 +228,30 @@ ROWS = [
         }},
         'stack': [],
     },
+    {
+        'name': 'depth-over-prepared',
+        'why': 'spatial depth type over independently prepared A/B through tiles',
+        'alters': True,
+        't': 1.6,
+        'processA': [{'id': 'trt-splittone', 'params': {'contrast': 1.3}}],
+        'processB': [{'id': 'trt-riso'}],
+        'base': {'id': 'tr-tiles', 'params': {'tiles': 4, 'pattern': 0, 'mode': 0, 'stagger': .4}},
+        'stack': [{'id': 'kt-depth', 'params': {'ground': 0, 'text': 'NEAR\nMIDDLE\nFAR', 'ink': '#ff5a36', 'far': '#141516', 'size': 12}}],
+    },
+    {
+        'name': 'plane-over-generator',
+        'why': 'spatial type as a stack primitive over a generator',
+        'alters': True,
+        'base': {'id': 'gen-stripes'},
+        'stack': [{'id': 'kt-plane', 'params': {'ground': 0, 'drive': 0, 'tilt': 8, 'turn': 26, 'y': 0, 'vanishY': 0}}],
+    },
+    {
+        'name': 'plane-over-image',
+        'why': 'spatial type over an image-led frame',
+        'alters': True,
+        'base': {'id': 'src-a'},
+        'stack': [{'id': 'kt-plane', 'params': {'ground': 0, 'drive': 0, 'tilt': -62, 'turn': -8, 'scale': 1.35}}],
+    },
 ]
 
 JS = """(row) => {

@@ -43,7 +43,7 @@ Follow the `FX.register({...})` shape in `src/registry.js`'s header comment and 
 Check whether a helper already exists before adding one.
 
 - GLSL prelude: `src/glsl.js` (`luma`, `fbm`, `hash12`, `rot`, `centered`, `aspect`, `blendMode`, `bayer8`, `tileTex`, `sdRoundBox`, `sdTri`…).
-- Type: `src/kt.js` (`KT.fit`, `KT.layout`, `KT.stagger`, `KT.ground`, `KT.wrap`, `KT.text`, `KT.mixHex`, `KT.beats`, `KT.motionSlant`).
+- Type: `src/kt.js` (`KT.fit`, `KT.layout`, `KT.stagger`, `KT.ground`, `KT.wrap`, `KT.text`, `KT.mixHex`, `KT.beats`, `KT.motionSlant`, `KT.cam`).
 - Colour / misc: `src/registry.js` (`Util.hexToRgb`, `Util.family`, `Util.hash`, `Util.clamp`, `Util.textBlock`).
 - Logos: `Brand` and `Assets.image` / `Assets.tinted`.
 - Outlines: `Glyphs.layout`.

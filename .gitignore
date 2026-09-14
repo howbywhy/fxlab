@@ -1,0 +1,6 @@
+.DS_Store
+dist/fxlab.html
+dist/index.html
+tests/assets/*
+!tests/assets/.gitkeep
+!tests/assets/README.md

@@ -52,18 +52,12 @@ JS = """({ ids, expected }) => {
 
 
 EXPECTED = {
-    'kt-cycle': 'flicks to a new random style on the beat',
-    'kt-words': 'cuts to the next word at the loop point',
-    'kt-labels': 'labels clear and restart',
-    'kt-stack': 'the solid row jumps to its next position',
-    'lg-stamp': 'stamps clear at the loop point',
-    'lg-colourways': 'cuts to the next colourway',
     'fx-scangrid': 'the scan line restarts',
+    'fx-scanstretch': 'the jagged scan edge is reseeded from wall-clock time',
     'trt-film': 'grain, weave and dust run off wall-clock time',
     'fx-shake': 'handheld drift runs off wall-clock time',
     'fx-glitch': 'glitch bursts run off wall-clock time',
     'trt-photocopy': 'flicker runs off wall-clock time',
-    'kt-captions': 'the caption resets to the first word',
     'ovl-progress': 'a scrubber tracks position and resets each loop, by design',
     'ovl-scratches': 'dust and scratches flicker runs off wall-clock time',
 }

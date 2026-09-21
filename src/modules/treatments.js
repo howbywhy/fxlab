@@ -40,15 +40,17 @@ FX.register({ id:'trt-threshold', name:'Threshold', cat:'treatment', desc:'One-b
   return vec4(mix(p_dark, p_light, smoothstep(p_level - s, p_level + s, l)), 1.);
 }` });
 
-FX.register({ id:'trt-dither', name:'Dither', cat:'treatment', desc:'Ordered Bayer or noise dithering at chunky pixel sizes.',
-  params:[ R('pixel','Pixel size',3,1,24,1), S('matrix','Pattern',['Bayer 2×2','Bayer 4×4','Bayer 8×8','Noise']), I('levels','Levels',2,2,16), R('contrast','Contrast',1,0,3), T('mono','Two-colour',true), C('dark','Dark','#131313'), C('light','Light','#e8e4d8'), T('animate','Animate noise') ],
+FX.register({ id:'trt-dither', name:'Dither', cat:'treatment', desc:'Ordered Bayer, white noise or blue-ish noise dithering at chunky pixel sizes.',
+  params:[ R('pixel','Pixel size',3,1,24,1), S('matrix','Pattern',['Bayer 2×2','Bayer 4×4','Bayer 8×8','Noise','Blue-ish noise']), I('levels','Levels',2,2,16), R('contrast','Contrast',1,0,3), T('mono','Two-colour',true), C('dark','Dark','#131313'), C('light','Light','#e8e4d8'), T('animate','Animate noise') ],
   fs:`vec4 fx(vec2 uv){
   float px = max(1., p_pixel);
   vec2 cell = floor(uv * uRes / px);
   vec3 c = texture(uInput, (cell + .5) * px / uRes).rgb;
   c = (c - .5) * p_contrast + .5;
   int m = int(p_matrix + .5);
-  float th = m == 0 ? bayer2(cell) : m == 1 ? bayer4(cell) : m == 2 ? bayer8(cell) : hash12(cell + floor(uTime * 12.) * p_animate);
+  /* interleaved gradient noise: its error sits at high frequencies, so it reads finer than white noise */
+  float ign = fract(52.9829189 * fract(dot(cell + floor(uTime * 12.) * p_animate * 5.588, vec2(.06711056, .00583715))));
+  float th = m == 0 ? bayer2(cell) : m == 1 ? bayer4(cell) : m == 2 ? bayer8(cell) : m == 3 ? hash12(cell + floor(uTime * 12.) * p_animate) : ign;
   float lv = max(p_levels - 1., 1.);
   if (p_mono > .5){ float q = floor(luma(c) * lv + th) / lv; return vec4(mix(p_dark, p_light, clamp(q, 0., 1.)), 1.); }
   return vec4(clamp(floor(c * lv + th) / lv, 0., 1.), 1.);
@@ -92,13 +94,13 @@ FX.register({ id:'trt-pixelate', name:'Mosaic', cat:'treatment', desc:'Pixel blo
 }` });
 
 FX.register({ id:'trt-ascii', name:'ASCII', cat:'treatment', desc:'Rebuilds the frame from characters.',
-  params:[ F('font','Font','Helvetica','text'), R('cell','Cell size',12,4,48,1), S('charset','Characters',['Classic',  'Dense', 'Blocks', 'Binary', 'Dots']), S('colorMode','Colour',['From image','Single ink']), C('fg','Ink','#c9f5e4'), C('bg','Ground','#0c0d0e'), R('contrast','Contrast',1.2,0,3), R('boost','Colour boost',1.3,.5,3), T('invert','Invert') ],
+  params:[ S('face','Face',['Mono','Sans','Serif'],0), R('cell','Cell size',12,4,48,1), S('charset','Characters',['Classic',  'Dense', 'Blocks', 'Binary', 'Dots']), S('colorMode','Colour',['From image','Single ink']), C('fg','Ink','#c9f5e4'), C('bg','Ground','#0c0d0e'), R('contrast','Contrast',1.2,0,3), R('boost','Colour boost',1.3,.5,3), T('invert','Invert') ],
   auxSize(P){ const sets = [' .:-=+*#%@', ' .\'`^",:;Il!i><~+_-?][}{1)(|/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$', ' ░▒▓█', ' 01', ' ·•●']; return [sets[P.charset|0].length * 64, 64]; },
   aux(ctx, P, w, h){
     const sets = [' .:-=+*#%@', ' .\'`^",:;Il!i><~+_-?][}{1)(|/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$', ' ░▒▓█', ' 01', ' ·•●'];
     const chars = [...sets[P.charset|0]];
     ctx.fillStyle = '#000'; ctx.fillRect(0, 0, w, h);
-    ctx.fillStyle = '#fff'; ctx.font = `500 52px ${Util.family(P)}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#fff'; ctx.font = `500 52px ${Util.fonts[[2, 0, 1][P.face | 0]]}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     chars.forEach((ch, i) => ctx.fillText(ch, i * 64 + 32, 34));
     return [chars.length, 64, 0, 0];
   },

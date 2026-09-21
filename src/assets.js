@@ -1,13 +1,11 @@
-/* ---------------- Assets: fonts, logos, palette ----------------
-   Files live in this browser (IndexedDB), never inside fxlab.html,
-   so licensed fonts stay with you. Kits (.fxkit) move them between
-   browsers or machines.
+/* ---------------- Assets: images and palette ----------------
+   Files live in this browser (IndexedDB), never inside fxlab.html.
+   Kits (.fxkit) move them between browsers or machines.
 ------------------------------------------------------------------ */
 const Assets = (() => {
-  const A = { list:[], byId:{}, palette:[], kitName:'Brand kit', defaultFont:'', identity:null, version:0, persistent:false, ready:null, onChange:null };
-  const FONT_EXT = ['otf', 'ttf', 'woff', 'woff2'];
+  const A = { list:[], byId:{}, palette:[], kitName:'Palette kit', identity:null, version:0, persistent:false, ready:null, onChange:null };
   const IMG_EXT = ['svg', 'png', 'jpg', 'jpeg', 'webp', 'gif'];
-  const MIME = { otf:'font/otf', ttf:'font/ttf', woff:'font/woff', woff2:'font/woff2', svg:'image/svg+xml', png:'image/png', jpg:'image/jpeg', jpeg:'image/jpeg', webp:'image/webp', gif:'image/gif' };
+  const MIME = { svg:'image/svg+xml', png:'image/png', jpg:'image/jpeg', jpeg:'image/jpeg', webp:'image/webp', gif:'image/gif' };
   const ext = n => (String(n).split('.').pop() || '').toLowerCase();
   const stem = n => String(n).split('/').pop().replace(/\.[^.]+$/, '');
   const changed = () => { A.version++; A.onChange && A.onChange(); };
@@ -51,7 +49,7 @@ const Assets = (() => {
   const dbDel = id => tx('assets', 'readwrite', s => s.delete(id));
   const dbClear = () => tx('assets', 'readwrite', s => s.clear());
   const dbAll = () => tx('assets', 'readonly', s => s.getAll());
-  const saveMeta = () => tx('meta', 'readwrite', s => s.put({ palette:A.palette, kitName:A.kitName, defaultFont:A.defaultFont, identity:A.identity }, 'kit'));
+  const saveMeta = () => tx('meta', 'readwrite', s => s.put({ palette:A.palette, kitName:A.kitName, identity:A.identity }, 'kit'));
   const loadMeta = () => tx('meta', 'readonly', s => s.get('kit'));
   A.metaGet = key => tx('meta', 'readonly', s => s.get(key));
   A.metaPut = (key, val) => tx('meta', 'readwrite', s => s.put(val, key));
@@ -89,38 +87,6 @@ const Assets = (() => {
     return out;
   }
 
-  /* ---------- fonts ---------- */
-  function fontName(u8){
-    try {
-      const dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
-      const sig = dv.getUint32(0);
-      if (sig !== 0x00010000 && sig !== 0x4F54544F && sig !== 0x74727565) return null; /* only raw OTF/TTF */
-      const num = dv.getUint16(4);
-      for (let i = 0; i < num; i++){
-        const r = 12 + i * 16;
-        if (String.fromCharCode(u8[r], u8[r + 1], u8[r + 2], u8[r + 3]) !== 'name') continue;
-        const t = dv.getUint32(r + 8), cnt = dv.getUint16(t + 2), so = t + dv.getUint16(t + 4), names = {};
-        for (let j = 0; j < cnt; j++){
-          const q = t + 6 + j * 12, plat = dv.getUint16(q), id = dv.getUint16(q + 6), len = dv.getUint16(q + 8), o = so + dv.getUint16(q + 10);
-          if (![1, 2, 4, 16, 17].includes(id)) continue;
-          let str = '';
-          if (plat === 3 || plat === 0){ for (let k = 0; k < len; k += 2) str += String.fromCharCode(dv.getUint16(o + k)); if (!names[id] || plat === 3) names[id] = str; }
-          else if (plat === 1 && !names[id]){ for (let k = 0; k < len; k++) str += String.fromCharCode(u8[o + k]); names[id] = str; }
-        }
-        const full = names[4] || [names[16] || names[1], names[17] || names[2]].filter(Boolean).join(' ');
-        return full && full.replace(/[.\s]/g, '').length > 1 ? full.trim() : null;
-      }
-    } catch {}
-    return null;
-  }
-  async function activateFont(a){
-    a.family = `fxa-${a.id}`;
-    const face = new FontFace(a.family, await a.blob.arrayBuffer(), { weight:'1 1000', style:'normal', display:'block' });
-    await face.load();
-    document.fonts.add(face);
-    a.face = face;
-  }
-
   /* ---------- images ---------- */
   function svgColors(text){
     const found = [];
@@ -156,51 +122,54 @@ const Assets = (() => {
     c.getContext('2d').drawImage(a.img, 0, 0, c.width, c.height);
     return (a.raster = c);
   }
-  const tintCache = new Map();
+
+  /* An SVG used as a source keeps its own canvas, tagged with vecId, so the engine can draw it
+     again at the size the frame needs (drawImage re-renders an SVG image as vectors) instead of
+     stretching a fixed 2048 px raster. Other users of Assets.image keep the shared raster. */
+  const VEC_MAX = 4096;
+  function rasterTo(c, long){
+    const a = A.byId[c.vecId]; if (!a) return c;
+    const s = Math.min(VEC_MAX, Math.max(256, long)) / Math.max(a.w, a.h);
+    const w = Math.max(1, Math.round(a.w * s)), h = Math.max(1, Math.round(a.h * s));
+    if (c.width !== w || c.height !== h){ c.width = w; c.height = h; }
+    const x = c.getContext('2d'); x.clearRect(0, 0, w, h); x.drawImage(a.img, 0, 0, w, h);
+    return c;
+  }
+  A.rasterTo = rasterTo;
+  A.isVector = ref => { const a = A.get(ref); return !!a && a.mime === 'image/svg+xml'; };
+  A.sourceImage = ref => {
+    const a = A.get(ref); if (!a || a.kind !== 'image') return null;
+    if (a.mime !== 'image/svg+xml') return raster(a);
+    if (!a.srcRaster){ const c = document.createElement('canvas'); c.vecId = a.id; a.srcRaster = rasterTo(c, 2048); }
+    return a.srcRaster;
+  };
 
   /* ---------- registry ---------- */
   async function activate(a){
-    if (a.kind === 'font') await activateFont(a);
-    else await activateImage(a);
+    await activateImage(a);
     A.list.push(a); A.byId[a.id] = a;
   }
-  A.get = ref => { if (!ref) return null; if (String(ref).startsWith('role:')) ref = Identity.logoRef(ref); if (!ref) return null; const id = String(ref).replace(/^asset:/, ''); return A.byId[id] || null; };
-  A.fonts = () => A.list.filter(a => a.kind === 'font').sort((a, b) => a.name.localeCompare(b.name));
-  /* the font new type modules start with: the starred one, else the plainest name */
-  A.pickFont = () => {
-    const f = A.fonts(); if (!f.length) return null;
-    return A.byId[A.defaultFont] || [...f].sort((a, b) => (/italic|oblique|reverse|slant/i.test(a.name) - /italic|oblique|reverse|slant/i.test(b.name)) || a.name.length - b.name.length)[0];
-  };
-  A.setDefaultFont = async id => { A.defaultFont = A.defaultFont === id ? '' : id; await saveMeta(); changed(); };
+  A.get = ref => { if (!ref) return null; const id = String(ref).replace(/^asset:/, ''); return A.byId[id] || null; };
   A.images = () => A.list.filter(a => a.kind === 'image');
   A.image = ref => { const a = A.get(ref); return a && a.kind === 'image' ? raster(a) : null; };
-  A.tinted = (ref, color) => {
-    const a = A.get(ref); if (!a || a.kind !== 'image') return null;
-    const key = a.id + color; if (tintCache.has(key)) return tintCache.get(key);
-    const src = raster(a), c = document.createElement('canvas'); c.width = src.width; c.height = src.height;
-    const x = c.getContext('2d'); x.drawImage(src, 0, 0); x.globalCompositeOperation = 'source-in'; x.fillStyle = color; x.fillRect(0, 0, c.width, c.height);
-    tintCache.set(key, c); if (tintCache.size > 40) tintCache.delete(tintCache.keys().next().value);
-    return c;
-  };
 
   /* file-like {name, data:Uint8Array} → pending asset records */
   function classify(name){
     const base = name.split('/').pop();
     if (name.includes('__MACOSX/') || base.startsWith('._') || base === '.DS_Store') return null;
     const e = ext(base);
-    if (FONT_EXT.includes(e)) return 'font';
     if (IMG_EXT.includes(e)) return 'image';
     return 'skip';
   }
   async function ingest(entries, summary){
-    /* de-duplicate: SVG beats PNG of the same logo; OTF/TTF beats WOFF2 beats WOFF of the same font */
-    const rank = { svg:0, png:1, webp:2, jpg:3, jpeg:3, gif:4, otf:0, ttf:0, woff2:1, woff:2 };
+    /* de-duplicate: SVG beats PNG of the same image */
+    const rank = { svg:0, png:1, webp:2, jpg:3, jpeg:3, gif:4 };
     const groups = new Map();
     for (const en of entries){
       const kind = classify(en.name);
       if (!kind) continue;
       if (kind === 'skip'){ summary.skipped.push(en.name.split('/').pop()); continue; }
-      const key = kind + ':' + (kind === 'font' ? stem(en.name).toLowerCase().replace(/web/g, '').replace(/[^a-z0-9]/g, '') : stem(en.name).toLowerCase());
+      const key = kind + ':' + stem(en.name).toLowerCase();
       const prev = groups.get(key);
       if (!prev || rank[ext(en.name)] < rank[ext(prev.name)]) groups.set(key, { ...en, kind });
     }
@@ -211,10 +180,10 @@ const Assets = (() => {
         if (A.byId[id]){ summary.duplicates++; continue; }
         const e = ext(en.name), parts = en.name.split('/').filter(Boolean);
         const a = { id, kind:en.kind, file:parts.pop(), group:parts.slice(-3).filter(p => !/^(digital|desktop|web|print)$/i.test(p)).join(' / '), mime:MIME[e], blob:new Blob([data], { type:MIME[e] }), added:Date.now() };
-        a.name = en.kind === 'font' ? (fontName(data) || pretty(a.file)) : pretty(a.file);
+        a.name = pretty(a.file);
         await activate(a);
         await dbPut({ id:a.id, kind:a.kind, name:a.name, file:a.file, group:a.group, mime:a.mime, blob:a.blob, added:a.added });
-        summary[en.kind === 'font' ? 'fonts' : 'images']++; summary.added.push(a.id);
+        summary.images++; summary.added.push(a.id);
         if (a.colors && a.colors.length === 1) addColor(a.colors[0], colorName(a.file), summary);
       } catch (err){ console.warn('fxlab asset', en.name, err); summary.failed.push(en.name.split('/').pop()); }
     }
@@ -235,7 +204,7 @@ const Assets = (() => {
 
   /* ---------- public actions ---------- */
   A.addFiles = async files => {
-    const summary = { fonts:0, images:0, colors:0, duplicates:0, skipped:[], failed:[], added:[] };
+    const summary = { images:0, colors:0, duplicates:0, skipped:[], failed:[], added:[] };
     const loose = [];
     for (const f of files){
       const e = ext(f.name);
@@ -255,28 +224,50 @@ const Assets = (() => {
   A.remove = async id => {
     const a = A.byId[id]; if (!a) return;
     A.list.splice(A.list.indexOf(a), 1); delete A.byId[id];
-    if (a.face) document.fonts.delete(a.face);
     if (a.thumb) URL.revokeObjectURL(a.thumb);
-    [...tintCache.keys()].forEach(k => k.startsWith(id) && tintCache.delete(k));
-    if (A.defaultFont === id) A.defaultFont = '';
     await dbDel(id); await saveMeta(); changed();
   };
   A.clear = async () => {
-    for (const a of [...A.list]){ if (a.face) document.fonts.delete(a.face); if (a.thumb) URL.revokeObjectURL(a.thumb); }
-    A.list = []; A.byId = {}; A.palette = []; A.defaultFont = ''; A.identity = Identity.blank(); tintCache.clear();
+    for (const a of [...A.list]){ if (a.thumb) URL.revokeObjectURL(a.thumb); }
+    A.list = []; A.byId = {}; A.palette = []; A.identity = Identity.blank();
     await dbClear(); await saveMeta(); changed();
   };
   A.addColor = async (hex, name) => { const ok = addColor(hex, name); await saveMeta(); changed(); return ok; };
   A.removeColor = async hex => { A.palette = A.palette.filter(c => c.hex !== hex); await saveMeta(); changed(); };
   A.renameColor = async (hex, name) => { const c = A.palette.find(c => c.hex === hex); if (c){ c.name = name; await saveMeta(); changed(); } };
-  A.setKitName = async name => { A.kitName = name || 'Brand kit'; await saveMeta(); };
+  /* the main colours of an image or video frame: k-means on a small copy, seeded by the most distant colours so the result is repeatable */
+  A.extract = (source, k = 5) => {
+    /* one image, or several pooled into one palette */
+    const S = 48, c = document.createElement('canvas'); c.width = c.height = S;
+    const x = c.getContext('2d', { willReadFrequently:true }), px = [];
+    for (const src of Array.isArray(source) ? source : [source]){
+      x.clearRect(0, 0, S, S);
+      try { x.drawImage(src, 0, 0, S, S); } catch { continue; }
+      const d = x.getImageData(0, 0, S, S).data;
+      for (let i = 0; i < d.length; i += 4) if (d[i + 3] > 200) px.push([d[i], d[i + 1], d[i + 2]]);
+    }
+    if (px.length < k) return [];
+    const dist = (a, b) => (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2;
+    const mean = px.reduce((s, p) => [s[0] + p[0], s[1] + p[1], s[2] + p[2]], [0, 0, 0]).map(v => v / px.length);
+    let cen = [px.reduce((b, p) => dist(p, mean) < dist(b, mean) ? p : b)];
+    while (cen.length < k){ let best = px[0], bd = -1; for (const p of px){ const m = Math.min(...cen.map(q => dist(p, q))); if (m > bd){ bd = m; best = p; } } cen.push(best); }
+    let count = [];
+    for (let it = 0; it < 12; it++){
+      const sum = cen.map(() => [0, 0, 0, 0]);
+      for (const p of px){ let bi = 0, bd = Infinity; cen.forEach((q, i) => { const dd = dist(p, q); if (dd < bd){ bd = dd; bi = i; } }); const s = sum[bi]; s[0] += p[0]; s[1] += p[1]; s[2] += p[2]; s[3]++; }
+      cen = sum.map((s, i) => s[3] ? [s[0] / s[3], s[1] / s[3], s[2] / s[3]] : cen[i]); count = sum.map(s => s[3]);
+    }
+    const hex = q => '#' + q.map(v => Math.round(v).toString(16).padStart(2, '0')).join('');
+    return cen.map((q, i) => ({ hex:hex(q), share:count[i] / px.length })).sort((a, b) => b.share - a.share);
+  };
+  A.setKitName = async name => { A.kitName = name || 'Palette kit'; await saveMeta(); };
   /* call after editing A.identity */
   A.saveIdentity = async (quiet = false) => { await saveMeta(); if (!quiet) changed(); else A.version++; };
 
   /* kit = STORE zip: manifest.json + assets/<id>/<file> */
   A.exportKit = async () => {
     const zip = new Zip();
-    const manifest = { app:'fxlab-kit', version:2, name:A.kitName, palette:A.palette, defaultFont:A.defaultFont, identity:A.identity,
+    const manifest = { app:'fxlab-kit', version:3, name:A.kitName, palette:A.palette, identity:A.identity,
       assets:A.list.map(a => ({ id:a.id, kind:a.kind, name:a.name, file:a.file, group:a.group, mime:a.mime })) };
     await zip.add('manifest.json', new Blob([JSON.stringify(manifest, null, 2)], { type:'application/json' }));
     for (const a of A.list) await zip.add(`assets/${a.id}/${a.file}`, a.blob);
@@ -288,16 +279,16 @@ const Assets = (() => {
     if (!man) throw new Error('That kit has no manifest');
     const m = JSON.parse(new TextDecoder().decode(await man.data()));
     if (m.app !== 'fxlab-kit') throw new Error('That isn’t an fxlab kit');
-    if (m.name && A.kitName === 'Brand kit') A.kitName = m.name;
-    if (m.defaultFont && !A.defaultFont) A.defaultFont = m.defaultFont;
+    if (m.name && A.kitName === 'Palette kit') A.kitName = m.name;
     if (m.identity){
       const cur = A.identity, inc = Object.assign(Identity.blank(), m.identity);
-      if (!cur.colourways.length && !cur.looks.length && !cur.type.display) A.identity = inc;
+      if (!cur.colourways.length && !cur.looks.length) A.identity = inc;
       else inc.looks.forEach(l => { if (!cur.looks.some(x => x.id === l.id)) cur.looks.push(l); });
       summary.looks = inc.looks.length;
     }
     for (const c of m.palette || []) addColor(c.hex, c.name, summary);
     for (const info of m.assets || []){
+      if (info.kind !== 'image'){ summary.skipped.push(info.file); continue; }
       if (A.byId[info.id]){ summary.duplicates++; continue; }
       const en = entries.find(e => e.name === `assets/${info.id}/${info.file}`); if (!en) continue;
       try {
@@ -305,20 +296,31 @@ const Assets = (() => {
         const a = { ...info, blob:new Blob([data], { type:info.mime }), added:Date.now() };
         await activate(a);
         await dbPut({ id:a.id, kind:a.kind, name:a.name, file:a.file, group:a.group, mime:a.mime, blob:a.blob, added:a.added });
-        summary[a.kind === 'font' ? 'fonts' : 'images']++; summary.added.push(a.id);
+        summary.images++; summary.added.push(a.id);
       } catch (err){ summary.failed.push(info.file); }
     }
   }
 
   /* restore what's stored in this browser */
+  /* a language opened from a link must not overwrite this browser's own kit */
+  A.detach = () => { db = null; A.persistent = false; };
+
   A.ready = (async () => {
+    if (PLAYER_RECIPE){
+      await null;   /* Identity is defined after this file loads */
+      /* a tool is read-only: nothing is stored, and the recipe supplies the palette and colourways */
+      A.identity = Object.assign(Identity.blank(), PLAYER_RECIPE.identity || {});
+      A.palette = PLAYER_RECIPE.palette || []; A.persistent = false;
+      changed(); return;
+    }
     db = await openDB();
     const recs = await dbAll();
     A.persistent = !!(db && recs);
     const meta = await loadMeta();
     A.identity = Object.assign(Identity.blank(), (meta && meta.identity) || {});
-    if (meta){ A.palette = meta.palette || []; A.kitName = meta.kitName || 'Brand kit'; A.defaultFont = meta.defaultFont || ''; }
+    if (meta){ A.palette = meta.palette || []; A.kitName = meta.kitName || 'Palette kit'; }
     for (const r of (recs || []).sort((a, b) => a.added - b.added)){
+      if (r.kind !== 'image') continue;
       try { await activate({ ...r }); } catch (err){ console.warn('fxlab: could not restore asset', r.file, err); }
     }
     changed();

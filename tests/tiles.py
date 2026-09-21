@@ -12,14 +12,14 @@ import sys
 from playwright.sync_api import sync_playwright
 from helpers import launch, load_assets, report
 
-DEFAULT = ['tr-scanner', 'trt-halftone', 'kt-slice', 'lg-logo', 'trt-press', 'kt-morph', 'lg-dots']
+DEFAULT = ['tr-scanner', 'trt-halftone', 'trt-duotone', 'trt-press', 'fx-rgbsplit', 'ovl-frame']
 
 # Union of the two lists that used to stamp the flag. The test fails if any
 # of these lose `nonLocal: true` on FX.register.
 NONLOCAL = [
     'fx-kaleido', 'fx-tile', 'fx-polar', 'fx-pixelsort', 'fx-slitscan',
-    'fx-echo', 'fx-vhs', 'fx-glitch', 'gen-particles', 'kt-3d', 'kt-collage',
-    'fx-melt', 'fx-datamosh', 'gen-flow', 'gen-ink', 'gen-cells', 'fx-droste',
+    'fx-echo', 'fx-vhs', 'fx-glitch', 'gen-particles',
+    'trt-diffuse', 'fx-melt', 'fx-datamosh', 'gen-flow', 'gen-ink', 'gen-cells', 'fx-droste',
     'gen-scribble', 'fx-streak', 'fx-shadow', 'fx-shockwave', 'fx-reframe',
 ]
 # Whole-frame modules: tiled vs single-pass must disagree, or the flag is a lie.

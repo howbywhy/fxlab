@@ -10,7 +10,7 @@ import os, pathlib, sys
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 DIST = ROOT / 'dist' / 'fxlab.html'
 URL = DIST.as_uri()
-_ASSET_SUFFIXES = ('.zip', '.otf', '.ttf', '.woff', '.woff2', '.svg', '.png', '.fxkit')
+_ASSET_SUFFIXES = ('.zip', '.svg', '.png', '.jpg', '.fxkit')
 ASSETS = [str(p) for p in sorted((ROOT / 'tests' / 'assets').rglob('*'))
           if p.is_file() and p.suffix.lower() in _ASSET_SUFFIXES]
 
@@ -35,7 +35,7 @@ def launch(playwright, viewport=(1440, 900), downloads=False):
 
 
 def load_assets(page, paths=None):
-    """Import fonts/logos (recursive tests/assets/ scan) so brand roles are exercised."""
+    """Import images and palettes (recursive tests/assets/ scan) so asset paths are exercised."""
     paths = paths or ASSETS
     if not paths:
         return 0

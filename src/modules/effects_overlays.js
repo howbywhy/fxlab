@@ -442,16 +442,16 @@ FX.register({ id:'ovl-confetti', name:'Confetti', cat:'overlay', kind:'2d', desc
       const s1 = Util.hash(i * 12.9898), s2 = Util.hash(i * 78.233 + 4), s3 = Util.hash(i * 37.719 + 9);
       const s4 = Util.hash(i * 91.345 + 2), s5 = Util.hash(i * 53.471 + 6);
       const lp = ((fall + s2) % 1 + 1) % 1;
-      const x = ((1 - P.spread) / 2 + s1 * P.spread) * w + Math.sin(lp * KT.TAU * 3) * sz * 1.4 * P.spread;
+      const x = ((1 - P.spread) / 2 + s1 * P.spread) * w + Math.sin(lp * Sketch.TAU * 3) * sz * 1.4 * P.spread;
       const y = lp * (h + sz * 3) - sz * 1.5;
-      const rot = s3 * KT.TAU + lp * KT.TAU * P.spin * (s5 > .5 ? 1 : -1);
+      const rot = s3 * Sketch.TAU + lp * Sketch.TAU * P.spin * (s5 > .5 ? 1 : -1);
       const shape = P.shape === 0 ? Math.floor(s4 * 3) : P.shape - 1;
-      const col = P.palette ? Brand.paletteColor(i, 7, colors[i % 3]) : colors[i % 3];
+      const col = P.palette ? Sketch.paletteColor(i, 7, colors[i % 3]) : colors[i % 3];
       const size = sz * (.7 + s2 * .6);
       ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.fillStyle = col;
       if (shape === 0) ctx.fillRect(-size / 2, -size / 3, size, size * .66);
       else if (shape === 1) ctx.fillRect(-size / 6, -size * .8, size / 3, size * 1.6);
-      else { ctx.beginPath(); ctx.arc(0, 0, size / 2, 0, KT.TAU); ctx.fill(); }
+      else { ctx.beginPath(); ctx.arc(0, 0, size / 2, 0, Sketch.TAU); ctx.fill(); }
       ctx.restore();
     }
   } });

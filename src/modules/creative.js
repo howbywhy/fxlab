@@ -220,21 +220,21 @@ vec4 fx(vec2 uv){
 /* ---- Orbits ---- */
 FX.register({ id:'gen-orbit', name:'Orbits', cat:'generator', kind:'2d', desc:'Spirograph curves drawn live — one long line, rings of points or a chord web. Loops seamlessly.',
   params:[ I('curves','Curves',3,1,12), R('r1','Outer radius',.36,.05,.6), R('r2','Inner radius',.18,.01,.5), R('pen','Pen offset',.22,.01,.6), I('loops','Turns',7,1,60), S('style','Style',['Line','Dots','Chords'],0), R('weight','Line weight',1,.2,6), I('speed','Loops per cycle',1,0,6), R('offset','Curve spacing',.08,0,.4),
-    T('draw','Draw on with timeline',false), T('palette','Colours from palette',true), C('c1','Ink','#e4e2dc'), C('c2','Second ink','#ff5a36'), ...KT.groundParams(1) ],
+    T('draw','Draw on with timeline',false), T('palette','Colours from palette',true), C('c1','Ink','#e4e2dc'), C('c2','Second ink','#ff5a36'), ...Sketch.groundParams(1) ],
   draw(ctx, api){
-    const P = api.params, { w, h } = api; KT.ground(ctx, api);
+    const P = api.params, { w, h } = api; Sketch.ground(ctx, api);
     const mn = Math.min(w, h), cx = w / 2, cy = h / 2, N = Math.max(1, P.curves | 0);
     const turns = Math.max(1, P.loops | 0), steps = Math.min(6000, turns * 180);
-    const reveal = P.draw ? Util.clamp(api.p) : 1, phase = api.loop * (P.speed | 0) * KT.TAU;
+    const reveal = P.draw ? Util.clamp(api.p) : 1, phase = api.loop * (P.speed | 0) * Sketch.TAU;
     ctx.lineCap = 'round'; ctx.lineJoin = 'round';
     for (let c = 0; c < N; c++){
       const k = c / Math.max(1, N - 1 || 1);
       const R = (P.r1 + c * P.offset * .2) * mn, r = (P.r2 + c * P.offset * .12) * mn * .5, pen = P.pen * mn * .5;
-      const col = P.palette ? Brand.paletteColor(c, 4, c % 2 ? P.c2 : P.c1) : (c % 2 ? P.c2 : P.c1);
+      const col = P.palette ? Sketch.paletteColor(c, 4, c % 2 ? P.c2 : P.c1) : (c % 2 ? P.c2 : P.c1);
       ctx.save(); ctx.translate(cx, cy); ctx.rotate(phase); ctx.translate(-cx, -cy);   /* spin the whole curve, so the loop closes */
       ctx.strokeStyle = ctx.fillStyle = col; ctx.lineWidth = Math.max(.5, mn * .002 * P.weight);
       const pt = i => {
-        const t = i / steps * turns * KT.TAU + c * .3;
+        const t = i / steps * turns * Sketch.TAU + c * .3;
         const x = cx + (R - r) * Math.cos(t) + pen * Math.cos((R - r) / Math.max(r, 1e-3) * t);
         const y = cy + (R - r) * Math.sin(t) - pen * Math.sin((R - r) / Math.max(r, 1e-3) * t);
         return [x, y];
@@ -246,7 +246,7 @@ FX.register({ id:'gen-orbit', name:'Orbits', cat:'generator', kind:'2d', desc:'S
         ctx.stroke();
       } else if ((P.style | 0) === 1){
         const every = Math.max(1, Math.round(steps / (60 + turns * 8)));
-        for (let i = 0; i <= last; i += every){ const [x, y] = pt(i); ctx.beginPath(); ctx.arc(x, y, ctx.lineWidth * 1.6, 0, KT.TAU); ctx.fill(); }
+        for (let i = 0; i <= last; i += every){ const [x, y] = pt(i); ctx.beginPath(); ctx.arc(x, y, ctx.lineWidth * 1.6, 0, Sketch.TAU); ctx.fill(); }
       } else {
         const nodes = 60 + turns * 4, every = Math.max(1, Math.round(steps / nodes));
         ctx.globalAlpha = .5;
@@ -262,17 +262,17 @@ FX.register({ id:'gen-orbit', name:'Orbits', cat:'generator', kind:'2d', desc:'S
 /* ---- Network ---- */
 FX.register({ id:'gen-nodes', name:'Network', cat:'generator', kind:'2d', desc:'Drifting nodes joined by lines when they come close — constellation, mesh or web. Loops seamlessly.',
   params:[ I('count','Nodes',60,4,300), R('range','Join distance',.26,.03,.6), R('drift','Drift',.4,0,2), I('speed','Loops per cycle',1,1,6), R('dot','Node size',1,0,4), R('line','Line weight',1,.2,5), S('style','Style',['Lines','Triangles','Lines + labels'],0), T('fade','Fade by distance',true), I('seed','Seed',3,1,99),
-    T('palette','Colours from palette',false), C('ink','Ink','#e4e2dc'), C('accent','Node colour','#ff5a36'), ...KT.groundParams(1) ],
+    T('palette','Colours from palette',false), C('ink','Ink','#e4e2dc'), C('accent','Node colour','#ff5a36'), ...Sketch.groundParams(1) ],
   draw(ctx, api){
-    const P = api.params, { w, h } = api; KT.ground(ctx, api);
+    const P = api.params, { w, h } = api; Sketch.ground(ctx, api);
     const n = Math.max(4, P.count | 0), mn = Math.min(w, h), seed = P.seed | 0, R = P.range * mn;
-    const ph = api.loop * (P.speed | 0) * KT.TAU;
+    const ph = api.loop * (P.speed | 0) * Sketch.TAU;
     const pts = [];
     for (let i = 0; i < n; i++){
-      const a = KT.rnd(i, seed), b = KT.rnd(i + 91, seed), c = KT.rnd(i + 233, seed);
+      const a = Sketch.rnd(i, seed), b = Sketch.rnd(i + 91, seed), c = Sketch.rnd(i + 233, seed);
       const cx1 = 1 + Math.round(c * 2), cy1 = 1 + Math.round(a * 2);   /* whole cycles keep the loop seamless */
-      const x = (.06 + .88 * a) * w + Math.cos(ph * cx1 + b * KT.TAU) * P.drift * mn * .06;
-      const y = (.06 + .88 * b) * h + Math.sin(ph * cy1 + c * KT.TAU) * P.drift * mn * .06;
+      const x = (.06 + .88 * a) * w + Math.cos(ph * cx1 + b * Sketch.TAU) * P.drift * mn * .06;
+      const y = (.06 + .88 * b) * h + Math.sin(ph * cy1 + c * Sketch.TAU) * P.drift * mn * .06;
       pts.push([x, y, i]);
     }
     ctx.lineWidth = Math.max(.4, mn * .0012 * P.line); ctx.lineJoin = 'round';
@@ -282,7 +282,7 @@ FX.register({ id:'gen-nodes', name:'Network', cat:'generator', kind:'2d', desc:'
       if (d > R) continue;
       const a = P.fade ? 1 - d / R : 1;
       ctx.globalAlpha = a * .85;
-      ctx.strokeStyle = P.palette ? Brand.paletteColor(i + j, 6, P.ink) : P.ink;
+      ctx.strokeStyle = P.palette ? Sketch.paletteColor(i + j, 6, P.ink) : P.ink;
       if (style === 1 && n <= 140){
         for (let k = j + 1; k < n; k++){
           if (Math.hypot(pts[i][0] - pts[k][0], pts[i][1] - pts[k][1]) > R || Math.hypot(pts[j][0] - pts[k][0], pts[j][1] - pts[k][1]) > R) continue;
@@ -298,7 +298,7 @@ FX.register({ id:'gen-nodes', name:'Network', cat:'generator', kind:'2d', desc:'
     const r = mn * .004 * P.dot;
     if (r > .2){
       ctx.fillStyle = P.accent;
-      pts.forEach(([x, y, i]) => { if (P.palette) ctx.fillStyle = Brand.paletteColor(i, 2, P.accent); ctx.beginPath(); ctx.arc(x, y, r, 0, KT.TAU); ctx.fill(); });
+      pts.forEach(([x, y, i]) => { if (P.palette) ctx.fillStyle = Sketch.paletteColor(i, 2, P.accent); ctx.beginPath(); ctx.arc(x, y, r, 0, Sketch.TAU); ctx.fill(); });
     }
     if (style === 2){
       ctx.font = `500 ${Math.max(7, mn * .014)}px ${Util.fonts[2]}`; ctx.fillStyle = P.ink; ctx.globalAlpha = .6; ctx.textBaseline = 'middle';
@@ -337,34 +337,31 @@ FX.register({ id:'gen-stripes', name:'Op stripes', cat:'generator', desc:'Op-art
 }` });
 
 /* ---- Spiral ---- */
-FX.register({ id:'gen-spiral', name:'Spiral', cat:'generator', kind:'2d', desc:'Sunflower spiral of dots, rings or letters that grows outward and breathes. Loops seamlessly.',
-  params:[ I('count','Items',420,10,2000), R('spread','Spread',.9,.3,1.6), R('size','Item size',1,.1,4), S('shape','Item',['Dot','Ring','Square','Letters'],0), X('text','Letters','BOUNCE'), F('font','Font'), S('grow','Motion',['Rotate','Grow outward','Breathe','Wave'],0), I('speed','Loops per cycle',1,0,6),
-    S('colour','Colour',['Single','Two-tone by ring','From palette','Radial fade'],0), R('sizeFalloff','Size falloff',.5,-1,1), C('c1','Ink','#e4e2dc'), C('c2','Second ink','#ff5a36'), ...KT.groundParams(1) ],
+FX.register({ id:'gen-spiral', name:'Spiral', cat:'generator', kind:'2d', desc:'Sunflower spiral of dots, rings or squares that grows outward and breathes. Loops seamlessly.',
+  params:[ I('count','Items',420,10,2000), R('spread','Spread',.9,.3,1.6), R('size','Item size',1,.1,4), S('shape','Item',['Dot','Ring','Square'],0), S('grow','Motion',['Rotate','Grow outward','Breathe','Wave'],0), I('speed','Loops per cycle',1,0,6),
+    S('colour','Colour',['Single','Two-tone by ring','From palette','Radial fade'],0), R('sizeFalloff','Size falloff',.5,-1,1), C('c1','Ink','#e4e2dc'), C('c2','Second ink','#ff5a36'), ...Sketch.groundParams(1) ],
   draw(ctx, api){
-    const P = api.params, { w, h } = api; KT.ground(ctx, api);
+    const P = api.params, { w, h } = api; Sketch.ground(ctx, api);
     const n = Math.max(10, P.count | 0), mn = Math.min(w, h), cx = w / 2, cy = h / 2;
     const GA = Math.PI * (3 - Math.sqrt(5)), ph = api.loop * (P.speed | 0), motion = P.grow | 0;
-    const chars = [...String(P.text || 'A')];
     const base = mn * .012 * P.size;
-    if ((P.shape | 0) === 3) ctx.textAlign = 'center', ctx.textBaseline = 'middle';
     for (let i = 0; i < n; i++){
       let k = (i + .5) / n;
       if (motion === 1) k = (k + ph) % 1;
-      const r = Math.sqrt(k) * mn * .48 * P.spread * (motion === 2 ? 1 + .08 * Math.sin(ph * KT.TAU) : 1);
-      let a = i * GA + (motion === 0 ? ph * KT.TAU : 0);
-      if (motion === 3) a += Math.sin(ph * KT.TAU - k * 6) * .25;
+      const r = Math.sqrt(k) * mn * .48 * P.spread * (motion === 2 ? 1 + .08 * Math.sin(ph * Sketch.TAU) : 1);
+      let a = i * GA + (motion === 0 ? ph * Sketch.TAU : 0);
+      if (motion === 3) a += Math.sin(ph * Sketch.TAU - k * 6) * .25;
       const x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r;
       let s = base * (1 + P.sizeFalloff * (k - .5) * 1.6);
       if (motion === 1) s *= Math.min(1, k * 8) * Math.min(1, (1 - k) * 8);
       if (s <= .15) continue;
       const cm = P.colour | 0;
-      ctx.fillStyle = ctx.strokeStyle = cm === 0 ? P.c1 : cm === 1 ? (Math.floor(k * 12) % 2 ? P.c2 : P.c1) : cm === 2 ? Brand.paletteColor(i, 5, P.c1) : P.c1;
+      ctx.fillStyle = ctx.strokeStyle = cm === 0 ? P.c1 : cm === 1 ? (Math.floor(k * 12) % 2 ? P.c2 : P.c1) : cm === 2 ? Sketch.paletteColor(i, 5, P.c1) : P.c1;
       ctx.globalAlpha = cm === 3 ? Util.clamp(1.15 - k) : 1;
       const shape = P.shape | 0;
-      if (shape === 0){ ctx.beginPath(); ctx.arc(x, y, s, 0, KT.TAU); ctx.fill(); }
-      else if (shape === 1){ ctx.lineWidth = Math.max(.5, s * .35); ctx.beginPath(); ctx.arc(x, y, s, 0, KT.TAU); ctx.stroke(); }
-      else if (shape === 2){ ctx.save(); ctx.translate(x, y); ctx.rotate(a); ctx.fillRect(-s, -s, s * 2, s * 2); ctx.restore(); }
-      else { ctx.save(); ctx.translate(x, y); ctx.rotate(a + Math.PI / 2); ctx.font = KT.font(P, s * 3); ctx.fillText(chars[i % chars.length], 0, 0); ctx.restore(); }
+      if (shape === 0){ ctx.beginPath(); ctx.arc(x, y, s, 0, Sketch.TAU); ctx.fill(); }
+      else if (shape === 1){ ctx.lineWidth = Math.max(.5, s * .35); ctx.beginPath(); ctx.arc(x, y, s, 0, Sketch.TAU); ctx.stroke(); }
+      else { ctx.save(); ctx.translate(x, y); ctx.rotate(a); ctx.fillRect(-s, -s, s * 2, s * 2); ctx.restore(); }
     }
     ctx.globalAlpha = 1;
   } });
@@ -388,7 +385,7 @@ FX.register({ id:'gen-scribble', name:'Scribble', cat:'generator', kind:'2d', no
     if (style === 3){
       ctx.beginPath(); let x = w / 2, y = h / 2;
       for (let i = 0; i < shown; i++){
-        const a = (KT.rnd(i, seed) - .5) * KT.TAU * .9 + Math.atan2(h / 2 - y, w / 2 - x) * .25;
+        const a = (Sketch.rnd(i, seed) - .5) * Sketch.TAU * .9 + Math.atan2(h / 2 - y, w / 2 - x) * .25;
         const d = L * (.4 + val(x, y) * 2.2);
         x = Util.clamp(x + Math.cos(a) * d, 0, w); y = Util.clamp(y + Math.sin(a) * d, 0, h);
         i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
@@ -396,25 +393,25 @@ FX.register({ id:'gen-scribble', name:'Scribble', cat:'generator', kind:'2d', no
       ctx.stroke(); return;
     }
     for (let i = 0; i < shown; i++){
-      let x = KT.rnd(i, seed) * w, y = KT.rnd(i + 77, seed) * h;
+      let x = Sketch.rnd(i, seed) * w, y = Sketch.rnd(i + 77, seed) * h;
       let tries = 0;
-      while (val(x, y) < P.threshold * .9 && tries++ < 6){ x = KT.rnd(i + tries * 13, seed) * w; y = KT.rnd(i + tries * 31 + 5, seed) * h; }
+      while (val(x, y) < P.threshold * .9 && tries++ < 6){ x = Sketch.rnd(i + tries * 13, seed) * w; y = Sketch.rnd(i + tries * 31 + 5, seed) * h; }
       const v = val(x, y); if (v < P.threshold * .35) continue;
       ctx.globalAlpha = Util.clamp(.25 + v * .9);
       ctx.beginPath();
       if (style === 0){
         ctx.moveTo(x, y);
-        for (let k = 0; k < 5; k++){ const a = KT.rnd(i * 7 + k, seed) * KT.TAU * P.jitter; x += Math.cos(a) * L * (.5 + v); y += Math.sin(a) * L * (.5 + v); ctx.lineTo(x, y); }
+        for (let k = 0; k < 5; k++){ const a = Sketch.rnd(i * 7 + k, seed) * Sketch.TAU * P.jitter; x += Math.cos(a) * L * (.5 + v); y += Math.sin(a) * L * (.5 + v); ctx.lineTo(x, y); }
       } else if (style === 1){
-        const a = (Math.floor(v * 3) * 40 + 20) * Math.PI / 180 + (KT.rnd(i, seed) - .5) * .1 * P.jitter, l = L * (1 + v * 2);
+        const a = (Math.floor(v * 3) * 40 + 20) * Math.PI / 180 + (Sketch.rnd(i, seed) - .5) * .1 * P.jitter, l = L * (1 + v * 2);
         ctx.moveTo(x - Math.cos(a) * l, y - Math.sin(a) * l); ctx.lineTo(x + Math.cos(a) * l, y + Math.sin(a) * l);
       } else {
         let cxp = x, cyp = y; ctx.moveTo(cxp, cyp);
         for (let k = 0; k < 26; k++){
           const e = 1.5, gx = val(cxp + e, cyp) - val(cxp - e, cyp), gy = val(cxp, cyp + e) - val(cxp, cyp - e);
           const gl = Math.hypot(gx, gy) || 1e-4;
-          cxp += -gy / gl * L * .6 + (KT.rnd(i * 5 + k, seed) - .5) * P.jitter;
-          cyp += gx / gl * L * .6 + (KT.rnd(i * 5 + k + 3, seed) - .5) * P.jitter;
+          cxp += -gy / gl * L * .6 + (Sketch.rnd(i * 5 + k, seed) - .5) * P.jitter;
+          cyp += gx / gl * L * .6 + (Sketch.rnd(i * 5 + k + 3, seed) - .5) * P.jitter;
           if (cxp < 0 || cyp < 0 || cxp > w || cyp > h) break;
           ctx.lineTo(cxp, cyp);
         }

@@ -34,36 +34,35 @@ ALTER_PCT = 2.0
 
 ROWS = [
     {
-        'name': 'mix-type-press-frame',
-        'why': 'mix base → 2D type over frame → print treatment → overlay',
+        'name': 'mix-hatch-press-frame',
+        'why': 'mix base → hatching → print treatment → overlay',
         'alters': True,
         'base': {'id': 'mx-shape'},
         'stack': [
-            {'id': 'kt-tape'},
+            {'id': 'trt-hatch'},
             {'id': 'trt-press'},
             {'id': 'ovl-frame'},
         ],
     },
     {
-        'name': 'gen-logo-press',
-        'why': 'generator + brand-linked logo + print treatment',
+        'name': 'gen-halftone-press',
+        'why': 'generator → screened dots → print treatment',
         'alters': True,
-        'brand': True,
         'base': {'id': 'gen-stripes'},
         'stack': [
-            {'id': 'lg-logo', 'params': {'size': 48, 'entry': 0, 'motion': 0}},
+            {'id': 'trt-halftone', 'params': {'cell': 14, 'cmyk': False}},
             {'id': 'trt-press'},
         ],
     },
     {
-        'name': 'wipe-polar-type',
-        'why': 'transition mid-wipe + nonLocal polar + 2D type over the result',
+        'name': 'wipe-polar-hud',
+        'why': 'transition mid-wipe + nonLocal polar + Canvas 2D drawn over the result',
         'alters': True,
         't': 2.0,
         'base': {'id': 'tr-wipe'},
         'stack': [
             {'id': 'fx-polar'},
-            {'id': 'kt-fit', 'params': {'ground': 0, 'motion': 4}},
+            {'id': 'ovl-hud', 'params': {'feed': False}},
         ],
     },
     {
@@ -78,13 +77,13 @@ ROWS = [
         ],
     },
     {
-        'name': 'duotone-type',
-        'why': 'GLSL treatment then Canvas 2D type drawn over the incoming frame',
+        'name': 'duotone-confetti',
+        'why': 'GLSL treatment then Canvas 2D drawn over the incoming frame',
         'alters': True,
         'base': {'id': 'src-a'},
         'stack': [
             {'id': 'trt-duotone'},
-            {'id': 'kt-fit', 'params': {'ground': 0, 'motion': 4, 'text': 'ON\nTHE\nIMAGE'}},
+            {'id': 'ovl-confetti', 'params': {'speed': 0}},
         ],
     },
     {
@@ -98,21 +97,13 @@ ROWS = [
         ],
     },
     {
-        'name': 'brand-logo-type',
-        'why': 'brand-role logo and type over source A — protects asset loading',
+        'name': 'look-apply',
+        'why': 'a saved look through applyLook (look application path)',
         'alters': True,
-        'brand': True,
-        'base': {'id': 'src-a'},
-        'stack': [
-            {'id': 'kt-fit', 'params': {'ground': 0, 'motion': 4, 'text': 'PLAY\nTOGETHER'}},
-            {'id': 'lg-logo', 'params': {'size': 22, 'y': -.82, 'entry': 0, 'motion': 0}},
-        ],
-    },
-    {
-        'name': 'look-knockout',
-        'why': 'one starter look through applyLook (look application path)',
-        'alters': True,
-        'look': 's-knockout',
+        'lookData': {
+            'base': {'id': 'src-a', 'params': {}},
+            'stack': [{'id': 'trt-duotone', 'params': {}}, {'id': 'fx-kaleido', 'params': {}}],
+        },
         't': 2.1,
     },
     {
@@ -171,7 +162,7 @@ ROWS = [
     },
     {
         'name': 'reframe-then-grade',
-        'why': 'same crop first, then halftone — order changes the screen relative to the letter',
+        'why': 'same crop first, then halftone — order changes the screen relative to the crop',
         'alters': True,
         'vsUpstream': 'trt-halftone',
         'base': {'id': 'src-a'},
@@ -229,28 +220,58 @@ ROWS = [
         'stack': [],
     },
     {
-        'name': 'depth-over-prepared',
-        'why': 'spatial depth type over independently prepared A/B through tiles',
+        'name': 'data-stripes-photo',
+        'why': 'a data visual (default sample) drawn over the photograph',
+        'alters': True,
+        'base': {'id': 'src-a'},
+        'stack': [{'id': 'dv-columns', 'params': {'follow': False}}, {'id': 'trt-vignette', 'params': {'amount': .5}}],
+    },
+    {
+        'name': 'data-linked-halftone',
+        'why': 'a control linked to a data column: the halftone cell follows temperature at this time',
+        'alters': True,
+        'vsUpstream': 'trt-halftone',
+        't': 1.0,
+        'base': {'id': 'src-a'},
+        'stack': [{'id': 'trt-halftone', 'params': {'cell': 8}, 'bind': {'cell': {'col': 'temperature', 'lo': 5, 'hi': 40}}}],
+    },
+    {
+        'name': 'grade-curves-range-sharpen',
+        'why': 'the image-editing basics chained: levels and curves, colour range, sharpen',
+        'alters': True,
+        'base': {'id': 'src-a'},
+        'stack': [{'id': 'trt-curves'}, {'id': 'trt-selective'}, {'id': 'trt-sharpen'}],
+    },
+    {
+        'name': 'noise-tiltshift',
+        'why': 'a generated texture with a focus falloff over it',
+        'alters': True,
+        'base': {'id': 'gen-noise', 'params': {'type': 3}},
+        'stack': [{'id': 'fx-tiltshift'}],
+    },
+    {
+        'name': 'dither-diffuse',
+        'why': 'error diffusion (CPU, whole frame) over the photograph',
+        'alters': True,
+        'base': {'id': 'src-a'},
+        'stack': [{'id': 'trt-diffuse'}],
+    },
+    {
+        'name': 'stipple-photo',
+        'why': 'stippled dots redrawn from the frame',
+        'alters': True,
+        'base': {'id': 'src-a'},
+        'stack': [{'id': 'trt-stipple'}],
+    },
+    {
+        'name': 'prepared-tiles-finish',
+        'why': 'independently prepared A/B through tiles, then a finish over the meeting',
         'alters': True,
         't': 1.6,
         'processA': [{'id': 'trt-splittone', 'params': {'contrast': 1.3}}],
         'processB': [{'id': 'trt-riso'}],
         'base': {'id': 'tr-tiles', 'params': {'tiles': 4, 'pattern': 0, 'mode': 0, 'stagger': .4}},
-        'stack': [{'id': 'kt-depth', 'params': {'ground': 0, 'text': 'NEAR\nMIDDLE\nFAR', 'ink': '#ff5a36', 'far': '#141516', 'size': 12}}],
-    },
-    {
-        'name': 'plane-over-generator',
-        'why': 'spatial type as a stack primitive over a generator',
-        'alters': True,
-        'base': {'id': 'gen-stripes'},
-        'stack': [{'id': 'kt-plane', 'params': {'ground': 0, 'drive': 0, 'tilt': 8, 'turn': 26, 'y': 0, 'vanishY': 0}}],
-    },
-    {
-        'name': 'plane-over-image',
-        'why': 'spatial type over an image-led frame',
-        'alters': True,
-        'base': {'id': 'src-a'},
-        'stack': [{'id': 'kt-plane', 'params': {'ground': 0, 'drive': 0, 'tilt': -62, 'turn': -8, 'scale': 1.35}}],
+        'stack': [{'id': 'trt-vignette', 'params': {'amount': .6}}],
     },
 ]
 
@@ -263,12 +284,11 @@ JS = """(row) => {
   const mk = spec => {
     const inst = f.makeInst(spec.id);
     if (spec.params) Object.assign(inst.params, spec.params);
+    if (spec.bind) inst.bind = spec.bind;
     return inst;
   };
-  if (row.look){
-    const lk = f.STARTER_LOOKS.find(l => l.id === row.look);
-    if (!lk) return { error: 'unknown look ' + row.look };
-    f.applyLook(lk.data, true);
+  if (row.lookData){
+    f.applyLook(row.lookData, true);
     S.W = row.W; S.H = row.H;
   } else {
     S.base = mk(row.base);
@@ -318,17 +338,9 @@ JS = """(row) => {
     if (inst && E.errors[inst.id]) errors[inst.id] = E.errors[inst.id].slice(0, 240);
   }
   const gl = E.gl.getError();
-  const logo = [];
-  for (const inst of S.stack){
-    const P = inst.params;
-    for (const k of ['logo', 'symbol', 'wordmark']){
-      if (P[k]) logo.push({ id:inst.id, key:k, v:String(P[k]).slice(0, 40) });
-    }
-  }
   return {
     png, basePng, upstreamPng, mixPng, rawPng, errors, gl,
     stack: [S.base && S.base.id].concat(S.stack.map(i => i.id)),
-    logo, images: f.Assets.images().length, fonts: f.Assets.fonts().length,
   };
 }"""
 
@@ -380,10 +392,7 @@ def main():
     with sync_playwright() as p:
         browser, page, errors = launch(p)
         n_assets = load_assets(page)
-        page.evaluate('() => document.fonts.ready')
         page.wait_for_timeout(200)
-        if n_assets < 1:
-            failures.append('no test assets loaded — compositions that need logos will be fiction')
         shots = []
         for row in ROWS:
             spec = row_spec(row)
@@ -400,11 +409,6 @@ def main():
             if res.get('gl'):
                 failures.append(f"{row['name']}: glError {res['gl']}")
                 continue
-            if row.get('brand'):
-                if res.get('images', 0) < 1:
-                    failures.append(f"{row['name']}: brand row but Assets.images() is empty")
-                if not res.get('logo'):
-                    failures.append(f"{row['name']}: brand row but no logo/symbol param resolved")
             im = decode_png(res['png'])
             dest = GOLDEN / f"{row.get('compare_to', row['name'])}.png"
             if args.write and not row.get('compare_to'):

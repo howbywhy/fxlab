@@ -314,11 +314,11 @@ FX.register({ id:'gen-attractor', name:'Attractor', cat:'generator', kind:'2d', 
   params:[ S('kind','Attractor',['De Jong','Clifford','Lorenz','Hénon'],0), I('points','Points',60000,2000,300000), R('a','A',1.641,-3,3,.001), R('b','B',1.902,-3,3,.001), R('c','C',.316,-3,3,.001), R('d','D',1.525,-3,3,.001),
     R('zoom','Zoom',.32,.05,1.2), R('x','X',0,-1,1), R('y','Y',0,-1,1), R('rotate','Rotate',0,-180,180,1), I('speed','Drift loops',0,0,4), R('drift','Drift amount',.06,0,.5),
     R('opacity','Point opacity',.2,.01,1), R('size','Point size',1,.5,4), S('colour','Colour',['Ink','By speed','From palette'],0), T('draw','Draw on with timeline',false),
-    C('ink','Ink','#e4e2dc','ink'), C('accent','Fast points','#ff5a36','accent'), ...KT.groundParams(1) ],
+    C('ink','Ink','#e4e2dc','ink'), C('accent','Fast points','#ff5a36','accent'), ...Sketch.groundParams(1) ],
   draw(ctx, api){
-    const P = api.params, { w, h } = api; KT.ground(ctx, api);
+    const P = api.params, { w, h } = api; Sketch.ground(ctx, api);
     const n = Math.max(2000, P.points | 0), mn = Math.min(w, h), kind = P.kind | 0;
-    const drift = P.drift * Math.sin(api.loop * KT.TAU * (P.speed | 0));
+    const drift = P.drift * Math.sin(api.loop * Sketch.TAU * (P.speed | 0));
     const a = P.a + drift, b = P.b + drift * .6, c = P.c, d = P.d;
     const cx = (.5 + P.x * .5) * w, cy = (.5 - P.y * .5) * h, s = mn * P.zoom;
     const rot = P.rotate * Math.PI / 180, cr = Math.cos(rot), sr = Math.sin(rot);
@@ -339,7 +339,7 @@ FX.register({ id:'gen-attractor', name:'Attractor', cat:'generator', kind:'2d', 
       const sx = cx + (vx * cr - vy * sr) * s, sy = cy + (vx * sr + vy * cr) * s;
       if (sx < -10 || sy < -10 || sx > w + 10 || sy > h + 10) continue;
       if (mode === 1){ const v = Util.clamp(Math.hypot(x - px, y - py) * 1.4); ctx.fillStyle = v > .5 ? P.accent : P.ink; }
-      else if (mode === 2 && (i & 1023) === 0) ctx.fillStyle = Brand.paletteColor(i >> 10, 3, P.ink);
+      else if (mode === 2 && (i & 1023) === 0) ctx.fillStyle = Sketch.paletteColor(i >> 10, 3, P.ink);
       ctx.fillRect(sx, sy, ps, ps);
     }
     ctx.globalAlpha = 1;
@@ -350,19 +350,19 @@ FX.register({ id:'gen-branches', name:'Branches', cat:'generator', kind:'2d', de
   params:[ I('depth','Depth',9,2,13), I('splits','Splits',2,1,4), R('angle','Branch angle',26,2,90,1), R('lengthFalloff','Length falloff',.76,.4,.98), R('thickness','Trunk weight',1.4,.1,6), R('start','Trunk length',.2,.05,.6),
     S('origin','Grows from',['Bottom','Centre','Top','Left','All sides'],0), I('count','Systems',1,1,12), R('spread','Spread',.5,0,1), R('wobble','Wobble',.35,0,2), R('curve','Curl',.2,0,1.5), I('speed','Sway loops',1,0,6), R('sway','Sway',.25,0,2),
     T('draw','Grow with timeline',true), T('leaves','Tips',false), R('leafSize','Tip size',1,.2,4), I('seed','Seed',7,1,99),
-    C('ink','Branches','#e4e2dc','ink'), C('accent','Tips','#ff5a36','accent'), ...KT.groundParams(1) ],
+    C('ink','Branches','#e4e2dc','ink'), C('accent','Tips','#ff5a36','accent'), ...Sketch.groundParams(1) ],
   draw(ctx, api){
-    const P = api.params, { w, h } = api; KT.ground(ctx, api);
+    const P = api.params, { w, h } = api; Sketch.ground(ctx, api);
     const mn = Math.min(w, h), depth = Math.max(2, P.depth | 0), splits = Math.max(1, P.splits | 0), seed = P.seed | 0;
     const grow = P.draw ? Util.clamp(api.p) : 1;
-    const sway = Math.sin(api.loop * KT.TAU * (P.speed | 0)) * P.sway;
+    const sway = Math.sin(api.loop * Sketch.TAU * (P.speed | 0)) * P.sway;
     ctx.lineCap = 'round'; ctx.lineJoin = 'round';
     const tips = [];
     const branch = (x, y, ang, len, d, id) => {
       if (d > depth || len < 1) return;
       const local = Util.clamp((grow * depth - (d - 1)) );
       if (local <= 0) return;
-      const curl = (KT.rnd(id, seed) - .5) * P.curve;
+      const curl = (Sketch.rnd(id, seed) - .5) * P.curve;
       const steps = 6;
       ctx.strokeStyle = P.ink;
       ctx.lineWidth = Math.max(.4, mn * .004 * P.thickness * Math.pow(P.lengthFalloff, d - 1) * 1.5);
@@ -379,8 +379,8 @@ FX.register({ id:'gen-branches', name:'Branches', cat:'generator', kind:'2d', de
       if (d === depth){ tips.push([cxp, cyp, id]); return; }
       for (let k = 0; k < splits; k++){
         const spread = (k - (splits - 1) / 2) * (P.angle * Math.PI / 180) * (splits > 1 ? 2 / (splits - 1 || 1) : 1);
-        const wob = (KT.rnd(id * 7 + k, seed) - .5) * P.wobble * .5;
-        branch(cxp, cyp, a + spread + wob, len * P.lengthFalloff * (.85 + KT.rnd(id * 3 + k, seed) * .3), d + 1, id * 4 + k + 1);
+        const wob = (Sketch.rnd(id * 7 + k, seed) - .5) * P.wobble * .5;
+        branch(cxp, cyp, a + spread + wob, len * P.lengthFalloff * (.85 + Sketch.rnd(id * 3 + k, seed) * .3), d + 1, id * 4 + k + 1);
       }
     };
     const n = Math.max(1, P.count | 0), org = P.origin | 0;
@@ -389,15 +389,15 @@ FX.register({ id:'gen-branches', name:'Branches', cat:'generator', kind:'2d', de
       const off = (t - .5) * P.spread;
       let x, y, ang;
       if (org === 0){ x = w * (.5 + off); y = h * 1.02; ang = -Math.PI / 2; }
-      else if (org === 1){ x = w / 2; y = h / 2; ang = -Math.PI / 2 + (i / n) * KT.TAU; }
+      else if (org === 1){ x = w / 2; y = h / 2; ang = -Math.PI / 2 + (i / n) * Sketch.TAU; }
       else if (org === 2){ x = w * (.5 + off); y = -h * .02; ang = Math.PI / 2; }
       else if (org === 3){ x = -w * .02; y = h * (.5 + off); ang = 0; }
-      else { x = w / 2; y = h / 2; ang = (i / n) * KT.TAU; }
+      else { x = w / 2; y = h / 2; ang = (i / n) * Sketch.TAU; }
       branch(x, y, ang, mn * P.start, 1, i + 1);
     }
     if (P.leaves){
       ctx.fillStyle = P.accent;
-      tips.forEach(([x, y, id]) => { const r = mn * .006 * P.leafSize * (.6 + KT.rnd(id, seed) * .8); ctx.beginPath(); ctx.arc(x, y, r, 0, KT.TAU); ctx.fill(); });
+      tips.forEach(([x, y, id]) => { const r = mn * .006 * P.leafSize * (.6 + Sketch.rnd(id, seed) * .8); ctx.beginPath(); ctx.arc(x, y, r, 0, Sketch.TAU); ctx.fill(); });
     }
   } });
 
@@ -444,142 +444,8 @@ vec4 fx(vec2 uv){
   return vec4(col, 1.);
 }` });
 
-/* ---- Column ---- */
-FX.register({ id:'kt-column', name:'Column', cat:'type', kind:'2d', desc:'Type stacked in vertical columns, scrolling or revealing letter by letter — like a banner or a spine.',
-  params:[ ...KT.typeParams('VERTICAL'), I('columns','Columns',1,1,8), R('size','Size',9,2,28,.1), R('leading','Letter spacing',1.05,.6,2.5), R('margin','Margin',.1,0,.4), S('mode','Motion',['Reveal with timeline','Scroll','Still'],0), I('speed','Loops per cycle',1,-6,6),
-    S('align','Columns',['Centred','Spread','From left'],0), T('rotate','Rotate letters',false), R('stagger','Stagger',.4,0,1), S('easing','Easing',KT.EASES,4), T('rule','Rules between columns',false),
-    C('ink','Ink','#e4e2dc','ink'), C('accent','Alternate columns','#ff5a36','accent'), ...KT.groundParams(1) ],
-  draw(ctx, api){
-    const P = api.params, { w, h } = api; KT.ground(ctx, api);
-    const text = KT.text(P).replace(/\n/g, ' '); if (!text.trim()) return;
-    const cols = Math.max(1, P.columns | 0), mn = Math.min(w, h), size = P.size / 100 * mn, mg = P.margin * w;
-    ctx.font = KT.font(P, size); const M = KT.metrics(ctx, size);
-    const step = size * P.leading, chars = [...text];
-    const E = KT.easeBy(P.easing), mode = P.mode | 0;
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    for (let c = 0; c < cols; c++){
-      const x = (P.align | 0) === 0 ? w / 2 + (c - (cols - 1) / 2) * size * 1.6
-        : (P.align | 0) === 1 ? mg + (w - mg * 2) * (cols === 1 ? .5 : c / (cols - 1))
-        : mg + c * size * 1.6;
-      if (P.rule && c > 0){ ctx.strokeStyle = P.ink; ctx.globalAlpha = .18; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x - size * .8, mg); ctx.lineTo(x - size * .8, h - mg); ctx.stroke(); ctx.globalAlpha = 1; }
-      ctx.fillStyle = c % 2 ? P.accent : P.ink;
-      const total = chars.length * step;
-      const scroll = mode === 1 ? ((api.loop * (P.speed | 0) + c * .12) % 1 + 1) % 1 * total : 0;
-      const top = mode === 1 ? -step : h / 2 - total / 2 + step / 2;
-      chars.forEach((ch, i) => {
-        if (/\s/.test(ch)) return;
-        let y;
-        if (mode === 1){ y = ((top + i * step + scroll) % (total + step) + total + step) % (total + step) - step; }
-        else y = top + i * step;
-        if (y < -step || y > h + step) return;
-        let alpha = 1, dy = 0;
-        if (mode === 0){ const lp = KT.stagger(api.p, i + c * 2, chars.length + cols * 2, P.stagger); if (lp <= 0) return; const e = E(lp); alpha = Util.clamp(lp * 3); dy = (1 - e) * step * .8; }
-        ctx.save(); ctx.globalAlpha = alpha; ctx.translate(x, y + dy);
-        if (P.rotate) ctx.rotate(Math.PI / 2);
-        ctx.fillText(ch, 0, M.cap * .04);
-        ctx.restore();
-      });
-    }
-    ctx.globalAlpha = 1;
-  } });
-
-/* ---- Focus pull ---- */
-FX.register({ id:'kt-defocus', name:'Focus pull', cat:'type', desc:'Type that comes into focus, letter by letter or all at once, with a shallow depth of field and a bloom.',
-  params:[ ...KT.typeParams('IN FOCUS'), R('margin','Margin',.1,0,.4), R('tracking','Tracking',-.01,-.2,.5), R('leading','Leading',.92,.6,2), R('blur','Blur',14,0,60), S('drive','Motion',['Focus in','Focus out','Breathe'],0), R('stagger','Stagger',.4,0,1), R('bloom','Bloom',.5,0,2), R('chroma','Colour fringe',.3,0,2),
-    S('fill','Fill',['Ink','Image B','Image A'],0), C('ink','Ink','#e4e2dc','ink'), ...KT.groundParams(1) ],
-  auxSize(P, w, h){ const s = Math.min(1, Math.max(1800, Engine.auxCap) / Math.max(w, h)); return [Math.round(w * s), Math.round(h * s)]; },
-  aux(ctx, P, w, h){
-    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, w, h);
-    const text = KT.text(P); if (!text.trim()) return;
-    const mg = P.margin * w, size = KT.fit(ctx, P, text, w - mg * 2, h - mg * 2, P.leading, P.tracking);
-    const font = KT.font(P, size); ctx.font = font;
-    const L = KT.layout(ctx, text, { font, size, tracking:P.tracking }), M = KT.metrics(ctx, size);
-    const pos = KT.place(L, { size, leading:P.leading, cap:M.cap, align:1, x:w / 2, y:h / 2 });
-    ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
-    /* red channel: the letters. green channel: a left-to-right ramp, so the shader can stagger them */
-    L.lines.forEach((ln, i) => ln.glyphs.forEach(g => {
-      const t = Util.clamp((pos[i].x + g.x) / w);
-      ctx.fillStyle = `rgb(255,${Math.round(t * 255)},0)`;
-      ctx.fillText(g.ch, pos[i].x + g.x, pos[i].y);
-    }));
-  },
-  fs:`vec4 fx(vec2 uv){
-  vec3 base = mix(texture(uInput, uv).rgb, p_bg, p_ground < .5 ? 0. : p_bg_a);
-  float p = p_drive < .5 ? uProgress : p_drive < 1.5 ? 1. - uProgress : .5 + .5 * sin(uLoop * TAU);
-  vec3 acc = vec3(0.); float ws = 0.;
-  for (int i = 0; i < 24; i++){
-    float fi = float(i);
-    float rr = sqrt((fi + .5) / 24.);
-    float a = fi * 2.39996;
-    vec2 dir = vec2(cos(a), sin(a));
-    /* sample the mask, working out this letter's own focus from the green ramp */
-    vec2 o = dir * rr * p_blur / uRes;
-    vec4 s = texture(uAux, uv + o);
-    float local = clamp((p * (1. + p_stagger) - s.g * p_stagger) / max(1. - 0., 1e-3), 0., 1.);
-    float radius = (1. - local) * p_blur;
-    vec4 s2 = texture(uAux, uv + dir * rr * radius / uRes);
-    float w = exp(-2. * rr * rr);
-    acc += vec3(s2.r) * w; ws += w;
-  }
-  float m = acc.r / max(ws, 1e-4);
-  float sharp = texture(uAux, uv).r;
-  float fringe = p_chroma * .004 * (1. - p);
-  float mr = texture(uAux, uv + vec2(fringe, 0.)).r, mb = texture(uAux, uv - vec2(fringe, 0.)).r;
-  vec3 ink = p_fill < .5 ? p_ink : p_fill < 1.5 ? texture(uB, uv).rgb : texture(uA, uv).rgb;
-  vec3 col = base;
-  vec3 mask = vec3(mix(m, mr, .5), m, mix(m, mb, .5));
-  col = mix(col, ink, mask);
-  col += ink * m * p_bloom * .25 * (1. - p);
-  col = mix(col, ink, sharp * p * p);
-  return vec4(clamp(col, 0., 1.), 1.);
-}` });
-
-/* ---- Type glitch ---- */
-FX.register({ id:'kt-glitch', name:'Type glitch', cat:'type', desc:'Type torn into slices that jump, tear and separate into colour channels on the beat.',
-  params:[ ...KT.typeParams('BROKEN'), R('margin','Margin',.1,0,.4), R('tracking','Tracking',0,-.2,.5), R('leading','Leading',.92,.6,2), I('beats','Beats per loop (0 = brand)',0,0,32), R('burst','Burst length',.35,.05,1), I('slices','Slices',14,2,60), R('shift','Slice shift',.06,0,.4),
-    R('chroma','Colour split',.5,0,3), R('tear','Tear',.4,0,1), R('noise','Noise',.2,0,1), T('ghost','Ghost copies',true),
-    C('ink','Ink','#e4e2dc','ink'), C('accent','Glitch colour','#ff5a36','accent'), ...KT.groundParams(1) ],
-  auxSize(P, w, h){ const s = Math.min(1, Math.max(1800, Engine.auxCap) / Math.max(w, h)); return [Math.round(w * s), Math.round(h * s)]; },
-  aux(ctx, P, w, h){
-    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, w, h);
-    const text = KT.text(P); if (!text.trim()) return;
-    const mg = P.margin * w, size = KT.fit(ctx, P, text, w - mg * 2, h - mg * 2, P.leading, P.tracking);
-    const font = KT.font(P, size); ctx.font = font;
-    const L = KT.layout(ctx, text, { font, size, tracking:P.tracking }), M = KT.metrics(ctx, size);
-    const pos = KT.place(L, { size, leading:P.leading, cap:M.cap, align:1, x:w / 2, y:h / 2 });
-    ctx.fillStyle = '#fff'; ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
-    L.lines.forEach((ln, i) => ln.glyphs.forEach(g => ctx.fillText(g.ch, pos[i].x + g.x, pos[i].y)));
-  },
-  fs:`float maskAt(vec2 uv){ if (any(lessThan(uv, vec2(0.))) || any(greaterThan(uv, vec2(1.)))) return 0.; return texture(uAux, uv).r; }
-vec4 fx(vec2 uv){
-  vec3 base = mix(texture(uInput, uv).rgb, p_bg, p_ground < .5 ? 0. : p_bg_a);
-  float beats = p_beats < .5 ? 4. : p_beats;
-  float f = uLoop * beats, idx = floor(f), lt = fract(f);
-  float burst = smoothstep(p_burst, 0., lt);
-  float slice = floor(uv.y * p_slices);
-  float r = hash12(vec2(slice, idx));
-  float jump = (r - .5) * 2. * p_shift * burst;
-  float tear = step(.75, hash12(vec2(slice + 3., idx * 1.7))) * p_tear * burst * .12;
-  vec2 q = uv + vec2(jump + tear, 0.);
-  float ch = p_chroma * .012 * burst;
-  float mr = maskAt(q + vec2(ch, 0.)), mg2 = maskAt(q), mb = maskAt(q - vec2(ch, 0.));
-  vec3 col = base;
-  col = mix(col, p_ink * vec3(1., .2, .2) + p_accent * vec3(.6, 0., 0.), mr * .55);
-  col = mix(col, p_ink, mg2);
-  col = mix(col, mix(p_ink, p_accent, .7), mb * .45 * clamp(p_chroma, 0., 1.));
-  if (p_ghost > .5 && burst > .01){
-    float g1 = maskAt(uv + vec2(.02, .01) * burst), g2 = maskAt(uv - vec2(.03, .008) * burst);
-    col = mix(col, p_accent, max(g1, g2) * .22 * burst);
-  }
-  if (p_noise > .001){
-    float n = hash12(uv * uRes + floor(uTime * 30.));
-    col += (n - .5) * p_noise * burst * .5 * step(.4, mg2 + burst * .3);
-  }
-  return vec4(clamp(col, 0., 1.), 1.);
-}` });
-
 /* ---- Frame ---- */
-FX.register({ id:'ovl-frame', name:'Frame', cat:'overlay', desc:'A border with corner marks and an optional caption strip — a clean way to hold a photo or a loop.',
+FX.register({ id:'ovl-frame', name:'Frame', cat:'overlay', desc:'A border with corner marks, ticks or a filled edge — a clean way to hold a photo or a loop.',
   params:[ R('inset','Inset',.06,0,.3), R('width','Line weight',2,0,12), S('style','Style',['Line','Double line','Corners only','Filled edge','Ticks'],0), R('corner','Corner length',.06,0,.4), R('radius','Corner radius',0,0,.1),
     R('gap','Double gap',.012,.002,.06), I('ticks','Tick count',24,4,80), R('tickLen','Tick length',.012,.002,.06), R('fade','Edge fade',0,0,1), C('color','Colour','#e4e2dc','ink'), R('opacity','Opacity',1,0,1) ],
   fs:`float box(vec2 p, vec2 b, float r){ vec2 d = abs(p) - b + r; return min(max(d.x, d.y), 0.) + length(max(d, 0.)) - r; }

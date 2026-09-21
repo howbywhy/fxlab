@@ -34,10 +34,6 @@ function makeInst(id, randomize = false){
     if (randomize && p.type === 'select' && Math.random() < .5) v = Math.floor(Math.random() * p.options.length);
     const linked = Identity.linkedDefault(p);
     if (linked !== undefined) v = linked;
-    else {
-      if (p.type === 'font'){ const f = Assets.pickFont(); if (f) v = 'asset:' + f.id; }
-      if (p.type === 'asset' && p.auto){ const im = Assets.images()[0]; if (im) v = 'asset:' + im.id; }
-    }
     if (randomize && p.type === 'color' && linked === undefined && Assets.palette.length > 1) v = Assets.palette[Math.floor(Math.random() * Assets.palette.length)].hex;
     params[p.id] = v;
   }
@@ -53,8 +49,9 @@ const state = {
 const App = {
   t:0, playing:true, dirty:true, exporting:false, cancel:false, mediaInfo:{ A:null, B:null },
   stageOn:{ prepare:true, finish:true },
+  ws:'images', srcTab:'A', compare:false, libChip:'all', libLive:(() => { try { return !!localStorage.getItem('fxlab.libLive'); } catch { return false; } })(), batchOpen:false,
   /* Session-only inspector disclosure. Not saved in projects. Key instances by uid. */
-  ui:{ stages:{ prepare:true, combine:true, finish:true }, inst:Object.create(null) },
+  ui:{ stages:{ prepare:true, combine:true, finish:true }, inst:Object.create(null), more:Object.create(null) },
   libTarget:null, libReplace:null,
   exportDir:null, exportDirPending:null, exportDirPersisted:false,
 };
@@ -70,15 +67,23 @@ function globalsAt(t){ const D = state.duration; return { t, p:progressAt(t), lo
 function renderAt(t){
   Engine.backColor = Engine.backOverride || Engine.hex(state.bg);
   Engine.backCheck = state.transparent && !App.exporting;
+  if (App.compare && !App.exporting){
+    /* hold-to-compare: the fitted image A on its own, nothing else */
+    const base = state.base, on = { ...App.stageOn };
+    state.base = App.compareBase || (App.compareBase = makeInst('src-a'));
+    App.stageOn.prepare = App.stageOn.finish = false;
+    try { Engine.frame(state, t, globalsAt(t)); } finally { state.base = base; Object.assign(App.stageOn, on); }
+    return;
+  }
   Engine.frame(state, t, globalsAt(t));
 }
 const markDirty = () => { App.dirty = true; };
 
 /* Session-only snapshot history. Not saved in projects. Media stays as refs. */
 const HIST_LIMIT = 80;
-const RAND_CATS = ['type', 'logo', 'treatment', 'fx', 'overlay'];
+const RAND_CATS = ['treatment', 'fx', 'overlay'];
 function defaultRandScope(){
-  return { prepareA:false, prepareB:false, combine:true, finish:true, type:true, logo:true, treatment:true, fx:true, overlay:true };
+  return { prepareA:false, prepareB:false, combine:true, finish:true, treatment:true, fx:true, overlay:true };
 }
 function loadRandScope(){
   try {
@@ -96,7 +101,7 @@ const History = {
   past:[], future:[], txn:null, silent:false,
   snap(){
     return {
-      project: JSON.parse(JSON.stringify(projectFromState())),
+      project: JSON.parse(JSON.stringify(projectFromState(true))),
       media:{
         A: Engine.media.A ? { el:Engine.media.A.el, w:Engine.media.A.w, h:Engine.media.A.h, video:!!Engine.media.A.video } : null,
         B: Engine.media.B ? { el:Engine.media.B.el, w:Engine.media.B.w, h:Engine.media.B.h, video:!!Engine.media.B.video } : null,
@@ -202,20 +207,55 @@ function toast(msg, err = false, ms = 3200){
 Engine.onError = (m, msg) => toast(`${m.name} failed to compile:\n${msg.slice(0, 400)}`, true, 8000);
 
 /* ---------- placeholder sources ---------- */
+/* Stand-ins for a photograph. Soft light and a real tonal range, so grades, screens and transitions have something to work on. */
 function placeholder(which){
-  const c = document.createElement('canvas'); c.width = c.height = 1600; const x = c.getContext('2d');
+  const S = 1600, c = document.createElement('canvas'); c.width = c.height = S; const x = c.getContext('2d');
+  const lin = (y0, y1, stops) => { const g = x.createLinearGradient(0, y0, 0, y1); stops.forEach(([t, col]) => g.addColorStop(t, col)); return g; };
+  const glow = (cx, cy, r, stops) => { const g = x.createRadialGradient(cx, cy, 0, cx, cy, r); stops.forEach(([t, col]) => g.addColorStop(t, col)); x.fillStyle = g; x.fillRect(cx - r, cy - r, r * 2, r * 2); };
   if (which === 'A'){
-    const g = x.createLinearGradient(0, 0, 0, 1600); g.addColorStop(0, '#2d3a36'); g.addColorStop(1, '#0f1211'); x.fillStyle = g; x.fillRect(0, 0, 1600, 1600);
-    const r = x.createRadialGradient(1000, 620, 40, 1000, 620, 520); r.addColorStop(0, '#fff6e0'); r.addColorStop(.45, '#ffb86b'); r.addColorStop(1, 'rgba(255,120,60,0)');
-    x.fillStyle = r; x.fillRect(0, 0, 1600, 1600);
-    x.strokeStyle = 'rgba(228,226,220,.18)'; x.lineWidth = 2;
-    for (let i = 0; i <= 1600; i += 100){ x.beginPath(); x.moveTo(i, 0); x.lineTo(i, 1600); x.moveTo(0, i); x.lineTo(1600, i); x.stroke(); }
-    x.fillStyle = '#e4e2dc'; x.font = '900 720px "Helvetica Neue", Arial, sans-serif'; x.textBaseline = 'alphabetic'; x.fillText('A', 110, 1480);
+    /* dusk over layered hills */
+    x.fillStyle = lin(0, 1100, [[0, '#16323f'], [.45, '#3f6a72'], [.8, '#e9a86b'], [1, '#f6d7a0']]); x.fillRect(0, 0, S, S);
+    glow(1040, 930, 640, [[0, 'rgba(255,248,226,1)'], [.12, 'rgba(255,224,160,.95)'], [.4, 'rgba(255,170,100,.35)'], [1, 'rgba(255,140,80,0)']]);
+    for (let i = 0; i < 9; i++){
+      const y = 200 + i * 85, w = 900 + (i % 3) * 260, cx = 260 + (i * 431) % 900;
+      x.save(); x.translate(cx, y); x.scale(1, .07); x.translate(-cx, -y);
+      glow(cx, y, w / 2, [[0, 'rgba(255,214,170,.22)'], [1, 'rgba(255,214,170,0)']]); x.restore();
+    }
+    const ridge = (base, amp, seed, fill) => {
+      x.beginPath(); x.moveTo(0, S);
+      for (let px = 0; px <= S; px += 8) x.lineTo(px, base + Math.sin(px / 210 + seed) * amp + Math.sin(px / 83 + seed * 2.3) * amp * .35 + Math.sin(px / 27 + seed * 5) * amp * .06);
+      x.lineTo(S, S); x.closePath(); x.fillStyle = fill; x.fill();
+    };
+    ridge(960, 60, 1.2, lin(900, 1200, [[0, '#a8756a'], [1, '#6f5a63']]));
+    ridge(1060, 70, 3.1, lin(980, 1300, [[0, '#6a5266'], [1, '#3d3550']]));
+    ridge(1200, 80, 5.4, lin(1100, 1450, [[0, '#3a3049'], [1, '#221f31']]));
+    ridge(1350, 60, 7.7, lin(1300, 1600, [[0, '#1c1a28'], [1, '#0e0d16']]));
   } else {
-    x.fillStyle = '#e9e4d6'; x.fillRect(0, 0, 1600, 1600);
-    for (let i = 0; i < 16; i++){ x.fillStyle = i % 2 ? '#1c1d20' : '#5f8c7e'; x.beginPath(); x.arc(800, 800, 1100 - i * 68, 0, Math.PI * 2); x.fill(); }
-    x.fillStyle = '#ff5a36'; x.fillRect(0, 1180, 1600, 120);
-    x.fillStyle = '#e9e4d6'; x.font = '900 720px "Helvetica Neue", Arial, sans-serif'; x.textAlign = 'right'; x.fillText('B', 1500, 700);
+    /* still life in window light: wall, floor, a block and two spheres */
+    x.fillStyle = lin(0, S, [[0, '#dccfb8'], [1, '#a99574']]); x.fillRect(0, 0, S, S);
+    const fy = 1090;
+    x.fillStyle = lin(fy, S, [[0, '#8f7c60'], [1, '#54463a']]); x.fillRect(0, fy, S, S - fy);
+    x.save(); x.beginPath(); x.moveTo(1120, 0); x.lineTo(1600, 0); x.lineTo(1600, 1600); x.lineTo(520, 1600); x.closePath(); x.clip();
+    const beam = x.createLinearGradient(1600, 0, 620, 1500); beam.addColorStop(0, 'rgba(255,247,226,.78)'); beam.addColorStop(1, 'rgba(255,240,200,0)');
+    x.fillStyle = beam; x.fillRect(0, 0, S, S); x.restore();
+    /* cast shadows fall away from the light, to the left */
+    x.fillStyle = 'rgba(38,26,16,.42)';
+    x.beginPath(); x.moveTo(560, fy); x.lineTo(300, fy + 110); x.lineTo(30, fy + 110); x.lineTo(300, fy); x.closePath(); x.fill();
+    x.save(); x.translate(720, fy + 30); x.scale(1, .16); x.beginPath(); x.arc(0, 0, 210, 0, Math.PI * 2); x.restore(); x.fill();
+    x.save(); x.translate(1090, fy + 44); x.scale(1, .18); x.beginPath(); x.arc(0, 0, 100, 0, Math.PI * 2); x.restore(); x.fill();
+    /* block: three lit faces */
+    x.fillStyle = '#c9b48f'; x.fillRect(300, 800, 260, 290);
+    x.fillStyle = '#efe0bd'; x.beginPath(); x.moveTo(300, 800); x.lineTo(430, 720); x.lineTo(690, 720); x.lineTo(560, 800); x.closePath(); x.fill();
+    x.fillStyle = '#a8946f'; x.beginPath(); x.moveTo(560, 800); x.lineTo(690, 720); x.lineTo(690, 1010); x.lineTo(560, 1090); x.closePath(); x.fill();
+    /* sphere lit from the upper right */
+    const sp = x.createRadialGradient(850, 690, 20, 780, 800, 260);
+    sp.addColorStop(0, '#fff3dc'); sp.addColorStop(.35, '#d8b98d'); sp.addColorStop(1, '#3a2c22');
+    x.fillStyle = sp; x.beginPath(); x.arc(760, 880, 210, 0, Math.PI * 2); x.fill();
+    const rs = x.createRadialGradient(1120, 940, 8, 1080, 980, 110);
+    rs.addColorStop(0, '#ff9a7a'); rs.addColorStop(.5, '#e0421f'); rs.addColorStop(1, '#5a140a');
+    x.fillStyle = rs; x.beginPath(); x.arc(1090, 990, 100, 0, Math.PI * 2); x.fill();
+    /* the room falls off toward the corners */
+    glow(S / 2, S / 2, S * .8, [[0, 'rgba(0,0,0,0)'], [.7, 'rgba(20,12,6,.08)'], [1, 'rgba(20,12,6,.42)']]);
   }
   return c;
 }
@@ -302,17 +342,18 @@ function initTopBar(){
   App.syncTop = syncFields; syncFields();
 }
 const cloneParams = p => JSON.parse(JSON.stringify(p || {}));
-const clean = i => ({ id:i.id, on:i.on, params:cloneParams(i.params) });
+const clean = i => ({ id:i.id, on:i.on, params:cloneParams(i.params), ...(i.bind && Object.keys(i.bind).length ? { bind:cloneParams(i.bind) } : {}), ...(i.expose && Object.keys(i.expose).length ? { expose:cloneParams(i.expose) } : {}) });
 const sourceInsts = () => [...(state.sources.A.process || []), ...(state.sources.B.process || [])];
 function resetAllFeedback(){ Engine.resetFeedback([...state.stack, ...sourceInsts()]); }
 
-/* One instance path for stack, lanes, Looks and projects. */
+/* One instance path for stack, lanes, saved looks and projects. */
 function hydrateInst(o, missing){
   if (!o || !o.id || !FX.byId[o.id]){ if (o && o.id && missing) missing.push(o.id); return null; }
   const i = makeInst(o.id);
   Object.assign(i.params, cloneParams(o.params));
   i.on = o.on !== false;
-  FX.byId[o.id].params.forEach(p => { if (p.type === 'font' && typeof i.params[p.id] === 'number') i.params[p.id] = Util.fontNames[i.params[p.id]] || 'Helvetica'; });
+  if (o.bind && typeof o.bind === 'object') i.bind = cloneParams(o.bind);
+  if (o.expose && typeof o.expose === 'object') i.expose = cloneParams(o.expose);
   return i;
 }
 function hydrateLane(o, missing){
@@ -321,7 +362,7 @@ function hydrateLane(o, missing){
   if (!FX.laneEligible(FX.byId[i.id])){ if (missing) missing.push(o.id); return null; }
   return i;
 }
-/* A Look owns preparation the same way it owns the stack: missing field → []. */
+/* A saved look owns preparation the same way it owns the stack: missing field → []. */
 function applyProcess(data, missing){
   for (const k of ['A', 'B']){
     const raw = data && data.sources && data.sources[k] && data.sources[k].process;
@@ -372,21 +413,17 @@ function moduleMatch(m, q){
   const cat = CATS.find(c => c.id === m.cat);
   return searchHay(q, cat && cat.label, m.name, m.desc, m.search);
 }
-function lookMatch(lk, q){
-  if (!q) return true;
-  return searchHay(q, lk.name, lk.desc, lk.search);
-}
 function searchLibrary(q){
   q = String(q || '').trim().toLowerCase();
   return {
-    looks: STARTER_LOOKS.filter(lk => lookMatch(lk, q)).map(lk => lk.id),
     modules: FX.modules.filter(m => moduleMatch(m, q)).map(m => m.id),
   };
 }
-function libRow({ id, name, desc, action, active, onClick }){
-  const b = el('button', 'item'); if (active) b.classList.add('active');
+function libRow({ id, name, desc, action, active, onClick, thumb }){
+  const b = el('button', 'item' + (thumb ? ' has-thumb' : '')); if (active) b.classList.add('active');
   if (id) b.dataset.id = id;
   b.title = desc || '';
+  if (thumb){ const th = el('span', 'th'); th.style.backgroundImage = `url("${thumb}")`; th.setAttribute('aria-hidden', 'true'); b.append(th); }
   const copy = el('span', 'copy');
   copy.append(el('b', null, name));
   if (desc) copy.append(el('small', null, desc));
@@ -396,18 +433,20 @@ function libRow({ id, name, desc, action, active, onClick }){
 }
 const CAT_USE = {
   source:'starts composition', transition:'combines A + B', mix:'combines A + B',
-  generator:'creates the frame', type:'finish', logo:'finish',
+  generator:'creates the frame', data:'draws your data',
   treatment:'prepare / finish', fx:'finish', overlay:'finish',
 };
 const LIB_CTX = {
   prepareA:{ title:'Add to Prepare A', ph:'Search treatments and reframe' },
   prepareB:{ title:'Add to Prepare B', ph:'Search treatments and reframe' },
-  combine:{ title:'Choose Combine', ph:'Search sources, transitions, mix, generators' },
+  combine:{ title:'How should the images meet?', ph:'Search sources, transitions, mixes, generators' },
   finish:{ title:'Add to Finish', ph:'Search finish modules' },
+  all:{ title:'Find a module', ph:'Search every module' },
   replacePrepareA:{ title:'Replace in Prepare A', ph:'Search treatments and reframe', replace:true },
   replacePrepareB:{ title:'Replace in Prepare B', ph:'Search treatments and reframe', replace:true },
   replaceFinish:{ title:'Replace in Finish', ph:'Search finish modules', replace:true },
 };
+const LIB_WS = { prepareA:'images', prepareB:'images', replacePrepareA:'images', replacePrepareB:'images', combine:'combine', finish:'finish', replaceFinish:'finish' };
 function libKind(ctx){
   if (!ctx) return null;
   if (ctx === 'prepareA' || ctx === 'replacePrepareA') return 'prepareA';
@@ -418,66 +457,114 @@ function libKind(ctx){
 }
 function libEligible(m){
   const kind = libKind(App.libTarget);
-  if (!kind) return true;
+  if (!kind || kind === 'all') return true;
   if (kind === 'prepareA' || kind === 'prepareB') return FX.laneEligible(m);
   if (kind === 'combine') return catRole(m.cat) === 'base';
   if (kind === 'finish') return catRole(m.cat) === 'stack';
   return true;
 }
+/* the picker is a drawer over the panel: it opens from an Add or Change button, or from search, and closes when a module is chosen */
 function setLibTarget(target, index){
   const prev = App.libTarget;
   App.libTarget = target || null;
   App.libReplace = (target && LIB_CTX[target] && LIB_CTX[target].replace && index != null) ? index : null;
   const ctx = target && LIB_CTX[target];
-  $('#lib').classList.toggle('ctx', !!ctx);
+  $('#lib').classList.toggle('open', !!ctx);
   $('#libCtxTitle').textContent = ctx ? ctx.title : '';
-  $('#libCtxDone').textContent = ctx && ctx.replace ? 'Cancel' : 'Browse all';
-  $('#search').placeholder = ctx ? ctx.ph : 'Search looks and modules';
-  showTab('lib');
+  $('#libCtxDone').textContent = ctx && ctx.replace ? 'Cancel' : '← Back';
+  $('#search').placeholder = ctx ? ctx.ph : 'Search modules';
+  if (ctx){
+    App.libChip = 'all'; $('#search').value = '';
+    if (LIB_WS[target]) showWorkspace(LIB_WS[target], true);
+    if (/A$/.test(target)) App.srcTab = 'A'; else if (/B$/.test(target)) App.srcTab = 'B';
+  }
   renderLibrary();
+  if (ctx) $('#search').focus();
   if ((prev && LIB_CTX[prev] && LIB_CTX[prev].replace) || (ctx && ctx.replace)){
     renderSlots(); renderStack();
   }
 }
 function renderLibrary(){
+  const ctx = App.libTarget;
+  if (!ctx) return;
   const q = $('#search').value.trim().toLowerCase();
   const list = $('#libList'); list.innerHTML = '';
-  const ctx = App.libTarget;
-  if (!ctx){
-    const looks = STARTER_LOOKS.filter(lk => lookMatch(lk, q));
-    if (looks.length){
-      const d = el('details', 'cat looks'); d.open = true;
-      const sum = el('summary'); sum.append(el('span', null, 'Looks'), el('span', 'role', 'examples'));
-      d.append(sum);
-      looks.forEach(lk => d.append(libRow({
-        id:lk.id, name:lk.name, desc:lk.desc, action:'apply',
-        onClick:() => { applyLook(lk.data); toast(`Applied “${lk.name}”. Tweak it, then save it as your own look.`); },
-      })));
+  const chips = $('#libChips'); chips.innerHTML = '';
+  const kinds = CATS.filter(c => FX.modules.some(m => m.cat === c.id && libEligible(m)));
+  if (kinds.length > 1) [{ id:'all', label:'All' }, ...kinds].forEach(c => {
+    const b = el('button', App.libChip === c.id ? 'on' : '', c.label); b.type = 'button'; b.setAttribute('aria-pressed', String(App.libChip === c.id));
+    b.onclick = () => { App.libChip = c.id; renderLibrary(); };
+    chips.append(b);
+  });
+  /* previews drawn from the picture you are working on, not the stand-in */
+  const live = el('button', 'live' + (App.libLive ? ' on' : ''), 'On my image'); live.type = 'button'; live.setAttribute('aria-pressed', String(!!App.libLive));
+  live.title = 'Draw each thumbnail from image A instead of the stand-in photograph';
+  live.onclick = () => { App.libLive = !App.libLive; try { localStorage.setItem('fxlab.libLive', App.libLive ? '1' : ''); } catch {} renderLibrary(); };
+  chips.append(live);
+  const row = (m, cat) => {
+    const isBase = cat.role === 'base';
+    return libRow({
+      id:m.id, name:m.name, desc:m.desc, thumb:thumbSrc(m.id),
+      action: isBase ? (state.base && state.base.id === m.id ? 'active' : 'use') : (LIB_CTX[ctx].replace ? 'replace' : 'add'),
+      active: !!(isBase && state.base && state.base.id === m.id),
+      onClick:() => chooseModule(m.id),
+    });
+  };
+  /* the modules you reached for last, before the full list */
+  if (!q && App.libChip === 'all'){
+    const rec = recentModules().map(id => FX.byId[id]).filter(m => m && libEligible(m));
+    if (rec.length){
+      const d = el('details', 'cat'); d.open = true;
+      const sum = el('summary'); sum.append(el('span', null, 'Recent'), el('span', 'role', String(rec.length))); d.append(sum);
+      rec.forEach(m => d.append(row(m, CATS.find(c => c.id === m.cat))));
       list.append(d);
     }
   }
   for (const cat of CATS){
+    if (App.libChip !== 'all' && cat.id !== App.libChip) continue;
     const items = FX.modules.filter(m => m.cat === cat.id && moduleMatch(m, q) && libEligible(m));
     if (!items.length) continue;
     const d = el('details', 'cat'); d.open = true;
-    const sum = el('summary'); sum.append(el('span', null, `${cat.label}`), el('span', 'role', ctx ? '' : (CAT_USE[cat.id] || '')));
+    const sum = el('summary'); sum.append(el('span', null, cat.label), el('span', 'role', String(items.length)));
     d.append(sum);
-    for (const m of items){
-      const isBase = cat.role === 'base';
-      d.append(libRow({
-        id:m.id, name:m.name, desc:m.desc,
-        action: isBase ? (state.base && state.base.id === m.id ? 'active' : 'use') : (ctx && LIB_CTX[ctx] && LIB_CTX[ctx].replace ? 'replace' : 'add'),
-        active: !!(isBase && state.base && state.base.id === m.id),
-        onClick:() => chooseModule(m.id),
-      }));
-    }
+    for (const m of items) d.append(row(m, cat));
     list.append(d);
   }
-  if (!list.children.length){
-    list.append(el('p', 'empty', ctx
-      ? 'Nothing matches this stage. Browse all to see the whole library.'
-      : 'Nothing matches. Try “distort”, “print”, “window” or “logo”.'));
+  if (App.libLive) queueLivePreviews(list);
+  if (!list.children.length) list.append(el('p', 'empty', q ? `Nothing matches “${q}”. Try “grain”, “print”, “distort” or “scan”.` : 'Nothing to show here.'));
+}
+/* Live thumbnails: rows draw when they scroll into view, in small batches, on the current image A.
+   The composition is swapped out for the render and put back, as the Language variations do. Modules
+   that keep state between frames keep their stand-in thumbnail: they would need a warm-up per row. */
+let livePending = [], liveTimer = 0, liveToken = 0;
+function queueLivePreviews(list){
+  const token = ++liveToken; livePending = [];
+  if (!('IntersectionObserver' in window)) return;
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(en => { if (en.isIntersecting){ io.unobserve(en.target); livePending.push(en.target); } });
+    clearTimeout(liveTimer); liveTimer = setTimeout(() => drawLivePreviews(token), 60);
+  }, { root:list, rootMargin:'120px' });
+  list.querySelectorAll('.item[data-id] .th').forEach(t => io.observe(t));
+}
+function drawLivePreviews(token){
+  if (token !== liveToken || !livePending.length) return;
+  const rows = livePending.splice(0), keep = { W:state.W, H:state.H, base:state.base, stack:state.stack, exp:App.exporting, play:App.playing, t:App.t };
+  const w = 88, h = 110, out = [];
+  try {
+    App.exporting = true; App.playing = false; Object.assign(state, { W:w, H:h }); Engine.setSize(w, h, 1);
+    rows.forEach(th => {
+      const id = th.parentElement.dataset.id, m = FX.byId[id];
+      if (!m || m.feedback || m.kind === 'data') return;
+      const cat = CATS.find(c => c.id === m.cat), inst = makeInst(id);
+      if (cat.role === 'base'){ state.base = inst; state.stack = []; } else { state.base = keep.base; state.stack = [inst]; }
+      try { renderAt(stillTime()); const c = document.createElement('canvas'); c.width = w; c.height = h; c.getContext('2d').drawImage(Engine.canvas, 0, 0, w, h); out.push([th, c.toDataURL('image/jpeg', .8)]); } catch {}
+    });
+  } finally {
+    Object.assign(state, { W:keep.W, H:keep.H, base:keep.base, stack:keep.stack }); App.exporting = keep.exp; App.playing = keep.play; App.t = keep.t;
+    applySize(); resetAllFeedback(); markDirty();
   }
+  out.forEach(([th, u]) => { th.style.backgroundImage = `url("${u}")`; });
+  if (livePending.length) liveTimer = setTimeout(() => drawLivePreviews(token), 30);
 }
 function replaceInst(list, idx, id){
   const old = list[idx];
@@ -488,9 +575,12 @@ function replaceInst(list, idx, id){
   list[idx] = inst;
   openNewInst(inst.uid);
 }
+function recentModules(){ try { return JSON.parse(localStorage.getItem('fxlab-recent') || '[]').filter(id => typeof id === 'string').slice(0, 6); } catch { return []; } }
+function rememberModule(id){ try { const r = [id, ...recentModules().filter(x => x !== id)].slice(0, 8); localStorage.setItem('fxlab-recent', JSON.stringify(r)); } catch { /* private mode */ } }
 function chooseModule(id){
   const m = FX.byId[id];
   if (!m) return;
+  rememberModule(id);
   History.record('module', () => chooseModuleNow(id, m, App.libTarget));
 }
 function chooseModuleNow(id, m, ctx){
@@ -517,27 +607,28 @@ function chooseModuleNow(id, m, ctx){
     if (!FX.laneEligible(m)) return;
     const added = makeInst(id); openNewInst(added.uid);
     state.sources[ctx === 'prepareA' ? 'A' : 'B'].process.push(added);
+    setLibTarget(null);
     renderSlots(); markDirty();
     return;
   }
-  if (ctx === 'combine'){
+  if (ctx === 'combine' || (ctx === 'all' && catRole(m.cat) === 'base')){
     if (catRole(m.cat) !== 'base') return;
     state.base = makeInst(id);
-    renderBase();
     setLibTarget(null);
+    if (ctx === 'all') showWorkspace('combine');
+    renderBase();
     markDirty();
     return;
   }
-  if (ctx === 'finish'){
+  if (ctx === 'finish' || ctx === 'all'){
     if (catRole(m.cat) !== 'stack') return;
     const added = makeInst(id); openNewInst(added.uid);
     state.stack.push(added);
+    setLibTarget(null);
+    if (ctx === 'all') showWorkspace('finish');
     renderStack(); markDirty();
     return;
   }
-  if (catRole(m.cat) === 'base'){ state.base = makeInst(id); renderBase(); renderLibrary(); }
-  else { const added = makeInst(id); openNewInst(added.uid); state.stack.push(added); renderStack(); }
-  markDirty();
 }
 
 /* ---------- inspector: params ---------- */
@@ -548,21 +639,49 @@ function paramRow(inst, p, onChange){
   const commit = v => { History.begin('param'); inst.params[p.id] = v; onChange && onChange(); markDirty(); };
   const commitOnce = v => { commit(v); History.end(); };
   if (p.type === 'range'){
+    const linked = !!(inst.bind && inst.bind[p.id]);
     const r = el('input'); Object.assign(r, { type:'range', min:p.min, max:p.max, step:p.step, value:val });
     const num = el('input', 'val'); num.type = 'text'; num.value = fmt(val, p.step);
+    r.setAttribute('aria-label', p.label); num.setAttribute('aria-label', `${p.label} value`);
     r.oninput = () => { num.value = fmt(+r.value, p.step); commit(+r.value); };
     bindLive(r, 'param');
     num.onchange = () => { const v = Util.clamp(parseFloat(num.value), p.min, p.max); if (!isNaN(v)){ r.value = v; num.value = fmt(v, p.step); commitOnce(v); } };
-    lab.title = 'Double-click to reset'; lab.ondblclick = () => { r.value = p.def; num.value = fmt(p.def, p.step); commitOnce(p.def); };
+    const mod = () => lab.classList.toggle('mod', Math.abs(+r.value - p.def) > (p.step || .01) / 2);
+    const set = v => { v = Util.clamp(v, p.min, p.max); v = p.step >= 1 ? Math.round(v) : Math.round(v / p.step) * p.step; r.value = v; num.value = fmt(v, p.step); commit(+v); mod(); };
+    lab.title = 'Drag to change (Shift ×10, Alt ×0.1). Double-click to reset.'; lab.classList.add('scrub');
+    lab.ondblclick = () => { r.value = p.def; num.value = fmt(p.def, p.step); commitOnce(p.def); mod(); };
+    let sx = null, sv = 0;
+    lab.addEventListener('pointerdown', e => { if (r.disabled || e.button) return; sx = e.clientX; sv = +r.value; lab.setPointerCapture(e.pointerId); History.begin('param'); e.preventDefault(); });
+    lab.addEventListener('pointermove', e => { if (sx == null) return; set(sv + (e.clientX - sx) / 300 * (p.max - p.min) * (e.shiftKey ? 10 : e.altKey ? .1 : 1)); });
+    const done = () => { if (sx == null) return; sx = null; History.end(); };
+    lab.addEventListener('pointerup', done); lab.addEventListener('pointercancel', done);
+    r.addEventListener('input', mod);
+    r.addEventListener('keydown', e => { if (e.shiftKey && /^Arrow(Left|Right|Up|Down)$/.test(e.key)){ e.preventDefault(); set(+r.value + (/Left|Down/.test(e.key) ? -1 : 1) * p.step * 10); History.end(); } });
+    mod();
     row.append(r, num);
+    row.classList.add('has-link');
+    const lk = el('button', 'lk'); lk.type = 'button'; lk.innerHTML = LINK_ICON;
+    lk.title = linked ? `Linked to ${inst.bind[p.id].col}. Change or unlink.` : 'Link to a data column';
+    lk.setAttribute('aria-label', linked ? `${p.label} is linked to ${inst.bind[p.id].col}. Edit the link.` : `Link ${p.label} to a data column`);
+    lk.onclick = () => toggleBindPopover(row, inst, p);
+    row.append(lk, pinButton(row, inst, p));
+    if (linked){ row.classList.add('bound'); r.disabled = true; num.readOnly = true; num.value = 'data'; }
+  } else if (p.type === 'column'){
+    row.classList.add('wide');
+    const t = Data.current(), s = el('select'); s.setAttribute('aria-label', p.label);
+    const guess = Data.pick('', p.auto || 0, p.kind === 'any' ? 'any' : p.kind === 'axis' ? 'axis' : 'number', t);
+    const auto = el('option', null, `Automatic · ${guess ? guess.name : 'none'}`); auto.value = ''; s.append(auto);
+    t.cols.filter(c => c.v).forEach(c => { const o = el('option', null, c.name + (c.axis ? ' (axis)' : c.type === 'category' ? ' (categories)' : '')); o.value = c.name; s.append(o); });
+    if (val && !t.byName[val]){ const o = el('option', null, `${val} (not in this table)`); o.value = val; s.append(o); }
+    s.value = val || ''; s.onchange = () => commitOnce(s.value); row.append(s);
   } else if (p.type === 'color'){
     row.classList.add('wide');
     const split = v => { const s2 = String(Identity.color(v)); const t = s2.replace('#', ''); return { rgb:'#' + t.slice(0, 6), a:t.length >= 8 ? parseInt(t.slice(6, 8), 16) / 255 : 1 }; };
     const join = (rgb, a) => a >= .999 ? rgb : rgb + Math.round(Util.clamp(a) * 255).toString(16).padStart(2, '0');
     const cur0 = split(val);
-    const c = el('input'); c.type = 'color'; c.value = cur0.rgb;
+    const c = el('input'); c.type = 'color'; c.value = cur0.rgb; c.setAttribute('aria-label', p.label);
     const ar = el('input', 'alpha'); Object.assign(ar, { type:'range', min:0, max:1, step:.01, value:cur0.a });
-    ar.title = 'Opacity — drag to 0 for transparent';
+    ar.title = 'Opacity — drag to 0 for transparent'; ar.setAttribute('aria-label', `${p.label} opacity`);
     const setSwatch = () => { c.style.setProperty('--a', String(+ar.value)); c.classList.toggle('clear', +ar.value < .999); };
     const sw = el('div', 'swatches');
     const mark = () => { sw.querySelectorAll('.role').forEach(b => b.classList.toggle('on', b.dataset.role === inst.params[p.id])); lab.classList.toggle('linked', String(inst.params[p.id]).startsWith('role:')); lab.title = String(inst.params[p.id]).startsWith('role:') ? `Linked to ${Identity.roleLabel(inst.params[p.id])}` : ''; };
@@ -580,42 +699,17 @@ function paramRow(inst, p, onChange){
     { const b = el('button', 'clearsw'); b.title = 'Transparent'; b.setAttribute('aria-label', 'Transparent'); b.onclick = () => { ar.value = 0; commitCol(); History.end(); }; sw.append(b); }
     if (sw.children.length) row.append(sw);
     mark();
-  } else if (p.type === 'font'){
-    row.classList.add('wide');
-    const s = el('select');
-    const fonts = Assets.fonts();
-    if (Identity.active() || fonts.length){ const g = el('optgroup'); g.label = 'Brand roles'; Identity.FONT_ROLES.forEach(([r, name]) => { const ref = Identity.fontRef('role:' + r), a = Assets.get(ref); const o = el('option', null, `${name} · ${a ? a.name : ref}`); o.value = 'role:' + r; g.append(o); }); s.append(g); }
-    if (fonts.length){ const g = el('optgroup'); g.label = 'Your fonts'; fonts.forEach(f => { const o = el('option', null, f.name); o.value = 'asset:' + f.id; g.append(o); }); s.append(g); }
-    const g2 = el('optgroup'); g2.label = 'System'; Util.fontNames.forEach(n => { const o = el('option', null, n); o.value = n; g2.append(o); }); s.append(g2);
-    const cur = typeof val === 'number' ? Util.fontNames[val] : val;
-    if (typeof cur === 'string' && cur.startsWith('asset:') && !Assets.get(cur)){ const o = el('option', null, 'Missing font (add it in Assets)'); o.value = cur; s.prepend(o); }
-    s.value = cur; s.onchange = () => commitOnce(s.value); row.append(s);
-  } else if (p.type === 'asset'){
-    row.classList.add('wide');
-    const imgs = Assets.images();
-    if (!imgs.length && !val){
-      const hint = el('div', 'hint'); hint.append('No logos yet. ', Object.assign(el('button', null, 'Add some in Assets'), { onclick:() => showTab('assets') }));
-      row.append(hint);
-    } else {
-      const wrap = el('div', 'pick'), s = el('select'), mini = el('div', 'mini checker');
-      const none = el('option', null, 'None'); none.value = ''; s.append(none);
-      const rg = el('optgroup'); rg.label = 'Brand roles'; Identity.LOGO_ROLES.forEach(([r, name]) => { const a = Assets.get('role:' + r); const o = el('option', null, `${name} · ${a ? a.name : '—'}`); o.value = 'role:' + r; rg.append(o); }); s.append(rg);
-      const ag = el('optgroup'); ag.label = 'All logos'; imgs.forEach(a => { const o = el('option', null, a.name); o.value = 'asset:' + a.id; ag.append(o); }); s.append(ag);
-      if (val && !Assets.get(val)){ const o = el('option', null, 'Missing logo (add it in Assets)'); o.value = val; s.append(o); }
-      const show = () => { const a = Assets.get(s.value); mini.style.backgroundImage = a ? `url("${a.thumb}")` : 'none'; };
-      s.value = val; show(); s.onchange = () => { show(); commitOnce(s.value); };
-      wrap.append(s, mini); row.append(wrap);
-    }
   } else if (p.type === 'toggle'){
     row.classList.add('wide');
-    const c = el('input'); c.type = 'checkbox'; c.checked = !!val; c.onchange = () => commitOnce(c.checked); row.append(c);
+    const c = el('input'); c.type = 'checkbox'; c.checked = !!val; c.setAttribute('aria-label', p.label); c.onchange = () => commitOnce(c.checked); row.append(c); row.classList.add('has-pin'); row.append(pinButton(row, inst, p));
   } else if (p.type === 'select'){
     row.classList.add('wide');
-    const s = el('select'); p.options.forEach((o, i) => { const op = el('option', null, o); op.value = i; s.append(op); }); s.value = val;
-    s.onchange = () => commitOnce(+s.value); row.append(s);
+    const s = el('select'); s.setAttribute('aria-label', p.label); p.options.forEach((o, i) => { const op = el('option', null, o); op.value = i; s.append(op); }); s.value = val;
+    s.onchange = () => commitOnce(+s.value); row.append(s); row.classList.add('has-pin'); row.append(pinButton(row, inst, p));
   } else if (p.type === 'text'){
     row.classList.add('wide');
     const t = p.multiline ? el('textarea') : el('input'); if (!p.multiline) t.type = 'text'; else t.rows = 2;
+    t.setAttribute('aria-label', p.label);
     t.value = val; t.oninput = () => commit(t.value); bindLive(t, 'param'); row.append(t);
   }
   return row;
@@ -668,36 +762,52 @@ function combineSummary(){
 function finishSummary(){ return joinNames(instNames(state.stack, false)) || 'No finish modules'; }
 function renderStageHeads(){
   const stages = [
-    { id:'prepare', n:'01', name:'Prepare', canBypass:true, on:App.stageOn.prepare, summary:prepareSummary(),
-      setOn:v => { App.stageOn.prepare = v; markDirty(); } },
-    { id:'combine', n:'02', name:'Combine', canBypass:false, on:true, summary:combineSummary() },
-    { id:'finish', n:'03', name:'Finish', canBypass:true, on:App.stageOn.finish, summary:finishSummary(),
-      setOn:v => { App.stageOn.finish = v; markDirty(); } },
+    { name:'Prepare', canBypass:true, on:App.stageOn.prepare, setOn:v => { App.stageOn.prepare = v; markDirty(); }, tip:'Bypass Prepare. Fit still runs.' },
+    { name:'Combine', canBypass:false, on:true, quiet:true },
+    { name:'Finish', canBypass:true, on:App.stageOn.finish, setOn:v => { App.stageOn.finish = v; markDirty(); }, tip:'Bypass every Finish layer. The combined frame stays.' },
   ];
   stages.forEach(st => {
-    const sec = $(`#sec${st.name}`);
-    sec.classList.toggle('open', stageIsOpen(st.id));
     const hdr = $(`#hdr${st.name}`); hdr.innerHTML = '';
-    hdr.append(el('span', 'stage-n', st.n), el('span', 'stage-name', st.name));
-    const on = el('span', 'stage-on' + (st.on ? ' on' : '') + (st.canBypass ? '' : ' fixed'));
-    on.append(el('i'), document.createTextNode(st.on ? 'ON' : 'OFF'));
+    if (!st.quiet) hdr.append(el('span', 'stage-name', st.name === 'Finish' ? 'Layers' : st.name));
     if (st.canBypass){
-      on.title = st.id === 'prepare' ? 'Bypass source processing. Fit still runs.' : 'Bypass the finish stack. The combined frame stays.';
-      on.setAttribute('role', 'button'); on.tabIndex = 0;
+      const on = el('span', 'stage-on' + (st.on ? ' on' : ''));
+      on.append(el('i'), document.createTextNode(st.on ? 'ON' : 'OFF'));
+      on.title = st.tip; on.setAttribute('role', 'button'); on.tabIndex = 0;
+      on.setAttribute('aria-pressed', String(!st.on)); on.setAttribute('aria-label', `${st.name}: ${st.on ? 'on' : 'bypassed'}. Press to ${st.on ? 'bypass' : 'turn on'}.`);
       const flip = ev => { ev.stopPropagation(); st.setOn(!st.on); renderStageHeads(); };
       on.onclick = flip;
       on.onkeydown = ev => { if (ev.key === 'Enter' || ev.key === ' '){ ev.preventDefault(); flip(ev); } };
-    } else {
-      on.title = 'Combine always runs — it is the current frame.';
+      hdr.append(on);
     }
-    hdr.append(on);
-    hdr.append(el('div', 'stage-sum', st.summary));
-    hdr.onclick = e => {
-      if (e.target.closest('.stage-on')) return;
-      setStageOpen(st.id, !stageIsOpen(st.id));
-      sec.classList.toggle('open', stageIsOpen(st.id));
-    };
   });
+  updateBadges();
+}
+
+/* the first few controls always; the rest under one fold, so a module never opens onto a wall of sliders */
+function paramRows(box, inst, m){
+  const list = m.params, keep = m.primary != null ? m.primary : 6;
+  const shown = list.length > keep + 1 ? list.slice(0, keep) : list, rest = list.slice(shown.length);
+  shown.forEach(p => box.append(paramRow(inst, p)));
+  if (!rest.length) return;
+  const d = el('details', 'more'); d.open = !!App.ui.more[inst.uid];
+  d.ontoggle = () => { App.ui.more[inst.uid] = d.open; };
+  d.append(el('summary', null, `More controls (${rest.length})`));
+  rest.forEach(p => d.append(paramRow(inst, p)));
+  box.append(d);
+}
+function renderSrcTabs(){
+  const box = $('#srcTabs'); if (!box) return;
+  box.innerHTML = '';
+  ['A', 'B'].forEach(k => {
+    const info = App.mediaInfo[k] || {}, n = (state.sources[k].process || []).filter(i => i.on !== false).length, on = App.srcTab === k;
+    const b = el('button', on ? 'on' : ''); b.type = 'button'; b.setAttribute('role', 'tab'); b.setAttribute('aria-selected', String(on));
+    const th = el('span', 'mt'); if (info.thumb) th.style.backgroundImage = `url("${info.thumb}")`;
+    b.append(th, document.createTextNode(`Image ${k}`));
+    if (n) b.append(el('span', 'cnt', String(n)));
+    b.onclick = () => { App.srcTab = k; renderSrcTabs(); };
+    box.append(b);
+  });
+  $('#slots').dataset.active = App.srcTab;
 }
 
 function renderBase(){
@@ -712,7 +822,7 @@ function renderBase(){
   head.append(title, acts);
   sec.append(head, el('p', 'desc', m.desc || ''));
   if (m.cat === 'transition') sec.querySelector('.desc').textContent += ' Timing follows the timeline length, easing and hold.';
-  m.params.forEach(p => sec.append(paramRow(state.base, p)));
+  paramRows(sec, state.base, m);
   renderStageHeads();
 }
 
@@ -720,8 +830,9 @@ let dragUid = null;
 function renderStack(){
   const sec = $('#secStack'); sec.innerHTML = '';
   if (!state.stack.length){
-    sec.append(el('p', 'empty', 'No finish modules'));
-    sec.append(addMod('+ Add to Finish', 'finish'));
+    const box = el('div', 'empty-cta'); box.append(el('b', null, 'Nothing here yet'), 'Add a layer to grade, print or texture the frame. Try Film grain, Halftone or Levels & curves.');
+    box.append(document.createElement('br'), addMod('+ Add to Finish', 'finish'));
+    sec.append(box);
     renderStageHeads();
     return;
   }
@@ -738,7 +849,7 @@ function renderStack(){
     ch.append(eyeBtn(inst, m.name, renderStack), num, nm, changeBtn('finish', idx),
       mk('↑', 'Move up', () => { if (idx > 0) History.record('reorder', () => { [state.stack[idx - 1], state.stack[idx]] = [state.stack[idx], state.stack[idx - 1]]; renderStack(); markDirty(); }); }),
         mk('↓', 'Move down', () => { if (idx < state.stack.length - 1) History.record('reorder', () => { [state.stack[idx + 1], state.stack[idx]] = [state.stack[idx], state.stack[idx + 1]]; renderStack(); markDirty(); }); }),
-      mk('⧉', 'Duplicate', () => History.record('module', () => { const c = makeInst(inst.id); c.params = JSON.parse(JSON.stringify(inst.params)); openNewInst(c.uid); state.stack.splice(idx + 1, 0, c); renderStack(); markDirty(); })),
+      mk('⧉', 'Duplicate', () => History.record('module', () => { const c = makeInst(inst.id); c.params = JSON.parse(JSON.stringify(inst.params)); if (inst.bind) c.bind = JSON.parse(JSON.stringify(inst.bind)); if (inst.expose) c.expose = JSON.parse(JSON.stringify(inst.expose)); openNewInst(c.uid); state.stack.splice(idx + 1, 0, c); renderStack(); markDirty(); })),
       mk('×', 'Remove', () => History.record('module', () => { Engine.resetFeedback([inst]); state.stack.splice(idx, 1); renderStack(); markDirty(); })));
     ch.ondragstart = e => { dragUid = inst.uid; card.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', String(inst.uid)); };
     ch.ondragend = () => { dragUid = null; card.classList.remove('dragging'); };
@@ -751,7 +862,7 @@ function renderStack(){
     };
     const cb = el('div', 'cb');
     if (m.desc) cb.append(el('p', 'desc', m.desc));
-    m.params.forEach(p => cb.append(paramRow(inst, p)));
+    paramRows(cb, inst, m);
     card.append(ch, cb); sec.append(card);
   });
   sec.append(addMod('+ Add to Finish', 'finish'));
@@ -766,7 +877,7 @@ function renderSlots(){
     const slot = el('div', 'slot');
     const th = el('div', 'thumb'); th.title = `${info.name || ''} — click or drop to replace`;
     if (info.thumb) th.style.backgroundImage = `url("${info.thumb}")`;
-    if (info.logo){ th.classList.add('logo'); th.style.setProperty('--bgc', state.bg); }
+    if (info.alpha){ th.classList.add('alpha'); th.style.setProperty('--bgc', state.bg); }
     if (info.video){ const v = info.video; v.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover'; th.append(v); }
     th.append(el('span', null, k));
     const fi = el('input'); fi.type = 'file'; fi.accept = 'image/*,video/*'; fi.hidden = true;
@@ -781,6 +892,8 @@ function renderSlots(){
     fitSel.title = 'How this file first sits in the frame. Reframe in Prepare is a later crop.';
     const mini = (label, key, min, max, step) => { const row = el('label', 'mini'); const r = el('input'); Object.assign(r, { type:'range', min, max, step, value:s[key] }); r.title = label; r.setAttribute('aria-label', `${k} ${label}`); r.oninput = () => { History.begin('source'); s[key] = +r.value; markDirty(); }; bindLive(r, 'source'); r.ondblclick = () => History.record('source', () => { s[key] = key === 'zoom' ? 1 : 0; r.value = s[key]; markDirty(); }); row.title = 'Double-click the slider to reset'; row.append(el('span', null, label), r); return row; };
     ctl.append(fitSel, mini('Zoom', 'zoom', .25, 4, .01), mini('X', 'x', -1, 1, .01), mini('Y', 'y', -1, 1, .01));
+    if (info.name === 'Placeholder') ctl.append(el('p', 'hint2', 'A stand-in image. Drop your own photograph or video on the stage, or click the picture above.'));
+    if (s.asset && Assets.isVector(s.asset)) ctl.append(el('p', 'hint2', 'Vector file: the vector effects in Finish redraw its paths as lines, dots and more, and it stays sharp at any size.'));
     if (!Array.isArray(s.process)) s.process = [];
     const proc = el('div', 'proc');
     const ph = el('h3'); ph.append(el('span', null, `Prepare ${k}`), el('span', 'dim', s.process.length ? String(s.process.length) : ''));
@@ -802,12 +915,13 @@ function renderSlots(){
         mk('↓', 'Move down', () => { if (idx < s.process.length - 1) History.record('reorder', () => { [s.process[idx + 1], s.process[idx]] = [s.process[idx], s.process[idx + 1]]; renderSlots(); markDirty(); }); }),
         mk('×', 'Remove', () => History.record('module', () => { Engine.resetFeedback([inst]); s.process.splice(idx, 1); renderSlots(); markDirty(); })));
       const cb = el('div', 'cb');
-      m.params.forEach(p => cb.append(paramRow(inst, p)));
+      paramRows(cb, inst, m);
       card.append(ch, cb); proc.append(card);
     });
-    proc.append(addMod('+ Add', k));
+    proc.append(addMod(`+ Add to Prepare ${k}`, k));
     slot.append(th, fi, ctl, proc); wrap.append(slot);
   });
+  renderSrcTabs();
   renderStageHeads();
 }
 
@@ -947,14 +1061,16 @@ function initRandomiseUi(){
 }
 
 /* ---------- project files ---------- */
-function projectFromState(){
+function projectFromState(forHistory){
   const src = k => {
     const s = state.sources[k];
     return { fit:s.fit, zoom:s.zoom, x:s.x, y:s.y, ...(s.asset ? { asset:s.asset } : {}), process:(s.process || []).map(clean) };
   };
   return { app:'fxlab', version:1, name:projectName(), size:{ id:state.sizeId, w:state.W, h:state.H }, bg:state.bg,
     timeline:{ duration:state.duration, fps:state.fps, loopMode:state.loopMode, easing:state.easing, hold:state.hold },
-    sources:{ A:src('A'), B:src('B') }, base:clean(state.base), stack:state.stack.map(clean), print:state.print, transparent:state.transparent };
+    sources:{ A:src('A'), B:src('B') }, base:clean(state.base), stack:state.stack.map(clean), print:state.print, transparent:state.transparent,
+    ...(state.language ? { language:{ ...state.language } } : {}),
+    ...(forHistory ? {} : { data:Data.toProject() }) };
 }
 function isNamed(){ return !!(state.name && String(state.name).trim()); }
 function projectName(){ return isNamed() ? String(state.name).trim() : 'Untitled'; }
@@ -1003,6 +1119,8 @@ function restoreProject(d, missing){
   state.name = !loadedName || loadedName === 'Untitled' ? '' : loadedName;
   state.print = d.print ? Object.assign(Print.defaults(), d.print) : null;
   state.transparent = !!d.transparent;
+  if (d.data !== undefined) Data.fromProject(d.data);
+  state.language = d.language ? { name:'', rule:'', ...d.language } : null;
   if (state.print){ const dp = Print.docPx(state.print); state.W = dp.W; state.H = dp.H; state.sizeId = state.print.preset; }
   const takeSrc = raw => ({
     fit: raw && raw.fit != null ? raw.fit : 0,
@@ -1030,7 +1148,7 @@ function loadProject(text){
   try { restoreProject(d, missing); }
   finally { History.silent = false; }
   History.reset();
-  toast(missing.length ? `Opened, but skipped modules: ${missing.join(', ')}` : 'Project opened. Photos and video aren’t stored in projects; drop them back in. Fonts and logos come from Assets.', !!missing.length, 5000);
+  toast(missing.length ? `Opened, but skipped modules: ${missing.join(', ')}` : 'Project opened. Photos and video aren’t stored in projects; drop them back in. Images come from Assets.', !!missing.length, 5000);
 }
 
 /* ---------- export ---------- */
@@ -1223,7 +1341,7 @@ async function exportBatch(jobs, format){
   const saved = { look:lookFromState(), W:state.W, H:state.H, sizeId:state.sizeId, active:Assets.identity.active, t:App.t, playing:App.playing };
   App.exporting = true; App.cancel = false; App.playing = false;
   const zip = new Zip(), slug = s => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-  const kit = slug(Assets.kitName || 'brand') || 'brand';
+  const kit = slug(Assets.kitName || 'export') || 'export';
   try {
     for (let i = 0; i < jobs.length; i++){
       if (App.cancel) throw new Error('cancelled');
@@ -1390,6 +1508,8 @@ function exportSequence(){
 }
 
 /* ---------- drop on stage, keyboard ---------- */
+const LINK_ICON = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 14a4 4 0 005.7 0l3-3a4 4 0 00-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 00-5.7 0l-3 3a4 4 0 005.7 5.7l1-1"/></svg>';
+
 function clearFileDrag(){
   App.dragDepth = 0;
   const w = $('#stageWrap'), lib = $('#lib');
@@ -1403,9 +1523,7 @@ function initDrop(){
   window.addEventListener('dragenter', e => {
     if (!isFiles(e)) return;
     App.dragDepth++;
-    const onLib = !!(e.target.closest && e.target.closest('#lib'));
-    w.classList.toggle('drag', !onLib);
-    $('#lib').classList.toggle('drag', onLib);
+    w.classList.add('drag');
   });
   window.addEventListener('dragleave', e => {
     if (!isFiles(e) && !App.dragDepth) return;
@@ -1417,9 +1535,11 @@ function initDrop(){
     e.preventDefault();
     clearFileDrag();
     const all = [...(e.dataTransfer?.files || [])];
-    const assetLike = f => /\.(otf|ttf|woff2?|zip|fxkit)$/i.test(f.name);
-    const onAssets = e.target.closest && e.target.closest('#lib') && $('#paneAssets').classList.contains('on');
-    if (onAssets || all.some(assetLike)){ importAssets(all); return; }
+    const assetLike = f => /\.(zip|fxkit)$/i.test(f.name);
+    const dataLike = f => /\.(csv|tsv|json|geojson|ndjson|txt)$/i.test(f.name) && !/\.fxlab\.json$/i.test(f.name);
+    if (all.some(assetLike)){ importAssets(all); return; }
+    const table = all.find(dataLike);
+    if (table && !all.some(f => /^(image|video)\//.test(f.type))){ loadDataFile(table); return; }
     const files = all.filter(f => /^(image|video)\//.test(f.type) || /\.svg$/i.test(f.name));
     if (!files.length) return;
     if (files.length >= 2){ loadFile('A', files[0]); loadFile('B', files[1]); }
@@ -1457,14 +1577,13 @@ function boot(){
     return;
   }
   setPlaceholder('A'); setPlaceholder('B');
-  state.base = makeInst('tr-scanner');
-  state.stack = [makeInst('trt-grain'), makeInst('trt-vignette')];
-  state.stack[1].params.amount = .35;
+  state.base = makeInst('src-a');
+  state.stack = [];
   initTopBar(); initTimeline(); initDrop();
   $('#clearBg').checked = state.transparent;
   $('#clearBg').onchange = e => History.record('bg', () => { state.transparent = e.target.checked; $('#stageBox').classList.toggle('clear', state.transparent); $('#bgColor').disabled = state.transparent; markDirty(); });
   $('#bgColor').value = state.bg;
-  $('#bgColor').oninput = e => { History.begin('bg'); state.bg = e.target.value; document.querySelectorAll('.slot .thumb.logo').forEach(t => t.style.setProperty('--bgc', state.bg)); markDirty(); };
+  $('#bgColor').oninput = e => { History.begin('bg'); state.bg = e.target.value; document.querySelectorAll('.slot .thumb.alpha').forEach(t => t.style.setProperty('--bgc', state.bg)); markDirty(); };
   bindLive($('#bgColor'), 'bg');
   $('#btnSwap').onclick = () => History.record('swap', () => {
     const m = Engine.media; const a = { ...m.A }, b = { ...m.B };
@@ -1490,7 +1609,8 @@ function boot(){
     if (App.dirty || Engine.hasVideo()){ renderAt(App.t); App.dirty = false; updateTimeUI(); }
   };
   requestAnimationFrame(tick);
-  window.fxlab = { FX, Engine, Assets, KT, Identity, Print, PRINT_SIZES, setPrintPreset, STARTER_LOOKS, TEST_LOOKS, applyLook, lookFromState, projectFromState, exportBatch, searchLibrary, state, App, History, renderAt, makeInst, loadProject, restoreProject, randomise, setRandScope, projectName, slugName, setProjectName, saveProject, saveProjectAs, fileStem, replaceInst, clearFileDrag, refresh:() => { renderLibrary(); renderBase(); renderStack(); renderSlots(); markDirty(); } };
-  initAssetsUI(); initSystemUI();
+  window.fxlab = { setLibTarget, renderLibrary, FX, Engine, Assets, Data, Language, Arena, renderArena, renderLanguage, exportBoard, Identity, showWorkspace, updateBadges, toggleBindPopover, Print, PRINT_SIZES, setPrintPreset, applyLook, lookFromState, projectFromState, exportBatch, searchLibrary, state, App, History, renderAt, makeInst, loadProject, restoreProject, randomise, setRandScope, projectName, slugName, setProjectName, saveProject, saveProjectAs, fileStem, replaceInst, clearFileDrag, refresh:() => { renderLibrary(); renderBase(); renderStack(); renderSlots(); markDirty(); } };
+  initAssetsUI(); initSystemUI(); initWorkspaces(); initDataUI(); renderArena(); initLanguageUI();
 }
+
 

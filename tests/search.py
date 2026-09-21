@@ -1,4 +1,4 @@
-"""Library search: designer-language queries find useful modules and Looks.
+"""Library search: designer-language queries find useful modules.
 
     python3 tests/search.py
 """
@@ -8,32 +8,17 @@ from helpers import launch, load_assets, report
 
 # Must-find sets. Extra hits are allowed; a missing id fails.
 EXPECT = {
-    'distort':  {'modules': ['fx-warp', 'fx-displace', 'fx-polar', 'fx-lens'],
-                 'looks': ['s-liquid']},
-    'print':    {'modules': ['trt-press', 'trt-riso', 'trt-halftone', 'trt-hatch'],
-                 'looks': ['s-cutup', 's-pattern', 's-hatched']},
-    'combine':  {'modules': ['mx-type', 'mx-blend', 'fx-matte'],
-                 'looks': ['s-pattern', 's-flowfield', 's-cut', 's-states']},
-    'prepared': {'modules': [],
-                 'looks': ['s-cut', 's-states']},
-    'window':   {'modules': ['fx-matte', 'kt-knockout', 'mx-type'],
-                 'looks': ['s-opart', 's-knockout', 's-pattern']},
-    'logo':     {'modules': ['lg-ripple', 'mx-logo', 'lg-sting'],
-                 'looks': ['s-ripple', 's-sting']},
-    'scan':     {'modules': ['tr-scanner', 'fx-slitscan', 'fx-scanbar'],
-                 'looks': ['s-scan']},
-    'repeat':   {'modules': ['fx-tile', 'fx-kaleido', 'lg-pattern'],
-                 'looks': ['s-kaleido']},
-    'texture':  {'modules': ['trt-surface', 'trt-grain', 'ovl-scratches'],
-                 'looks': ['s-hatched']},
-    'reveal':   {'modules': ['kt-reveal', 'lg-sting', 'tr-iris'],
-                 'looks': ['s-headline', 's-sting']},
-    'feedback': {'modules': ['fx-echo', 'fx-melt', 'fx-datamosh'],
-                 'looks': ['s-solid']},
-    'crop':     {'modules': ['fx-reframe'], 'looks': []},
-    'zoom':     {'modules': ['fx-reframe'], 'looks': []},
-    'pan':      {'modules': ['fx-reframe'], 'looks': []},
-    'spatial':  {'modules': ['kt-plane', 'kt-depth', 'kt-surface'], 'looks': []},
+    'distort':  ['fx-warp', 'fx-displace', 'fx-polar', 'fx-lens'],
+    'print':    ['trt-press', 'trt-riso', 'trt-halftone', 'trt-hatch'],
+    'combine':  ['mx-blend', 'fx-matte'],
+    'window':   ['fx-matte', 'mx-shape'],
+    'scan':     ['tr-scanner', 'fx-slitscan', 'fx-scanbar'],
+    'repeat':   ['fx-tile', 'fx-kaleido'],
+    'texture':  ['trt-surface', 'trt-grain', 'ovl-scratches'],
+    'feedback': ['fx-echo', 'fx-melt', 'fx-datamosh'],
+    'crop':     ['fx-reframe'],
+    'zoom':     ['fx-reframe'],
+    'pan':      ['fx-reframe'],
 }
 
 
@@ -45,14 +30,11 @@ def main():
         bad = list(errors)
         for q, exp in EXPECT.items():
             res = page.evaluate('q => fxlab.searchLibrary(q)', q)
-            for mid in exp['modules']:
+            for mid in exp:
                 if mid not in res['modules']:
                     bad.append(f'{q}: missing module {mid} (got {len(res["modules"])})')
-            for lid in exp['looks']:
-                if lid not in res['looks']:
-                    bad.append(f'{q}: missing look {lid} (got {res["looks"]})')
-        if tagged < 30:
-            bad.append(f'expected search metadata on ~40 modules, got {tagged}')
+        if tagged < 15:
+            bad.append(f'expected search metadata on ~20 modules, got {tagged}')
         browser.close()
     return report('search', bad, f'{len(EXPECT)} queries · {tagged} tagged modules')
 

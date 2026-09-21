@@ -142,8 +142,8 @@ FX.register({ id:'trt-foil', name:'Foil', cat:'treatment', desc:'Turns light are
   return vec4(clamp(col, 0., 1.), 1.);
 }` });
 
-/* ---- Brand palette ---- */
-FX.register({ id:'trt-palette', name:'Brand palette', cat:'treatment', desc:'Snaps every colour to the nearest brand colour, with optional dithering — a quick way to make any image on-brand.',
+/* ---- Palette map ---- */
+FX.register({ id:'trt-palette', name:'Palette map', cat:'treatment', desc:'Snaps every colour to the nearest colour in your palette, with optional dithering — holds any image to a fixed set of colours.',
   params:[ C('c1','Colour 1','#141516','ground'), C('c2','Colour 2','#e4e2dc','ink'), C('c3','Colour 3','#ff5a36','accent'), C('c4','Colour 4','#c9f5e4','accent2'), I('count','Colours used',4,2,4), S('dither','Dither',['None','Bayer 4','Bayer 8','Noise'],1), R('amount','Dither amount',.6,0,1.5), R('contrast','Contrast',1,.2,3), R('exposure','Exposure',0,-.5,.5), R('mix','Strength',1,0,1) ],
   fs:`vec4 fx(vec2 uv){
   vec3 src = texture(uInput, uv).rgb;
@@ -254,7 +254,7 @@ vec4 fx(vec2 uv){
 }` });
 
 /* ---- Outline ---- */
-FX.register({ id:'fx-outline', name:'Outline', cat:'fx', desc:'Draws a stroke around shapes and type — solid, double, dotted or glowing — so they stay legible over anything.',
+FX.register({ id:'fx-outline', name:'Outline', cat:'fx', desc:'Draws a stroke around the shapes in the frame — solid, double, dotted or glowing — so they hold up over anything.',
   params:[ R('width','Width',6,.5,24), R('threshold','Shape is above',.5,0,1), S('style','Style',['Solid','Double','Dotted','Glow','Halo only'],0), R('softness','Softness',.5,0,3), R('gap','Gap',0,0,12), I('dots','Dot count',60,6,200), T('inside','Draw inside',false), R('opacity','Opacity',1,0,1), C('color','Stroke','#ff5a36'), C('color2','Second stroke','#e4e2dc') ],
   fs:`float shape(vec2 uv){ if (any(lessThan(uv, vec2(0.))) || any(greaterThan(uv, vec2(1.)))) return 0.; return smoothstep(p_threshold - .06, p_threshold + .06, luma(texture(uInput, uv).rgb)); }
 float ring(vec2 uv, float rad, float w){

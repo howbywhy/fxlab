@@ -12,7 +12,24 @@ HERE = Path(__file__).resolve().parent
 GOLDEN = HERE / 'goldens' / 'compositions' / 'lane-treated-tiles.png'
 PIXEL, PCT = 8, 0.4
 
-JS = """() => {
+# Fixture for the Look/lane lifecycle checks. Looks are the user's own snapshots; none ship with the app.
+TEST_LOOKS = [
+    {'id': 't-prepare-tiles', 'name': 'Prepare tiles', 'desc': 'Prepared A and B meeting through tile flip.',
+     'data': {
+         'base': {'id': 'tr-tiles', 'params': {'tiles': 5, 'pattern': 0, 'mode': 0, 'stagger': .55}},
+         'stack': [{'id': 'ovl-letterbox', 'params': {'amount': .1, 'animate': False}}],
+         'timeline': {'duration': 4, 'loopMode': 'once', 'easing': 'Linear', 'hold': 0},
+         'sources': {
+             'A': {'process': [{'id': 'trt-splittone', 'params': {
+                 'shadow': '#0a1c4a', 'mid': '#2a5080', 'high': '#c8e8ff',
+                 'shadowAmt': 1.2, 'midAmt': .8, 'highAmt': 1.1, 'saturation': .05, 'contrast': 1.4, 'exposure': .05}}]},
+             'B': {'process': [{'id': 'trt-riso', 'params': {
+                 'ink1': '#ff2d6a', 'ink2': '#ffe14a', 'paper': '#fff6d8',
+                 'offset': 8, 'density': 1.4, 'grain': .85, 'gsize': 2}}]},
+         }}},
+]
+
+JS = """(TEST_LOOKS) => {
   const f = window.fxlab, S = f.state, E = f.Engine;
   f.App.playing = false; f.App.exporting = true;
   const ids = list => (list || []).map(i => i.id);
@@ -30,17 +47,17 @@ JS = """() => {
     const shown = [...document.querySelectorAll('#libList .item')].map(el => el.dataset.id).filter(Boolean);
     if (shown.some(id => !eligible.has(id))) bad.push('Prepare A library listed ineligible modules');
     if ([...eligible].some(id => !shown.includes(id))) bad.push('Prepare A library missed a lane-eligible module');
-    for (const id of ['kt-reveal', 'lg-logo', 'ovl-letterbox', 'tr-tiles', 'mx-blend', 'src-a', 'fx-echo']){
+    for (const id of ['ovl-letterbox', 'tr-tiles', 'mx-blend', 'src-a', 'fx-echo']){
       if (shown.includes(id)) bad.push(id + ' shown in Prepare A library');
     }
     document.getElementById('libCtxDone').click();
     if (f.App.libTarget) bad.push('Browse all did not exit Library context');
   }
-  for (const id of ['kt-reveal', 'lg-logo', 'ovl-letterbox', 'tr-tiles', 'mx-blend', 'src-a', 'fx-echo']){
+  for (const id of ['ovl-letterbox', 'tr-tiles', 'mx-blend', 'src-a', 'fx-echo']){
     if (f.FX.laneEligible(f.FX.byId[id])) bad.push(id + ' is lane-eligible');
   }
-  const names = [...document.querySelectorAll('#insp .stage-name')].map(el => el.textContent);
-  if (names.join() !== 'Prepare,Combine,Finish') bad.push('inspector stages are ' + names.join());
+  const names = [...document.querySelectorAll('#panel .stage-name')].map(el => el.textContent);
+  if (names.join() !== 'Prepare,Layers') bad.push('panel stages are ' + names.join());
   if ([...document.querySelectorAll('#libList .role')].some(el => /sets base|adds to stack/.test(el.textContent)))
     bad.push('Library still uses engine-role language');
 
@@ -69,14 +86,13 @@ JS = """() => {
 
   const dirty = JSON.parse(JSON.stringify(saved));
   dirty.sources.A.process.push({ id:'no-such-mod', on:true, params:{} });
-  dirty.sources.B.process.push({ id:'kt-reveal', on:true, params:{} });
+  dirty.sources.B.process.push({ id:'ovl-letterbox', on:true, params:{} });
   f.loadProject(JSON.stringify(dirty));
   if (ids(S.sources.A.process).join() !== 'trt-splittone,fx-reframe') bad.push('unknown id leaked into A');
-  if (ids(S.sources.B.process).join() !== 'trt-riso') bad.push('ineligible kt-reveal leaked into B');
+  if (ids(S.sources.B.process).join() !== 'trt-riso') bad.push('ineligible ovl-letterbox leaked into B');
 
-  const test = f.TEST_LOOKS.find(l => l.id === 't-prepare-tiles');
+  const test = TEST_LOOKS.find(l => l.id === 't-prepare-tiles');
   if (!test) return { bad:['missing TEST_LOOKS t-prepare-tiles'], png:null };
-  if (f.STARTER_LOOKS.some(l => l.id === 't-prepare-tiles')) bad.push('test Look leaked into STARTER_LOOKS');
 
   f.applyLook(test.data);
   if (S.base.id !== 'tr-tiles') bad.push('test Look did not restore base');
@@ -91,36 +107,31 @@ JS = """() => {
   if (snap.sources.A.process === S.sources.A.process) bad.push('lookFromState shared the A array');
   if (snap.sources.A.process === snap.sources.B.process) bad.push('lookFromState aliased A and B arrays');
 
-  const starter = f.STARTER_LOOKS.find(l => l.id === 's-knockout');
-  f.applyLook(starter.data);
+  const blank = { base:{ id:'src-a', params:{} }, stack:[] };
+  f.applyLook(blank);
   if (ids(S.sources.A.process).length || ids(S.sources.B.process).length)
-    bad.push('starter Look left previous Prepare lists in place');
-  if (S.base.id !== 'src-a') bad.push('starter Look did not replace base');
+    bad.push('a look without sources left previous Prepare lists in place');
+  if (S.base.id !== 'src-a') bad.push('a look did not replace base');
 
   f.applyLook(test.data);
-  if (ids(S.sources.A.process).join() !== 'trt-splittone') bad.push('test Look after starter did not restore A');
-
-  const prepLook = f.STARTER_LOOKS.find(l => l.id === 's-cut');
-  if (prepLook){
-    f.applyLook(prepLook.data);
-    if (ids(S.sources.A.process).join() !== 'trt-splittone' || ids(S.sources.B.process).join() !== 'trt-riso')
-      bad.push('Prepared Cut did not restore Prepare lanes');
-    f.applyLook(starter.data);
-    if (ids(S.sources.A.process).length || ids(S.sources.B.process).length)
-      bad.push('old starter after Prepared Cut left lanes behind');
-    f.applyLook(prepLook.data);
-    if (ids(S.sources.A.process).join() !== 'trt-splittone')
-      bad.push('Prepared Cut after old starter did not restore A');
-  }
+  if (ids(S.sources.A.process).join() !== 'trt-splittone') bad.push('test Look after a blank look did not restore A');
+  f.applyLook(blank);
+  f.applyLook(test.data);
+  if (ids(S.sources.B.process).join() !== 'trt-riso') bad.push('test Look after a blank look did not restore B');
 
   f.applyLook(test.data);
   f.refresh();
-  const psum = (document.querySelector('#secPrepare .stage-sum') || {}).textContent || '';
-  const csum = (document.querySelector('#secCombine .stage-sum') || {}).textContent || '';
-  const fsum = (document.querySelector('#secFinish .stage-sum') || {}).textContent || '';
-  if (!/Split tone/.test(psum) || !/Riso/.test(psum)) bad.push('prepare summary ' + JSON.stringify(psum));
-  if (!/Tile flip/.test(csum)) bad.push('combine summary ' + JSON.stringify(csum));
-  if (!/Letterbox/.test(fsum)) bad.push('finish summary ' + JSON.stringify(fsum));
+  /* the tabs keep count of what is switched on elsewhere */
+  const badge = id => { const b = document.getElementById('badge' + id); return b && !b.hidden ? b.textContent || 'dot' : ''; };
+  if (badge('Images') !== '2') bad.push('Images badge ' + JSON.stringify(badge('Images')));
+  if (badge('Combine') !== 'dot') bad.push('Combine badge ' + JSON.stringify(badge('Combine')));
+  if (badge('Finish') !== '1') bad.push('Finish badge ' + JSON.stringify(badge('Finish')));
+  f.showWorkspace('finish');
+  if (!/Letterbox/.test(document.getElementById('secStack').textContent)) bad.push('Finish tab does not list the letterbox layer');
+  f.showWorkspace('combine');
+  if (!/Tile flip/.test(document.getElementById('secBase').textContent)) bad.push('Combine tab does not show tile flip');
+  f.showWorkspace('images');
+  if (!/Split tone/.test(document.getElementById('slots').textContent) || !/Riso/.test(document.getElementById('slots').textContent)) bad.push('Images tab does not list the Prepare layers');
 
   const addFin = document.querySelector('#secFinish [data-add="finish"]');
   if (!addFin) bad.push('missing Add to Finish');
@@ -137,8 +148,8 @@ JS = """() => {
   if (!addC) bad.push('missing Combine Change');
   else {
     addC.click();
-    if ((document.getElementById('libCtxTitle') || {}).textContent !== 'Choose Combine')
-      bad.push('missing Choose Combine context');
+    if ((document.getElementById('libCtxTitle') || {}).textContent !== 'How should the images meet?')
+      bad.push('missing Combine picker title');
     const cIds = [...document.querySelectorAll('#libList .item')].map(el => el.dataset.id);
     if (cIds.includes('ovl-letterbox') || cIds.includes('trt-grain')) bad.push('Combine library showed finish modules');
     if (!cIds.includes('tr-tiles') || !cIds.includes('src-a')) bad.push('Combine library missed base modules');
@@ -235,12 +246,9 @@ JS = """() => {
   S.sources.A.process = rawA; S.sources.B.process = rawB;
 
   /* Disclosure is session UI keyed by uid — rebuilds must not reopen collapses. */
-  f.App.ui.stages.prepare = false;
-  f.App.ui.stages.combine = true;
-  f.App.ui.stages.finish = true;
+  f.showWorkspace('finish');
   f.refresh();
-  if (document.getElementById('secPrepare').classList.contains('open')) bad.push('Prepare collapse lost after refresh');
-  if (!document.getElementById('secFinish').classList.contains('open')) bad.push('Finish open lost after refresh');
+  if (!document.getElementById('wsFinish').classList.contains('on')) bad.push('Finish tab lost after refresh');
   S.stack = [mk('trt-grain'), mk('ovl-letterbox')];
   f.refresh();
   const uGrain = S.stack[0].uid, uBox = S.stack[1].uid;
@@ -276,19 +284,19 @@ JS = """() => {
   S.sources.A.process = [mk('trt-duotone')];
   S.sources.B.process = [mk('trt-halftone')];
   S.base = mk('mx-gradient');
-  S.stack = [mk('kt-plane'), mk('fx-reframe'), mk('ovl-letterbox')];
+  S.stack = [mk('trt-hatch'), mk('fx-reframe'), mk('ovl-letterbox')];
   f.refresh();
   const keepA = cloneLane(S.sources.A.process), keepB = cloneLane(S.sources.B.process);
-  const keepBase = S.base.id, keepType = S.stack[0].id, keepTypeP = JSON.stringify(S.stack[0].params);
-  f.setRandScope({ prepareA:false, prepareB:false, combine:false, finish:true, type:false, logo:false, treatment:false, fx:true, overlay:false });
+  const keepBase = S.base.id, keepTreat = S.stack[0].id, keepTreatP = JSON.stringify(S.stack[0].params);
+  f.setRandScope({ prepareA:false, prepareB:false, combine:false, finish:true, treatment:false, fx:true, overlay:false });
   f.randomise();
   if (JSON.stringify(cloneLane(S.sources.A.process)) !== JSON.stringify(keepA)) bad.push('scoped randomise mutated Prepare A');
   if (JSON.stringify(cloneLane(S.sources.B.process)) !== JSON.stringify(keepB)) bad.push('scoped randomise mutated Prepare B');
   if (S.base.id !== keepBase) bad.push('scoped randomise mutated Combine');
-  if (S.stack[0].id !== keepType || JSON.stringify(S.stack[0].params) !== keepTypeP) bad.push('scoped randomise mutated Type');
+  if (S.stack[0].id !== keepTreat || JSON.stringify(S.stack[0].params) !== keepTreatP) bad.push('scoped randomise mutated Treatments');
   if (!S.stack.some(i => f.FX.byId[i.id] && f.FX.byId[i.id].cat === 'fx')) bad.push('scoped randomise missed Effects');
   if (S.sources.A.process.some(i => !eligible.has(i.id))) bad.push('randomise put ineligible module on Prepare A');
-  f.setRandScope({ prepareA:true, prepareB:false, combine:false, finish:false, type:true, logo:true, treatment:true, fx:true, overlay:true });
+  f.setRandScope({ prepareA:true, prepareB:false, combine:false, finish:false, treatment:true, fx:true, overlay:true });
   const bBefore = cloneLane(S.sources.B.process);
   const stackBefore = ids(S.stack).join();
   f.randomise();
@@ -300,29 +308,18 @@ JS = """() => {
   if (!document.getElementById('btnRandScope')) bad.push('missing Randomise scope button');
 
   const ascii = mk('trt-ascii');
-  if (!f.FX.byId['trt-ascii'].params.some(p => p.id === 'font' && p.type === 'font'))
-    bad.push('trt-ascii has no Font param');
-  const fonts = f.Assets.fonts();
-  if (f.Assets.identity.autoApply && (f.Assets.identity.type.text || fonts.length)){
-    if (ascii.params.font !== 'role:text') bad.push('ascii default is ' + ascii.params.font + ', not role:text');
-  } else if (ascii.params.font !== 'Helvetica') bad.push('ascii fallback font is ' + ascii.params.font);
-  const auxOf = font => {
-    const inst = mk('trt-ascii', { font, cell:16 });
+  if (!f.FX.byId['trt-ascii'].params.some(p => p.id === 'face' && p.type === 'select'))
+    bad.push('trt-ascii has no Face param');
+  if (ascii.params.face !== 0) bad.push('ascii default face is ' + ascii.params.face + ', not Mono');
+  const auxOf = face => {
+    const inst = mk('trt-ascii', { face, cell:16 });
     S.base = mk('src-a'); S.stack = [inst];
     f.renderAt(0);
     return inst._auxCanvas ? inst._auxCanvas.toDataURL() : '';
   };
-  const auxHelv = auxOf('Helvetica'), auxMono = auxOf('Mono'), auxSerif = auxOf('Serif');
-  if (!auxHelv || auxHelv === auxMono) bad.push('ascii Helvetica/Mono aux identical');
-  if (auxHelv === auxSerif) bad.push('ascii Helvetica/Serif aux identical');
-  if (fonts.length){
-    const auxAsset = auxOf('asset:' + fonts[0].id);
-    if (!auxAsset || auxAsset === auxHelv) bad.push('ascii imported font aux did not change');
-    if (f.Assets.identity.type.display){
-      const auxRole = auxOf('role:display');
-      if (!auxRole) bad.push('ascii role:display produced no aux');
-    }
-  }
+  const auxMono = auxOf(0), auxSans = auxOf(1), auxSerif = auxOf(2);
+  if (!auxMono || auxMono === auxSans) bad.push('ascii Mono/Sans aux identical');
+  if (auxSans === auxSerif) bad.push('ascii Sans/Serif aux identical');
 
   const w = document.getElementById('stageWrap');
   const slot = document.querySelector('.slot');
@@ -391,7 +388,7 @@ JS = """() => {
   if (S.sources.A.process.length !== prepN + 1) bad.push('prepare edit did not add');
   f.History.undo();
   if (S.sources.A.process.length !== prepN) bad.push('undo prepare edit failed');
-  f.setRandScope({ prepareA:false, prepareB:false, combine:true, finish:true, type:true, logo:true, treatment:true, fx:true, overlay:true });
+  f.setRandScope({ prepareA:false, prepareB:false, combine:true, finish:true, treatment:true, fx:true, overlay:true });
   const recipe = JSON.stringify(f.projectFromState());
   f.randomise();
   if (JSON.stringify(f.projectFromState()) === recipe) bad.push('randomise produced no change');
@@ -399,10 +396,9 @@ JS = """() => {
   f.History.undo();
   if (JSON.stringify(f.projectFromState()) !== recipe) bad.push('undo randomise did not restore recipe');
   if (f.History.past.length !== randPast - 1) bad.push('randomise was not a single undo step');
-  const look = f.STARTER_LOOKS[0];
-  if (look){
+  {
     const beforeLook = JSON.stringify(f.lookFromState());
-    f.applyLook(look.data);
+    f.applyLook(test.data);
     if (JSON.stringify(f.lookFromState()) === beforeLook) bad.push('apply look made no change');
     f.History.undo();
     if (JSON.stringify(f.lookFromState()) !== beforeLook) bad.push('undo look did not restore');
@@ -422,7 +418,7 @@ JS = """() => {
     bad.push('load project did not reset history');
   f.History.reset();
   f.App.ui.stages.prepare = false;
-  document.getElementById('search').value = 'spatial';
+  document.getElementById('search').value = 'texture';
   document.getElementById('search').dispatchEvent(new Event('input', { bubbles:true }));
   document.querySelector('#secFinish .stage-h').click();
   if (f.History.past.length) bad.push('collapse/search created history');
@@ -439,8 +435,6 @@ JS = """() => {
 
   return {
     bad, png, raw,
-    starters: f.STARTER_LOOKS.length,
-    testLooks: f.TEST_LOOKS.map(l => l.id),
     modules: f.FX.modules.length,
   };
 }"""
@@ -471,7 +465,7 @@ def main():
     with sync_playwright() as p:
         browser, page, errors = launch(p)
         load_assets(page)
-        res = page.evaluate(JS)
+        res = page.evaluate(JS, TEST_LOOKS)
         browser.close()
     failures.extend(errors or [])
     failures.extend(res.get('bad') or [])
@@ -484,7 +478,7 @@ def main():
         raw = diff_pct(decode_png(res['png']), decode_png(res['raw']))
         if raw < 2.0:
             failures.append(f'test Look almost identical to raw A/B ({raw:.2f}%)')
-    extra = f"{res.get('starters')} starters · {res.get('testLooks')} · {res.get('modules')} modules"
+    extra = f"{res.get('modules')} modules"
     return report('lifecycle', failures, extra)
 
 

@@ -24,6 +24,7 @@ def main():
     with sync_playwright() as p:
         browser, page, errors = launch(p, downloads=True)
         page.evaluate(SETUP)
+        page.click('#tabExport')
         png = os.path.join(out, 'still.png')
         png_name = save(page, '#btnPng', png)
         if os.path.getsize(png) < 5000:

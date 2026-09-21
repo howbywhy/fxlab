@@ -9,15 +9,17 @@
 <style>
 :root{
   --ground:#232426; --panel:#1a1b1d; --raise:#2a2b2e; --rule:#323438; --rule2:#40434a;
-  --ink:#e4e2dc; --muted:#9a9893; --faint:#6c6b67; --lamp:#c9f5e4; --lamp-dim:#5f8c7e; --warn:#ffb4a2;
+  --ink:#e4e2dc; --muted:#a8a6a0; --faint:#8f8e89; --lamp:#c9f5e4; --lamp-dim:#78a898; --warn:#ffb4a2;
+  --ctl:#62666e; --t-fast:100ms; --t-base:160ms; --t-slow:220ms; --ease:cubic-bezier(.2,0,0,1);
   --sans:"Geist", ui-sans-serif, system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
   --mono:"Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 }
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;background:var(--ground);color:var(--ink);font:13px/1.35 var(--sans);-webkit-font-smoothing:antialiased;overflow:hidden}
 button,input,select,textarea{font:inherit;color:inherit}
-:focus-visible{outline:1px solid var(--lamp);outline-offset:1px}
-#app{display:grid;height:100vh;grid-template-columns:248px minmax(0,1fr) 316px;grid-template-rows:48px minmax(0,1fr) 88px;grid-template-areas:"top top top" "lib stage insp" "lib time insp"}
+:focus-visible{outline:2px solid var(--lamp);outline-offset:2px}
+input,select,textarea,button,.val,#tc{font-variant-numeric:tabular-nums}
+#app{display:grid;height:100vh;grid-template-columns:76px 356px minmax(0,1fr);grid-template-rows:44px 40px minmax(0,1fr) 62px;grid-template-areas:"top top top" "rail panel bar" "rail panel stage" "rail panel time"}
 /* top bar */
 #top{grid-area:top;display:flex;align-items:center;gap:18px;padding:0 14px;background:var(--panel);border-bottom:1px solid var(--rule)}
 .brand{font-weight:600;letter-spacing:-.01em;font-size:15px;display:flex;align-items:baseline;gap:8px;white-space:nowrap;min-width:0}
@@ -28,10 +30,13 @@ button,input,select,textarea{font:inherit;color:inherit}
 .sep{width:1px;height:22px;background:var(--rule)}
 .dim{color:var(--muted)}
 input[type=number]{width:62px}
-input[type=number],input[type=text],select,textarea{background:var(--raise);border:1px solid var(--rule);border-radius:3px;padding:4px 6px;height:26px;min-width:0}
+input[type=number],input[type=text],input[type=search],input[type=password],select,textarea{background:var(--raise);border:1px solid var(--ctl);border-radius:4px;padding:4px 6px;height:26px;min-width:0;transition:border-color var(--t-fast) var(--ease)}
+input[type=number]:hover,input[type=text]:hover,select:hover,textarea:hover{border-color:#7a7f88}
 textarea{height:auto;resize:vertical;width:100%}
 select{padding-right:4px}
-button{background:var(--raise);border:1px solid var(--rule);border-radius:3px;height:26px;padding:0 10px;cursor:pointer;white-space:nowrap}
+button{background:var(--raise);border:1px solid var(--rule2);border-radius:4px;height:26px;padding:0 10px;cursor:pointer;white-space:nowrap;transition:background var(--t-fast) var(--ease),border-color var(--t-fast) var(--ease),color var(--t-fast) var(--ease),transform var(--t-fast) var(--ease)}
+button:active:not(:disabled){transform:scale(.97)}
+.item:active,.card .ch:active,.seg button:active{transform:none}
 button:hover{border-color:var(--rule2);background:#303136}
 button.primary{background:var(--lamp);color:#16201d;border-color:var(--lamp);font-weight:500}
 button.primary:hover{background:#dffaef}
@@ -47,24 +52,6 @@ button.icon{width:26px;padding:0;display:inline-grid;place-items:center}
 .randcats{padding-top:6px}
 .randcats label{font-size:12px}
 label.chk{display:flex;gap:6px;align-items:center;color:var(--muted);cursor:pointer;white-space:nowrap}
-/* library */
-#lib{grid-area:lib;background:var(--panel);border-right:1px solid var(--rule);display:flex;flex-direction:column;min-height:0}
-#lib .search{padding:10px}
-#lib .search input{width:100%;height:30px}
-#libList{overflow:auto;padding:0 6px 20px;min-height:0;flex:1}
-.libctx{display:none;align-items:baseline;justify-content:space-between;gap:8px;padding:8px 10px 0}
-#lib.ctx .libctx{display:flex}
-.libctx b{font-weight:600;font-size:12px;color:var(--ink)}
-.libctx .ghost{flex:none}
-.tabs{display:flex;gap:2px;padding:8px 10px 0;border-bottom:1px solid var(--rule)}
-.tabs button{background:transparent;border:0;border-bottom:2px solid transparent;border-radius:0;height:32px;padding:0 10px;color:var(--muted)}
-.tabs button:hover{background:transparent;color:var(--ink)}
-.tabs button.on{color:var(--ink);border-bottom-color:var(--lamp)}
-.tabs .count{color:var(--faint);font-variant-numeric:tabular-nums;margin-left:2px}
-.pane{display:none;flex-direction:column;min-height:0;flex:1}
-.pane.on{display:flex}
-#paneAssets,#paneSystem{overflow:auto;padding:10px 10px 24px}
-.tabs button{padding:0 8px}
 .swatches .role{width:auto;min-width:18px;padding:0 4px;font:600 9px/16px var(--mono);border-radius:9px}
 .swatches .role.on{outline:1px solid var(--lamp);outline-offset:1px}
 .swsep{width:1px;height:18px;background:var(--rule2);margin:0 2px}
@@ -78,17 +65,10 @@ label.chk{display:flex;gap:6px;align-items:center;color:var(--muted);cursor:poin
 .cwrow input{background:transparent;border-color:transparent}
 .cwrow input:hover,.cwrow input:focus{border-color:var(--rule)}
 .cwedit{margin:8px 0 8px;padding:8px;border:1px solid var(--rule);border-radius:3px}
-.specimen{font-size:15px;color:var(--ink);margin:2px 0 8px 100px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.specimen.big{font-size:28px;line-height:1.1}
 .curvebox{width:100%;height:84px;display:block;margin:4px 0 6px}
 .bez{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:6px}
 .bez input{width:100%}
 .anote.tight{margin:-2px 0 6px 100px}
-.starters{margin-top:10px}
-.starters>summary{cursor:pointer;color:var(--muted);padding:4px 2px}
-.starters .item{align-items:flex-start;white-space:normal}
-.starters .item b{display:block;font-weight:500}
-.starters .item small{display:block;color:var(--faint);font-size:11px;line-height:1.3;margin-top:1px}
 .batch{margin-top:8px;padding:8px;border:1px solid var(--rule);border-radius:3px;display:grid;gap:8px}
 .bgroup{display:grid;gap:3px;max-height:180px;overflow:auto}
 .bgroup .bh{color:var(--muted);font-weight:500;margin-bottom:2px}
@@ -97,18 +77,11 @@ label.chk{display:flex;gap:6px;align-items:center;color:var(--muted);cursor:poin
 .batch button:disabled{opacity:.5;cursor:default}
 .adrop{border:1px dashed var(--rule2);border-radius:4px;padding:14px 10px;text-align:center;color:var(--muted);cursor:pointer;background:transparent;width:100%;height:auto;line-height:1.45;white-space:normal}
 .adrop b{color:var(--ink);font-weight:500;display:block}
-.adrop:hover,#lib.drag .adrop{border-color:var(--lamp);color:var(--ink);background:rgba(201,245,228,.05)}
+.adrop:hover{border-color:var(--lamp);color:var(--ink);background:rgba(201,245,228,.05)}
 .anote{color:var(--faint);font-size:12px;margin:8px 2px 0}
 .anote.warn{color:var(--warn)}
 .ahead{display:flex;align-items:baseline;justify-content:space-between;margin:16px 2px 6px;color:var(--muted);font-weight:500}
 .ahead span{color:var(--faint);font-weight:400;font-variant-numeric:tabular-nums}
-.afont{display:grid;grid-template-columns:38px 1fr auto auto;align-items:center;gap:6px;padding:4px 4px 4px 6px;border-radius:3px}
-.afont:hover{background:var(--raise)}
-.afont .aa{font-size:22px;line-height:1;color:var(--ink);overflow:hidden;white-space:nowrap}
-.afont .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.afont .star{color:var(--faint);font-size:14px}
-.vbadge{font:600 9px var(--mono);color:#16201d;background:var(--lamp);border-radius:2px;padding:1px 3px;vertical-align:2px}
-.afont .star.on{color:var(--lamp)}
 .agrid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .aimg{position:relative;border:1px solid var(--rule);border-radius:3px;overflow:hidden;background:var(--raise)}
 .checker{background-color:#2c2d30;background-image:linear-gradient(45deg,#36373b 25%,transparent 25%,transparent 75%,#36373b 75%),linear-gradient(45deg,#36373b 25%,transparent 25%,transparent 75%,#36373b 75%);background-size:12px 12px;background-position:0 0,6px 6px}
@@ -158,7 +131,6 @@ label.chk{display:flex;gap:6px;align-items:center;color:var(--muted);cursor:poin
 .item:hover .add{opacity:1}
 .item.active{background:#2d3633;color:var(--lamp)}
 .item.active .add{opacity:1;color:var(--lamp-dim)}
-.cat.looks{margin-top:2px}
 /* stage */
 #stageWrap{grid-area:stage;position:relative;display:grid;place-items:center;min-height:0;min-width:0;overflow:hidden;
   background:radial-gradient(circle at 50% 45%, #2a2b2e 0%, var(--ground) 70%)}
@@ -199,11 +171,11 @@ label.chk{display:flex;gap:6px;align-items:center;color:var(--muted);cursor:poin
 #dropVeil{position:absolute;inset:0;display:none;place-items:center;background:rgba(20,22,22,.75);color:var(--lamp);font-size:15px;border:1px dashed var(--lamp)}
 #stageWrap.drag #dropVeil{display:grid}
 #stageInfo{position:absolute;left:14px;bottom:10px;color:var(--faint);font-size:12px;font-variant-numeric:tabular-nums}
+#tip{position:fixed;z-index:60;max-width:240px;padding:6px 9px;background:#0d0e0f;border:1px solid var(--rule2);border-radius:4px;color:var(--ink);font-size:12px;line-height:1.35;pointer-events:none;opacity:0;visibility:hidden;transition:opacity var(--t-fast) var(--ease)}
+#tip.on{opacity:1;visibility:visible}
 #toast{position:absolute;right:14px;bottom:10px;max-width:60%;background:var(--panel);border:1px solid var(--rule2);padding:8px 10px;border-radius:3px;display:none;white-space:pre-wrap}
 #toast.err{border-color:var(--warn);color:var(--warn)}
 /* timeline */
-#time{grid-area:time;background:var(--panel);border-top:1px solid var(--rule);display:grid;grid-template-columns:auto auto minmax(0,1fr);grid-template-rows:34px 30px;column-gap:12px;row-gap:6px;align-items:center;padding:8px 14px}
-#tfields{grid-column:1/-1;display:flex;align-items:center;gap:14px;flex-wrap:nowrap;overflow:hidden}
 #tfields .sp{flex:1}
 #tfields .keys{color:var(--faint);font-size:12px;white-space:nowrap}
 #tc{font:500 13px var(--mono);font-variant-numeric:tabular-nums;min-width:112px;color:var(--ink)}
@@ -217,7 +189,6 @@ label.chk{display:flex;gap:6px;align-items:center;color:var(--muted);cursor:poin
 .tfield{display:flex;align-items:center;gap:6px;color:var(--muted)}
 .tfield input[type=number]{width:64px}
 /* inspector */
-#insp{grid-area:insp;background:var(--panel);border-left:1px solid var(--rule);overflow:auto;padding-bottom:40px}
 .sec{border-bottom:1px solid var(--rule);padding:0}
 .stage-h{display:grid;grid-template-columns:auto 1fr auto;column-gap:8px;row-gap:2px;align-items:center;padding:10px 12px 8px;cursor:pointer;user-select:none;position:sticky;top:0;z-index:2;background:var(--panel)}
 .stage-h .stage-n{font:600 10px/1 var(--mono);color:var(--faint);letter-spacing:.06em}
@@ -236,7 +207,7 @@ label.chk{display:flex;gap:6px;align-items:center;color:var(--muted);cursor:poin
 .src-opts .swap{justify-self:start;height:22px;padding:0 4px}
 .slot{border:1px solid var(--rule);border-radius:3px;overflow:hidden;background:var(--raise)}
 .slot .thumb{aspect-ratio:5/4;position:relative;background:#111 center/cover no-repeat;cursor:pointer;display:grid;place-items:end start}
-.slot .thumb.logo{background-size:contain;background-origin:content-box;padding:12px;background-color:var(--bgc,#000)}
+.slot .thumb.alpha{background-size:contain;background-origin:content-box;padding:12px;background-color:var(--bgc,#000)}
 .slot .thumb span{background:rgba(0,0,0,.6);padding:2px 6px;margin:6px;border-radius:2px;font-weight:500}
 .slot .thumb:hover{outline:1px solid var(--lamp);outline-offset:-1px}
 .slot.drag .thumb{outline:1px dashed var(--lamp);outline-offset:-4px}
@@ -273,21 +244,22 @@ p.order{color:var(--faint);font-size:12px;margin:6px 2px 0}
 .prm.wide{grid-template-columns:92px 1fr}
 .prm.full{grid-template-columns:1fr}
 .prm select,.prm input[type=text]{width:100%}
-input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:18px;background:transparent;margin:0}
-input[type=range]::-webkit-slider-runnable-track{height:2px;background:var(--rule2)}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:24px;background:transparent;margin:0;cursor:ew-resize}
+input[type=range]::-webkit-slider-runnable-track{height:2px;background:var(--ctl)}
 input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:10px;height:14px;margin-top:-6px;background:var(--ink);border-radius:1px}
-input[type=range]::-moz-range-track{height:2px;background:var(--rule2)}
+input[type=range]::-moz-range-track{height:2px;background:var(--ctl)}
 input[type=range]::-moz-range-thumb{width:10px;height:14px;background:var(--ink);border:0;border-radius:1px}
 input[type=range]:hover::-webkit-slider-thumb{background:var(--lamp)}
 input[type=color]{-webkit-appearance:none;appearance:none;width:100%;height:22px;border:1px solid var(--rule);border-radius:3px;background:none;padding:0;cursor:pointer}
 input[type=color]::-webkit-color-swatch-wrapper{padding:2px}
 input[type=color]::-webkit-color-swatch{border:0;border-radius:2px}
 .empty{color:var(--faint);padding:10px 2px 0}
-input[type=checkbox]{-webkit-appearance:none;appearance:none;width:28px;height:16px;border-radius:8px;background:var(--raise);border:1px solid var(--rule2);position:relative;cursor:pointer;margin:0;flex:none;transition:background .15s,border-color .15s}
-input[type=checkbox]::after{content:"";position:absolute;top:2px;left:2px;width:10px;height:10px;border-radius:50%;background:var(--muted);transition:transform .15s,background .15s}
+input[type=checkbox]{-webkit-appearance:none;appearance:none;width:30px;height:18px;border-radius:9px;background:var(--raise);border:1px solid var(--ctl);position:relative;cursor:pointer;margin:0;flex:none;transition:background var(--t-base) var(--ease),border-color var(--t-base) var(--ease)}
+input[type=checkbox]::before{content:"";position:absolute;inset:-4px -3px}
+input[type=checkbox]::after{content:"";position:absolute;top:3px;left:3px;width:10px;height:10px;border-radius:50%;background:var(--muted);transition:transform var(--t-base) var(--ease),background var(--t-base) var(--ease)}
 input[type=checkbox]:checked{background:rgba(201,245,228,.18);border-color:var(--lamp)}
 input[type=checkbox]:checked::after{transform:translateX(12px);background:var(--lamp)}
-input[type=checkbox]:focus-visible{outline:1px solid var(--lamp);outline-offset:2px}
+
 .chk{display:flex;align-items:center;gap:8px;cursor:pointer}
 .slot .mini{display:grid;grid-template-columns:34px 1fr;align-items:center;gap:6px;font-size:11px;color:var(--faint)}
 .slot .proc{padding:6px;border-top:1px solid var(--rule);display:grid;gap:4px}
@@ -317,31 +289,194 @@ button.add-mod:hover{color:var(--ink);border-color:var(--rule2)}
 .short{display:none}
 input[type=number]{-moz-appearance:textfield}
 input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
-@media (max-width:1440px){#top{gap:10px}.long{display:none}.short{display:inline}#sizePreset{max-width:170px}.hide-m{display:none}#top input[type=number]{width:52px}}
-@media (max-width:1100px){#app{grid-template-columns:210px minmax(0,1fr) 290px}.hide-s{display:none}}
+@media (max-width:1440px){#top{gap:10px}#sizePreset{max-width:170px}.hide-m{display:none}#stagebar input[type=number]{width:56px}}
+@media (max-width:1100px){#app{grid-template-columns:64px 316px minmax(0,1fr)}.hide-s{display:none}}
+
+/* ---- workspaces ---- */
+#time{grid-area:time;background:var(--panel);border-top:1px solid var(--rule);display:grid;grid-template-columns:auto auto minmax(0,1fr) auto;column-gap:12px;align-items:center;padding:0 14px}
+#tfields{display:flex;align-items:center;gap:14px;flex-wrap:nowrap;overflow:hidden}
+#tfields .sp{display:none}
+#tfields .keys{display:none}
+#scrubWrap{height:30px}
+#scrubTrack{height:20px}
+#rail{grid-area:rail;background:#151618;border-right:1px solid var(--rule);display:flex;flex-direction:column;padding:8px 6px;gap:4px;overflow:auto}
+.rail-btn{position:relative;display:grid;justify-items:center;align-content:center;gap:4px;height:62px;padding:6px 2px;background:transparent;border:1px solid transparent;border-radius:6px;color:var(--muted)}
+.rail-btn .t{font-size:11px}
+.rail-btn .k{position:absolute;top:4px;left:6px;font:600 9px var(--mono);color:var(--faint)}
+.rail-btn:hover{background:var(--raise);color:var(--ink);border-color:transparent}
+.rail-btn.on{background:#232629;color:var(--lamp);border-color:var(--rule2)}
+.rail-btn .badge{position:absolute;top:3px;right:4px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:var(--lamp);color:#16201d;font:600 10px/16px var(--mono);text-align:center}
+.rail-btn .badge[hidden]{display:none}
+.rail-btn .badge.dot{min-width:8px;width:8px;height:8px;padding:0;top:8px;right:9px}
+#panel{grid-area:panel;position:relative;background:var(--panel);border-right:1px solid var(--rule);min-height:0;display:flex;flex-direction:column;min-width:0}
+.ws{display:none;flex-direction:column;min-height:0;flex:1;min-width:0}
+.ws.on{display:flex;animation:wsin var(--t-base) var(--ease)}
+@keyframes wsin{from{opacity:0}to{opacity:1}}
+.ws-h{padding:14px 16px 12px;border-bottom:1px solid var(--rule)}
+.ws-h h2{margin:0 0 4px;font-size:15px;font-weight:600;letter-spacing:-.005em}
+.lede{margin:0;color:var(--muted);font-size:12px;line-height:1.45}
+.ws-b{overflow:auto;padding:12px 16px 40px;flex:1;min-height:0}
+.block{margin-top:14px;padding:12px;border:1px solid var(--rule);border-radius:6px;display:grid;gap:8px}
+.block h3{margin:0;font-size:12px;font-weight:600;letter-spacing:.02em}
+.hint2{margin:0;color:var(--faint);font-size:12px;line-height:1.45}
+.ver-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:start;padding:8px 0;border-top:1px solid var(--line)}
+.ver-row small{display:block;color:var(--faint);font-size:11px}
+.ver-row .diff{margin:4px 0 0;padding:0 0 0 14px;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.ver-row .acts{display:flex;gap:4px}
+.checkout{margin-top:10px;font-size:12px;color:var(--muted)}
+.checkout .verdict{margin:0 0 8px;font-size:13px;font-weight:600;color:var(--ink)}
+.checkout .verdict.off{color:var(--warn,#ffb454)}
+.chk-row{display:grid;grid-template-columns:1fr 52px 96px 52px;gap:8px;align-items:baseline;padding:5px 0;border-top:1px solid var(--line);font-variant-numeric:tabular-nums}
+.chk-row .nm{color:var(--ink)} .chk-row .rg{color:var(--faint)} .chk-row .st{text-align:right;color:var(--accent)}
+.chk-row.off .st{color:var(--warn,#ffb454);font-weight:600}
+.stage-h{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 0 8px;cursor:default;position:static;background:none}
+.stage-h .stage-name{font-size:12px;font-weight:600;letter-spacing:.02em;text-transform:none}
+.stage-h .stage-sum{display:none}
+.stage-body{padding:0}
+.stage:not(.open) .stage-body{display:block}
+.sec{border-bottom:0}
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:4px;padding:3px;background:#151618;border:1px solid var(--rule);border-radius:7px;margin-bottom:12px}
+.seg button{height:34px;border:0;border-radius:5px;background:transparent;color:var(--muted);display:flex;align-items:center;justify-content:center;gap:8px}
+.seg button:hover{background:var(--raise);color:var(--ink)}
+.seg button.on{background:var(--raise);color:var(--ink);box-shadow:0 0 0 1px var(--rule2)}
+.seg .mt{width:24px;height:18px;border-radius:2px;background:#111 center/cover no-repeat;border:1px solid rgba(255,255,255,.14)}
+.seg .cnt{color:var(--lamp-dim);font:600 10px var(--mono)}
+#slots{display:block}
+#slots .slot{display:none}
+#slots[data-active="A"] .slot:nth-child(1),#slots[data-active="B"] .slot:nth-child(2){display:block}
+.slot .thumb{aspect-ratio:16/10}
+.slot .ctl{grid-template-columns:1fr;padding:8px}
+.slot .mini{grid-template-columns:44px 1fr}
+.slot .proc{padding:8px}
+button.add-mod{height:30px;font-size:12px}
+.card .ch{padding:6px 4px 6px 6px}
+.card .ch .nm{font-weight:500}
+.prm{grid-template-columns:104px 1fr 48px;min-height:28px}
+.prm.wide{grid-template-columns:104px 1fr}
+.prm.has-link{grid-template-columns:104px 1fr 48px 22px;gap:6px}
+.prm .val{width:48px;height:22px}
+.prm .val:hover,.prm .val:focus{background:var(--raise);border-radius:3px}
+.prm .lk{width:24px;height:24px;padding:0;border-radius:4px;color:var(--faint);background:transparent;border:1px solid transparent;display:grid;place-items:center;opacity:0}
+.prm:hover .lk,.prm .lk:focus-visible,.prm.bound .lk{opacity:1}
+.prm .lk:hover{color:var(--ink);border-color:var(--rule2)}
+.prm.bound{background:linear-gradient(90deg,rgba(255,180,140,.10),transparent 60%);border-radius:4px}
+.prm.bound .lk{color:#ffb48c;border-color:rgba(255,180,140,.45)}
+.prm.bound input[type=range]{opacity:.55}
+.prm.bound input[type=range]::-webkit-slider-thumb{background:#ffb48c}
+.bindpop{grid-column:1/-1;margin:2px 0 6px;padding:10px;border:1px solid rgba(255,180,140,.35);border-radius:6px;background:#1c1b1a;display:grid;gap:8px}
+.bindpop .row{display:grid;grid-template-columns:72px 1fr;gap:8px;align-items:center}
+.bindpop .row>label{color:var(--muted)}
+.bindpop .two{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.bindpop svg.spark{width:100%;height:36px;display:block}
+.bindpop .acts{display:flex;justify-content:space-between;gap:8px}
+.more{margin-top:4px}
+.more>summary{cursor:pointer;color:var(--muted);padding:6px 0;list-style:none;font-size:12px}
+.more>summary::-webkit-details-marker{display:none}
+.more>summary::before{content:"+ ";color:var(--faint)}
+.more[open]>summary::before{content:"− "}
+.chips{display:flex;flex-wrap:wrap;gap:6px;padding:0 14px 8px}
+.chips button{height:24px;padding:0 10px;border-radius:12px;font-size:12px;background:transparent;color:var(--muted)}
+.chips button.on{background:#232f2b;color:var(--lamp);border-color:var(--lamp-dim)}
+#lib{position:absolute;inset:0;z-index:6;background:var(--panel);display:none;flex-direction:column;min-height:0}
+#lib.open{display:flex;animation:libin var(--t-base) var(--ease)}
+@keyframes libin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.libctx{display:flex;align-items:center;gap:8px;padding:12px 12px 8px}
+.libctx b{font-weight:600;font-size:14px}
+#lib .search{padding:4px 14px 8px}
+#lib .search input{width:100%;height:34px}
+#libList{overflow:auto;padding:0 8px 24px;min-height:0;flex:1}
+.item{padding:7px 10px;white-space:normal}
+.chips .live{margin-left:auto}
+.item.has-thumb{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:10px;align-items:center;padding:6px 10px}
+.item .th{width:44px;height:55px;border-radius:5px;background:#111 center/cover no-repeat;box-shadow:inset 0 0 0 1px rgba(255,255,255,.09)}
+.item:focus-visible{outline:2px solid var(--lamp);outline-offset:-2px}
+.stage-h:empty{display:none}
+.item .copy small{font-size:12px}
+.item .add{font-size:12px}
+#stagebar{grid-area:bar;display:flex;align-items:center;gap:10px;padding:0 14px;background:var(--ground);border-bottom:1px solid var(--rule);min-width:0}
+#stagebar .push{margin-left:auto}
+#stagebar #sizePreset{max-width:230px}
+#btnCompare.held{color:var(--ink);background:var(--raise)}
+.xcard{margin-top:10px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px;border:1px solid var(--rule);border-radius:6px}
+.xcard b{font-weight:600}
+.xcard p{margin:2px 0 0;color:var(--muted);font-size:12px;line-height:1.4}
+.xcard button{flex:none;height:30px}
+.dsrc{display:grid;gap:8px}
+.dsrc .row{display:flex;gap:6px}
+.dsrc .row>*{min-width:0}
+.dsrc .row input[type=text]{flex:1}
+.dtable{border:1px solid var(--rule);border-radius:6px;overflow:hidden}
+.dtable .dh{display:flex;justify-content:space-between;gap:8px;padding:8px 10px;background:#151618;border-bottom:1px solid var(--rule)}
+.dtable .dh b{font-weight:600}
+.dtable .dh span{color:var(--faint);font-size:12px}
+.dcol{display:grid;grid-template-columns:1fr 84px;gap:8px;align-items:center;padding:6px 10px;border-bottom:1px solid var(--rule)}
+.dcol:last-child{border-bottom:0}
+.dcol .nm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dcol .nm small{color:var(--faint);margin-left:6px}
+.dcol svg{width:84px;height:24px;display:block}
+.dlist{display:grid;gap:2px}
+.dlist .item .copy small{white-space:normal}
+.tag{display:inline-block;padding:0 6px;border-radius:8px;font:600 10px/16px var(--mono);background:var(--raise);color:var(--muted);margin-left:6px}
+.tag.axis{color:var(--lamp-dim)}
+.empty-cta{padding:14px;border:1px dashed var(--rule2);border-radius:6px;color:var(--muted);text-align:center;line-height:1.5}
+.empty-cta b{display:block;color:var(--ink);font-weight:500}
+.empty-cta button{margin-top:8px}
+.errbox{padding:10px 12px;border:1px solid var(--warn);border-radius:6px;color:var(--warn);font-size:12px;line-height:1.45}
+.okbox{padding:8px 10px;border:1px solid var(--lamp-dim);border-radius:6px;color:var(--lamp);font-size:12px}
+.credit{color:var(--faint);font-size:11px;line-height:1.4}
+.pal-tools{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+@media (prefers-reduced-motion:reduce){*{transition:none !important;animation:none !important}button:active:not(:disabled){transform:none}}
+
+/* ---- language and tool ---- */
+.prm.has-link{grid-template-columns:104px 1fr 48px 24px 24px}
+.prm>label.scrub{cursor:ew-resize;user-select:none;touch-action:none}
+.prm>label.mod::after{content:"";display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--faint);margin-left:6px;vertical-align:1px}
+.rail-btn[hidden]{display:none}
+.prm.wide.has-pin{grid-template-columns:104px 1fr 24px}
+.prm .pin{width:24px;height:24px;padding:0;border-radius:4px;color:var(--faint);background:transparent;border:1px solid transparent;display:grid;place-items:center;opacity:0}
+.prm:hover .pin,.prm .pin:focus-visible,.prm.pinned .pin{opacity:1}
+.prm .pin:hover{color:var(--ink);border-color:var(--rule2)}
+.prm.pinned .pin{color:var(--lamp);border-color:var(--lamp-dim)}
+.prm.pinned>label::before{content:"";display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--lamp);margin-right:6px;vertical-align:1px}
+.prm.bound .pin{visibility:hidden}
+.lang-row{display:grid;grid-template-columns:1fr;gap:6px;padding:10px 0;border-bottom:1px solid var(--rule)}
+.lang-row:last-child{border-bottom:0}
+.lang-row .lab{display:grid;gap:4px;min-width:0}
+.lang-row .lab small{color:var(--faint);font-size:12px}
+.lang-row .lab input{width:100%}
+.lang-row .rng{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.lang-row .rng .sp{flex:1}
+.lang-row .rng input[type=number]{width:64px}
+.chipline{display:flex;flex-wrap:wrap;gap:6px}
+.chipline span{padding:3px 9px;border-radius:12px;background:var(--raise);color:var(--muted);font-size:12px}
+.chipline span b{color:var(--ink);font-weight:500}
+.varigrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.varigrid button{padding:0;height:auto;border-radius:6px;overflow:hidden;background:var(--raise);border:1px solid var(--rule);display:block}
+.varigrid button:hover{border-color:var(--lamp-dim)}
+.varigrid canvas{display:block;width:100%;height:auto}
+.varigrid span{display:block;padding:4px 6px;font-size:11px;color:var(--faint);text-align:left}
+.lang-export{display:grid;gap:8px}
+.lang-export .xcard{margin-top:0}
+.fidelity{padding:10px 12px;border:1px solid var(--rule2);border-radius:6px;color:var(--muted);font-size:12px;line-height:1.5}
+.fidelity b{color:var(--ink);font-weight:500}
+.player #btnAdd,.player #randWrap,.player #btnOpen,.player #btnSave,.player #btnSaveAs,.player [data-editor],.player #hdrPrepare,.player .proc,.player #btnSwap,.player #timingBlock,.player #tabLanguage,.player #tabCombine,.player #tabFinish,.player #tabData,.player #tabColour{display:none !important}
+.player .brand .proj{color:var(--muted)}
+.brand small.by{color:var(--faint);font-weight:400;font-size:11px;margin-left:2px}
 @media (prefers-reduced-motion:reduce){#playhead{box-shadow:none}}
 </style>
 </head>
 <body>
 <div id="app">
   <header id="top">
-    <div class="brand">fxlab <small>v0.9</small> <span id="projTitle" class="proj">Untitled</span></div>
+    <div class="brand">fxlab <span id="projTitle" class="proj">Untitled</span></div>
     <div class="tgroup">
-      <select id="sizePreset" title="Output size"></select>
-      <input id="outW" type="number" min="16" max="4096" title="Width"><span class="dim">×</span><input id="outH" type="number" min="16" max="4096" title="Height">
-    </div>
-    <div class="sep"></div>
-    <div class="tgroup">
-      <label class="dim long" for="quality">Preview</label>
-      <select id="quality"><option value="0.35">35%</option><option value="0.5">50%</option><option value="0.75">75%</option><option value="1">100%</option></select>
-      <label class="chk"><input type="checkbox" id="safeToggle"> Safe zones</label>
-    </div>
-    <div class="tgroup push">
       <button id="btnUndo" class="ghost" disabled>Undo</button>
       <button id="btnRedo" class="ghost" disabled>Redo</button>
+      <div class="sep"></div>
+      <button id="btnAdd" class="ghost" title="Find any module (⌘K or /)">Find a module</button>
       <div class="randwrap" id="randWrap">
-        <button id="btnRandom" title="Randomise the checked stages">Randomise</button>
-        <button id="btnRandScope" class="ghost icon" title="What Randomise may change" aria-expanded="false" aria-controls="randMenu">▾</button>
+        <button id="btnRandom" title="Try something different: changes the checked stages">Randomise</button>
+        <button id="btnRandScope" class="ghost icon" title="What Randomise may change" aria-label="What Randomise may change" aria-expanded="false" aria-controls="randMenu">▾</button>
         <div id="randMenu" hidden>
           <div class="randrow">
             <label class="chk"><input type="checkbox" data-rand="prepareA"> Prepare A</label>
@@ -352,54 +487,142 @@ input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-
             <label class="chk"><input type="checkbox" data-rand="finish"> Finish</label>
           </div>
           <div class="randrow randcats" id="randCats">
-            <label class="chk"><input type="checkbox" data-rand="type"> Type</label>
-            <label class="chk"><input type="checkbox" data-rand="logo"> Logo</label>
             <label class="chk"><input type="checkbox" data-rand="treatment"> Treatments</label>
             <label class="chk"><input type="checkbox" data-rand="fx"> Effects</label>
             <label class="chk"><input type="checkbox" data-rand="overlay"> Overlays</label>
           </div>
         </div>
       </div>
+    </div>
+    <div class="tgroup push">
       <button id="btnOpen" class="ghost">Open…</button>
       <button id="btnSave" class="ghost">Save</button>
-      <button id="btnSaveAs" class="ghost">Save As…</button>
-      <button id="btnFolder" class="ghost" title="Choose a folder for exports and project files">Export to: Downloads</button>
-      <div class="sep"></div>
-      <button id="btnPrint" title="Print sizes, bleed, PDF, separations"><span class="long">Print…</span><span class="short">Print</span></button>
-      <button id="btnPng"><span class="long">Export PNG</span><span class="short">PNG</span></button>
-      <button id="btnSeq" title="Frame-accurate PNG frames in a zip"><span class="long">PNG sequence</span><span class="short">Sequence</span></button>
-      <button id="btnVideo" class="primary" title="MP4, H.264 where the browser supports it"><span class="long">Export video</span><span class="short">Video</span></button>
+      <button id="btnSaveAs" class="ghost">Save as…</button>
+      <button id="btnExportGo" class="primary" title="Go to Export">Export</button>
     </div>
   </header>
 
-  <aside id="lib">
-    <div class="tabs" role="tablist">
-      <button id="tabLib" class="on" role="tab" aria-selected="true">Library</button>
-      <button id="tabAssets" role="tab" aria-selected="false">Assets <span id="assetCount" class="count"></span></button>
-      <button id="tabSystem" role="tab" aria-selected="false">System</button>
-    </div>
-    <div id="paneLib" class="pane on">
-      <div id="libCtx" class="libctx">
-        <b id="libCtxTitle">Add to Prepare A</b>
-        <button type="button" id="libCtxDone" class="ghost">Browse all</button>
+  <nav id="rail" role="tablist" aria-label="Workspaces" aria-orientation="vertical"><button id="tabControls" class="rail-btn" role="tab" aria-selected="false" aria-controls="wsControls" data-ws="controls" title="Controls" hidden><span class="k">1</span><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 8h15M4.5 16h15"/><circle cx="9" cy="8" r="2.4" fill="currentColor" fill-opacity=".25"/><circle cx="15" cy="16" r="2.4" fill="currentColor" fill-opacity=".25"/></svg><span class="t">Controls</span><span class="badge" id="badgeControls" hidden></span></button><button id="tabImages" class="rail-btn on" role="tab" aria-selected="true" aria-controls="wsImages" data-ws="images" title="Images (1)"><span class="k">1</span><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M4 17l5-4.5 3.5 3 3-2.5 4.5 4"/></svg><span class="t">Images</span><span class="badge" id="badgeImages" hidden></span></button><button id="tabCombine" class="rail-btn" role="tab" aria-selected="false" aria-controls="wsCombine" data-ws="combine" title="Combine (2)"><span class="k">2</span><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3.5" width="11" height="11" rx="2"/><rect x="9.5" y="9.5" width="11" height="11" rx="2"/></svg><span class="t">Combine</span><span class="badge" id="badgeCombine" hidden></span></button><button id="tabFinish" class="rail-btn" role="tab" aria-selected="false" aria-controls="wsFinish" data-ws="finish" title="Finish (3)"><span class="k">3</span><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5l1.8 4.7 4.7 1.8-4.7 1.8L12 16.5l-1.8-4.7L5.5 10l4.7-1.8z"/><path d="M18.5 15.5l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z"/></svg><span class="t">Finish</span><span class="badge" id="badgeFinish" hidden></span></button><button id="tabData" class="rail-btn" role="tab" aria-selected="false" aria-controls="wsData" data-ws="data" title="Data (4)"><span class="k">4</span><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5h16"/><rect x="5" y="11" width="3" height="8.5" rx=".6"/><rect x="10.5" y="5" width="3" height="14.5" rx=".6"/><rect x="16" y="8.5" width="3" height="11" rx=".6"/></svg><span class="t">Data</span><span class="badge" id="badgeData" hidden></span></button><button id="tabColour" class="rail-btn" role="tab" aria-selected="false" aria-controls="wsColour" data-ws="colour" title="Colour (5)"><span class="k">5</span><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5v17"/><path d="M12 3.5a8.5 8.5 0 010 17z" fill="currentColor" stroke="none" opacity=".35"/></svg><span class="t">Colour</span><span class="badge" id="badgeColour" hidden></span></button><button id="tabLanguage" class="rail-btn" role="tab" aria-selected="false" aria-controls="wsLanguage" data-ws="language" title="Language"><span class="k">6</span><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7" cy="7" r="2.2"/><circle cx="17" cy="7" r="2.2"/><circle cx="7" cy="17" r="2.2"/><circle cx="17" cy="17" r="2.2"/><path d="M9.2 7h5.6M7 9.2v5.6M17 9.2v5.6M9.2 17h5.6"/></svg><span class="t">Language</span><span class="badge" id="badgeLanguage" hidden></span></button><button id="tabExport" class="rail-btn" role="tab" aria-selected="false" aria-controls="wsExport" data-ws="export" title="Export (6)"><span class="k">6</span><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11"/><path d="M7.5 10.5L12 15l4.5-4.5"/><path d="M4.5 16.5v2a1.5 1.5 0 001.5 1.5h12a1.5 1.5 0 001.5-1.5v-2"/></svg><span class="t">Export</span><span class="badge" id="badgeExport" hidden></span></button></nav>
+
+  <aside id="panel">
+    <section class="ws on" id="wsImages" role="tabpanel" aria-labelledby="tabImages">
+      <header class="ws-h"><h2>Images</h2><p class="lede">Your material. Drop a photograph or video on the stage, or choose one here. Prepare each image before it is combined.</p></header>
+      <div class="ws-b">
+        <div id="srcTabs" class="seg" role="tablist" aria-label="Source"></div>
+        <section class="sec stage open" id="secPrepare" data-stage="prepare">
+          <header class="stage-h" id="hdrPrepare"></header>
+          <div class="stage-body" id="secSources">
+            <div class="slots" id="slots"></div>
+            <div class="src-opts"><button type="button" id="btnSwap" class="ghost swap" title="Swap A and B, including their Prepare lists">Swap A and B</button></div>
+          </div>
+        </section>
+        <div id="assetsImages" data-editor></div>
+        <div id="arenaBlock" data-editor></div>
       </div>
-      <div class="search"><input id="search" type="text" placeholder="Search looks and modules" autocomplete="off"></div>
+    </section>
+
+    <section class="ws" id="wsCombine" role="tabpanel" aria-labelledby="tabCombine">
+      <header class="ws-h"><h2>Combine</h2><p class="lede">How the images meet: one image, a transition, a mask or blend, or a generated field.</p></header>
+      <div class="ws-b">
+        <section class="sec stage open" id="secCombine" data-stage="combine">
+          <header class="stage-h" id="hdrCombine"></header>
+          <div class="stage-body" id="secBase"></div>
+        </section>
+        <div class="block" id="timingBlock">
+          <h3>Timing</h3>
+          <p class="hint2">How the loop plays. Transitions run A to B over the length; the curve is drawn on the timeline.</p>
+          <div class="prm wide"><label for="loopMode">Direction</label><select id="loopMode"><option value="once">A → B</option><option value="pingpong">A → B → A</option></select></div>
+          <div class="prm wide"><label for="easing">Easing</label><select id="easing"></select></div>
+          <div class="prm wide"><label for="hold">Hold at ends</label><input id="hold" type="number" min="0" max="0.45" step="0.05" title="Fraction of the loop held at each end"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="ws" id="wsFinish" role="tabpanel" aria-labelledby="tabFinish">
+      <header class="ws-h"><h2>Finish</h2><p class="lede">What the combined frame is made of: grade, print, texture, optics, overlays. Layers run top to bottom.</p></header>
+      <div class="ws-b">
+        <section class="sec stage open" id="secFinish" data-stage="finish">
+          <header class="stage-h" id="hdrFinish"></header>
+          <div class="stage-body" id="secStack"></div>
+        </section>
+      </div>
+    </section>
+
+    <section class="ws" id="wsData" role="tabpanel" aria-labelledby="tabData">
+      <header class="ws-h"><h2>Data</h2><p class="lede">Bring in a table, then let its columns drive any range control, or draw it with the Data visuals.</p></header>
+      <div class="ws-b" id="dataBody"></div>
+    </section>
+
+    <section class="ws" id="wsColour" role="tabpanel" aria-labelledby="tabColour">
+      <header class="ws-h"><h2>Colour</h2><p class="lede">The palette, colour roles and motion the modules share.</p></header>
+      <div class="ws-b" id="colourBody"><div id="assetsPalette"></div><div id="paneSystem"></div></div>
+    </section>
+
+
+    <section class="ws" id="wsControls" role="tabpanel" aria-labelledby="tabControls">
+      <header class="ws-h"><h2 id="ctlTitle">Controls</h2><p class="lede" id="ctlRule"></p></header>
+      <div class="ws-b" id="controlsBody"></div>
+    </section>
+
+    <section class="ws" id="wsLanguage" role="tabpanel" aria-labelledby="tabLanguage">
+      <header class="ws-h"><h2>Language</h2><p class="lede">What stays fixed, what may vary, and how to hand it on. A language is a few constants and a bounded space of variation.</p></header>
+      <div class="ws-b" id="languageBody"></div>
+    </section>
+
+    <section class="ws" id="wsExport" role="tabpanel" aria-labelledby="tabExport">
+      <header class="ws-h"><h2>Export</h2><p class="lede">Stills, video and print from the same frame. Exports always render at full size.</p></header>
+      <div class="ws-b" id="exportBody">
+        <div class="block" id="frameBlock">
+          <h3>Frame</h3>
+          <p class="hint2" id="frameSummary"></p>
+          <div class="prm wide"><label for="bgColor">Background</label><input type="color" id="bgColor"></div>
+          <label class="chk" id="clearRow" title="Everything that would show the background colour becomes transparent. PNG and PNG sequence exports carry the alpha channel."><input type="checkbox" id="clearBg"> Transparent background</label>
+        </div>
+        <div class="xcard"><div><b>Still</b><p>The current frame as a PNG.</p></div><button id="btnPng">Export PNG</button></div>
+        <div class="xcard"><div><b>Video</b><p>MP4, rendered frame by frame so it is exact.</p></div><button id="btnVideo" class="primary" title="MP4, H.264 where the browser supports it">Export video</button></div>
+        <div class="xcard"><div><b>Frames</b><p>Numbered PNGs in a zip, for editing software. Keeps transparency.</p></div><button id="btnSeq" title="Frame-accurate PNG frames in a zip">PNG sequence</button></div>
+        <div class="xcard" data-editor><div><b>Print</b><p>Sheet sizes, bleed, PDF and ink separations.</p></div><button id="btnPrint" title="Print sizes, bleed, PDF, separations">Print…</button></div>
+        <div class="block" data-editor>
+          <h3>Where files go</h3>
+          <p class="hint2">Pick a folder and exports and projects are saved there. Otherwise they download as usual.</p>
+          <button id="btnFolder" title="Choose a folder for exports and project files">Export to: Downloads</button>
+        </div>
+        <div class="block" id="batchBlock" data-editor></div>
+      </div>
+    </section>
+
+    <div id="lib" role="dialog" aria-label="Add a module">
+      <div id="libCtx" class="libctx">
+        <button type="button" id="libCtxDone" class="ghost" aria-label="Close the module list">← Back</button>
+        <b id="libCtxTitle">Add to Finish</b>
+      </div>
+      <div class="search"><input id="search" type="search" placeholder="Search modules" autocomplete="off" aria-label="Search modules"></div>
+      <div id="libChips" class="chips" role="group" aria-label="Filter by kind"></div>
       <div id="libList"></div>
     </div>
-    <div id="paneAssets" class="pane"></div>
-    <div id="paneSystem" class="pane"></div>
-    <input type="file" id="fileAssets" multiple accept=".otf,.ttf,.woff,.woff2,.svg,.png,.jpg,.jpeg,.webp,.gif,.zip,.fxkit" hidden>
+    <input type="file" id="fileAssets" multiple accept=".svg,.png,.jpg,.jpeg,.webp,.gif,.zip,.fxkit" hidden>
+    <input type="file" id="fileData" accept=".csv,.tsv,.json,.geojson,.ndjson,.txt,text/csv,application/json" hidden>
   </aside>
+
+  <div id="stagebar">
+    <select id="sizePreset" title="Output size" aria-label="Output size"></select>
+    <input id="outW" type="number" min="16" max="4096" title="Width" aria-label="Width"><span class="dim">×</span><input id="outH" type="number" min="16" max="4096" title="Height" aria-label="Height">
+    <div class="sep"></div>
+    <label class="dim" for="quality">Preview</label>
+    <select id="quality"><option value="0.35">35%</option><option value="0.5">50%</option><option value="0.75">75%</option><option value="1">100%</option></select>
+    <label class="chk"><input type="checkbox" id="safeToggle"> Safe zones</label>
+    <button id="btnCompare" class="ghost push" title="Hold to see the original, unprocessed image A">Hold for original</button>
+  </div>
 
   <main id="stageWrap">
     <div id="stageBox"><canvas id="stage"></canvas><div id="safe"></div></div>
-    <div id="dropVeil">Drop images or video to load A, then B</div>
+    <div id="dropVeil">Drop images or video to load A, then B — or a CSV or JSON file for the Data tab</div>
     <div id="stageInfo"></div>
-    <div id="toast"></div>
+    <div id="toast" role="status" aria-live="polite"></div>
   </main>
 
   <footer id="time">
-    <button id="btnPlay" class="icon" title="Play / pause (space)"></button>
+    <button id="btnPlay" class="icon" title="Play / pause (space)" aria-label="Play or pause"></button>
     <div id="tc">00:00:00</div>
     <div id="scrubWrap">
       <div id="scrubTrack"><div id="holdIn"></div><div id="holdOut"></div><canvas id="curve"></canvas></div>
@@ -407,37 +630,12 @@ input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-
       <input id="scrub" type="range" min="0" max="10000" step="1" value="0" aria-label="Timeline">
     </div>
     <div id="tfields">
-    <div class="tfield"><label for="dur">Length</label><input id="dur" type="number" min="0.5" max="60" step="0.5"><span>s</span></div>
-    <div class="tfield"><label for="fps">fps</label><select id="fps"><option>24</option><option>25</option><option>30</option><option>50</option><option>60</option></select></div>
-    <div class="tfield hide-s"><select id="loopMode" title="How transitions play over the loop"><option value="once">A → B</option><option value="pingpong">A → B → A</option></select></div>
-    <div class="tfield hide-s"><select id="easing" title="Transition easing"></select></div>
-    <div class="tfield hide-s"><label for="hold">Hold</label><input id="hold" type="number" min="0" max="0.45" step="0.05" title="Fraction of the loop held at each end"></div>
-    <div class="sp"></div>
-    <div class="keys hide-m">Space play · ← → step a frame</div>
+      <div class="tfield"><label for="dur">Length</label><input id="dur" type="number" min="0.5" max="60" step="0.5"><span>s</span></div>
+      <div class="tfield"><label for="fps">fps</label><select id="fps"><option>24</option><option>25</option><option>30</option><option>50</option><option>60</option></select></div>
+      <div class="sp"></div>
+      <div class="keys hide-m">Space play · ← → step a frame · 1–6 switch tab</div>
     </div>
   </footer>
-
-  <aside id="insp">
-    <section class="sec stage" id="secPrepare" data-stage="prepare">
-      <header class="stage-h" id="hdrPrepare"></header>
-      <div class="stage-body" id="secSources">
-        <div class="slots" id="slots"></div>
-        <div class="src-opts">
-          <button type="button" id="btnSwap" class="ghost swap" title="Swap A and B, including Prepare lists">Swap A/B</button>
-          <div class="prm wide"><label for="bgColor">Letterbox</label><input type="color" id="bgColor"></div>
-          <label class="chk" id="clearRow" title="Everything that would show the letterbox colour becomes transparent. PNG and PNG sequence exports carry the alpha channel."><input type="checkbox" id="clearBg"> Transparent background</label>
-        </div>
-      </div>
-    </section>
-    <section class="sec stage" id="secCombine" data-stage="combine">
-      <header class="stage-h" id="hdrCombine"></header>
-      <div class="stage-body" id="secBase"></div>
-    </section>
-    <section class="sec stage" id="secFinish" data-stage="finish">
-      <header class="stage-h" id="hdrFinish"></header>
-      <div class="stage-body" id="secStack"></div>
-    </section>
-  </aside>
 </div>
 
 <div id="busy"><div class="box"><b id="busyTitle">Exporting</b><div class="bar"><i id="busyBar"></i></div><p id="busyText"></p><div style="margin-top:14px;text-align:right"><button id="busyCancel">Cancel</button></div></div></div>

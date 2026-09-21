@@ -1,17 +1,24 @@
 # fxlab
 
-A browser-based lab for transitions, motion, kinetic type, creative coding,
-textures, effects and overlays — with a brand identity system on top, and
-exports for social, video and print.
+A browser-based library for exploring and finding art-directed digital identity
+languages in images and video: how two images meet, how a photograph is
+rewritten, how a surface claims the frame, how time writes the image, how a
+field is generated, how data drives it. Stills, motion and print come out of
+the same work.
+
+A language is a few constants and a large space of variation. fxlab is where
+you find the constants by working on real material. Typography, logos and
+presets are deliberately not part of it — see `docs/art-directed-identity-languages.md`
+for the research and the reasoning.
 
 Everything builds into **one self-contained `fxlab.html`** you open by
 double-clicking. No server, no install, works offline. The same file can be
 hosted (Vercel) so you can open the app on another computer. Hosting is the
-app only — it does not sync projects, assets or Looks.
+app only — it does not sync projects, assets or saved looks.
 
 ```sh
 ./build.sh                 # → dist/fxlab.html (and dist/index.html for hosts)
-python3 tests/run_all.py   # render every module, look, export and print path
+python3 tests/run_all.py   # render every module, loop, export and print path
 python3 tools/guide.py     # → dist/fxlab-setup-guide.pdf
 ```
 
@@ -42,12 +49,15 @@ app runtime.
 
 Open the hosted URL in a browser. It is the same self-contained app.
 
-**Cross-computer:** fonts, logos, palette, user Looks and the export-folder
+**Cross-computer:** images, palette, saved looks and the export-folder
 handle live in **that browser’s IndexedDB**. Opening the URL on another
 computer does not transfer them. Save a project (`.fxlab.json`) and a kit
 (`.fxkit`) and import them there. Do not expect cloud sync.
 
 ## How it works
+
+The screen is one tab per task: **Images**, **Combine**, **Finish**, **Data**,
+**Colour**, **Language**, **Export**. The stage, timeline and Undo stay put; the panel changes.
 
 Each frame is built the same way:
 
@@ -63,16 +73,20 @@ sources A/B  →  optional Prepare A/B  →  base / combine  →  stack / finish
   `fx-reframe` in Prepare is a later creative crop in that source's chain.
 - **Base** modules (sources, transitions, mix & mask, generators) read `uA`/`uB`
   (fitted, or prepared) and make the starting frame.
-- **Stack** modules (kinetic type, logo & brand, treatments, effects, overlays)
+- **Stack** modules (treatments, effects, overlays)
   read `uInput` — the result of everything above them — and run top to bottom.
   They can still sample the bound A/B (`fx-matte` does this) but not a second
   processed layer from the stack.
-- A Look owns Prepare the same way it owns the stack. Missing `process` means
+- A saved look owns Prepare the same way it owns the stack. Missing `process` means
   `[]`. Changing the photograph keeps the lane. Randomise is scoped (Prepare /
   Combine / Finish, plus Finish categories) and never adds ineligible modules
   to Prepare. Unchecked stages stay as they are. Scope is a UI preference,
   not project content. Undo / Redo (⌘Z / Ctrl+Z) covers composition edits
   as one snapshot each; slider drags coalesce; history is session-only.
+- **Data**: one table at a time (`src/data.js`), loaded from a sample, a file,
+  pasted text or an address. Any range control can be linked to a column
+  (`inst.bind`), and the Data visuals (`dv-*`) draw the table directly. Rows are
+  capped at 2000, columns at 24, and API keys are never saved in a project.
 - Modules are either **GLSL** (a fragment function `fx(uv)`) or **Canvas 2D**
   (`kind:'2d'` with a `draw(ctx, api)`). 2D stack modules receive the incoming
   processed frame as `api.input` (the current preview or print-tile buffer).
@@ -80,7 +94,7 @@ sources A/B  →  optional Prepare A/B  →  base / combine  →  stack / finish
 - The inspector is three persistent stages: **Prepare**, **Combine**,
   **Finish**. Internally those are still `sources.A/B.process`, `state.base`
   and `state.stack`. The Library can filter to the stage you are adding to.
-- The Library lists starter Looks above modules. Search matches names,
+- The Library lists modules only; nothing ships pre-made. Search matches names,
   descriptions, category labels, and optional invisible `search` keywords.
   Technical categories stay; those keywords are designer language, not a
   second taxonomy.
@@ -92,18 +106,21 @@ sources A/B  →  optional Prepare A/B  →  base / combine  →  stack / finish
 | File | What it holds |
 | --- | --- |
 | `src/head.html` | The whole UI: markup and CSS. The build appends the script to it. |
-| `src/registry.js` | `FX.register`, categories, param helpers (`R I C T S X F L`), `Util`. The header comment is the module-authoring guide that ships to users. |
+| `src/registry.js` | `FX.register`, categories, param helpers (`R I C T S X`), `Util`. The header comment is the module-authoring guide that ships to users. |
 | `src/glsl.js` | Vertex shader, GLSL prelude (helpers, uniforms), fragment assembly, tile-safe sampling. |
 | `src/engine.js` | WebGL2 renderer: program cache, ping-pong targets, feedback buffers, aux canvases, the Canvas 2D path, tiled rendering for print. |
-| `src/assets.js` | Fonts, logos and palette in IndexedDB; zip and `.fxkit` reading; font-name parsing. |
-| `src/identity.js` | Brand roles (colourways, type, logos), motion tokens, role resolution. |
-| `src/kt.js` | `KT` type helpers (layout, fit, stagger, easing, wrap) and `Brand` logo helpers. |
-| `src/glyphs.js` | Glyph outline tracing (marching squares) and variable-axis detection. |
+| `src/assets.js` | Images and palette in IndexedDB; zip and `.fxkit` reading. |
+| `src/identity.js` | Colour roles (colourways), motion tokens, role resolution. |
+| `src/sketch.js` | `Sketch` helpers for Canvas 2D modules: seeded random, ground, palette picks, colour mixing. |
+| `src/data.js`, `src/data_samples.js` | Table parsing (CSV, JSON, GeoJSON, columnar), type inference, sampling, control linking, API fetch; real sample datasets and the curated public sources. |
 | `src/modules/*.js` | The library. One file per group; `custom.js` is the user's paste-in block. |
-| `src/looks.js` | Starter looks (compositions, not templates). |
 | `src/print.js` | Print documents, tiled rendering, PDF/PNG writers, ink separations. |
 | `src/app.js` | State, UI, timeline, projects, exports. |
-| `src/*_ui.js` | Assets tab, System tab, Print dialog. |
+| `src/language.js`, `src/language_ui.js` | Pinned controls, seeded variation, recipe, tokens and the tool builder; the Language tab, the language board, and the tool (player) mode. |
+| `src/arena.js` | Load a public Are.na channel as reference pictures (A/B, pooled palette); one channel, on request, nothing saved. |
+| `src/thumbs.js` | Generated by `tools/thumbs.py`: a small WebP of every module for the picker. Don't edit by hand. |
+| `src/workspace_ui.js`, `src/data_ui.js` | The tab rail and router, Export tab, hold-to-compare; the Data tab and the control-link popover. |
+| `src/*_ui.js` | Image library and palette, Colour tab (colourways, motion, saved looks), Print dialog. |
 | `src/vendor/` | mp4-muxer (MIT), inlined for MP4 export. |
 
 `build.sh` concatenates these in order; the order matters because modules use
@@ -116,19 +133,23 @@ so they run anywhere.
 
 ```sh
 python3 tests/render_all.py   # every module compiles and renders
-python3 tests/looks.py        # every starter look applies
 python3 tests/seams.py        # looping modules end where they started
 python3 tests/tiles.py        # tiled print output matches a single-pass render
 python3 tests/exports.py      # PNG, PNG sequence and MP4 come out as real files
 python3 tests/compositions.py # named stacks vs committed golden frames
 python3 tests/search.py       # designer-language Library search
-python3 tests/lifecycle.py    # Prepare A/B load, Looks and stale-state
-python3 tests/sheet.py out.png --cat type    # look at the work, don't guess
+python3 tests/lifecycle.py    # Prepare A/B load, saved looks and stale-state
+python3 tests/data.py         # parsers, binding, projects, every data module on every sample
+python3 tests/workspaces.py   # tabs, picker, keyboard, compare, the Data workflow, layout at 1280×800
+python3 tests/language.py     # pins, seeds, tokens, recipe, board, and a real tool built and opened
+python3 tests/arena.py        # Are.na import against a mocked API and image host
+python3 tests/thumbs.py       # every module has a picker thumbnail
+python3 tests/sheet.py out.png --cat treatment    # look at the work, don't guess
 ```
 
-Put a brand-asset zip in `tests/assets/` (git-ignored), or loose files in that
-folder and its subfolders, and the tests import them first, so fonts, logos
-and brand roles get exercised.
+Put images (or a zip of them) in `tests/assets/` (git-ignored), or loose files
+in that folder and its subfolders, and the tests import them first, so the
+asset paths get exercised.
 
 ## Things that will bite you
 
@@ -139,12 +160,24 @@ and brand roles get exercised.
   `tests/tiles.py` catches this.
 - **Loops.** Drive motion from `uLoop` in whole cycles. Random per-item speeds
   break the loop; `tests/seams.py` catches that.
-- **Brand roles.** Colour, font and logo params resolve from role links before
+- **Colour roles.** Colour params resolve from role links before
   modules see them. A module that wants dark ink on light paper must opt out
   with `C('ink', 'Ink', '#141516', false)`.
 - **Feedback and aux.** `feedback:true` gives `uPrev`; check its alpha to detect
   an unwritten buffer and seed from it. `aux()` draws a whole-frame helper
   canvas, even when rendering one tile.
+
+- **Data caps.** More than 2000 rows are thinned evenly (the last row always
+  survives) and the Data tab says so. Columns past 24 are dropped.
+- **Data from the web.** A page opened from a file can only read servers that
+  allow it (CORS). `python3 tests/data.py --live` checks the curated list. Keys go
+  in headers and stay in memory; a key in a URL is blanked when a project is saved.
+- **Time and year columns are axes.** They place rows, so auto-pick never plots
+  them as values.
+
+- **Tools.** `./build.sh` writes the app with a gzip of itself inside, so it can make
+  tools. `dist/fxlab.html` is about 1 MB; a tool is about half that (no thumbnails).
+- **Never write a literal closing script tag in source**: it ends the script early.
 
 ## Licence
 

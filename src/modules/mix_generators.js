@@ -42,20 +42,6 @@ FX.register({ id:'mx-shape', name:'Shape mask', cat:'mix', desc:'B inside a shap
   return vec4(col, 1.);
 }` });
 
-FX.register({ id:'mx-type', name:'Type mask', cat:'mix', desc:'Knock B (or a colour) through live type over A.', search:['combine', 'window'],
-  params:[ X('text','Text','TYPE\nMASK',true), F('font','Font'), X('customFont','Installed font',''), S('weight','Weight',Util.weights,4), R('size','Size',30,2,100), R('tracking','Tracking',-.02,-.2,.5), R('leading','Leading',.9,.5,2), R('x','X',0,-1,1), R('y','Y',0,-1,1), T('upper','Uppercase',true), S('fill','Fill with',['Image B','Colour']), C('color','Colour','#c9f5e4'), T('invert','Invert') ],
-  aux(ctx, P, w, h){
-    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, w, h); ctx.fillStyle = '#fff';
-    const txt = P.upper ? P.text.toUpperCase() : P.text;
-    Util.textBlock(ctx, txt, { size:P.size / 100 * Math.min(w, h), weight:Util.weights[P.weight|0], family:Util.family(P), tracking:P.tracking, leading:P.leading, x:(.5 + P.x * .5) * w, y:(.5 - P.y * .5) * h });
-  },
-  fs:`vec4 fx(vec2 uv){
-  float m = texture(uAux, uv).r;
-  if (p_invert > .5) m = 1. - m;
-  vec3 b = p_fill < .5 ? texture(uB, uv).rgb : p_color;
-  return vec4(mix(texture(uA, uv).rgb, b, m), 1.);
-}` });
-
 FX.register({ id:'mx-gradient', name:'Gradient mask', cat:'mix', desc:'Linear or radial blend between A and B, with a wavy or noisy edge, dithering and a bright seam.', search:['combine'],
   params:[ S('type','Type',['Linear','Radial']), R('angle','Angle',90,-180,180,1), R('position','Position',.5,-.5,1.5), R('soft','Softness',.25,0,1), T('animate','Sweep with timeline'),
     S('edge','Edge',['Smooth','Waved','Noisy','Stepped'],0), R('edgeAmount','Edge amount',.35,0,2), R('edgeScale','Edge scale',4,.5,20), I('steps','Steps',8,2,40), R('dither','Dither',0,0,1), R('line','Seam line',0,0,.06), C('lineColor','Seam colour','#ffffff','accent') ],

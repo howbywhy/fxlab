@@ -41,8 +41,17 @@ const Engine = (() => {
     catch (e){ programs[m.id] = null; E.errors[m.id] = String(e.message || e); console.error(`fxlab: shader error in ${m.id}\n`, e.message); E.onError && E.onError(m, E.errors[m.id]); }
     return programs[m.id];
   }
+  /* a simulation's second program: turns its state texture into colour (m.show), so the
+     state can hold raw numbers and still be drawn as a picture */
+  function showProgram(m){
+    const key = m.id + '#show';
+    if (programs[key] !== undefined) return programs[key];
+    try { programs[key] = link(GLSL.buildFS({ params:m.params, fs:m.show })); }
+    catch (e){ programs[key] = null; E.errors[m.id] = String(e.message || e); console.error(`fxlab: display shader error in ${m.id}\n`, e.message); E.onError && E.onError(m, E.errors[m.id]); }
+    return programs[key];
+  }
   /* rebuild a module's program — handy when live-editing modules in the console */
-  E.recompile = id => { delete programs[id]; };
+  E.recompile = id => { delete programs[id]; delete programs[id + '#show']; };
 
   const copyP = link(`${GLSL.PRELUDE}\nvoid main(){ outColor = vec4(texture(uInput, vUv).rgb, 1.); }`);
   const fitP = link(`${GLSL.PRELUDE}
@@ -54,7 +63,7 @@ void main(){
   vec2 st = (vUv - .5) * s / uZoom + .5 - uOffset * .5;
   if (any(lessThan(st, vec2(0.))) || any(greaterThan(st, vec2(1.)))) { outColor = vec4(backdrop(vUv), 1.); return; }
   vec4 c = texture(uSrc, st);
-  outColor = vec4(c.rgb + backdrop(vUv) * (1. - c.a), 1.); /* premultiplied: transparent logos sit on the backdrop */
+  outColor = vec4(c.rgb + backdrop(vUv) * (1. - c.a), 1.); /* premultiplied: transparent images sit on the backdrop */
 }`);
 
   function texParams(mip){
@@ -63,12 +72,19 @@ void main(){
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
   }
-  function makeTarget(w, h){
+  /* Half-float targets for simulations (reaction-diffusion, fluid) where 8 bits round a slow
+     change to nothing. Needs EXT_color_buffer_float; without it they fall back to 8-bit
+     and E.floatOK says so, so a module can warn instead of quietly looking wrong. */
+  E.floatOK = !!gl.getExtension('EXT_color_buffer_float');
+  function makeTarget(w, h, float){
     const tex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, tex);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null); texParams(false);
+    const f = float && E.floatOK;
+    if (f) gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA16F, w, h, 0, gl.RGBA, gl.HALF_FLOAT, null);
+    else gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    texParams(false);
     const fb = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
-    return { tex, fb, w, h };
+    return { tex, fb, w, h, float:!!f };
   }
   function freeTarget(t){ if (!t) return; gl.deleteTexture(t.tex); gl.deleteFramebuffer(t.fb); }
 
@@ -170,10 +186,10 @@ void main(){
     draw(fit[k]);
   }
 
-  function ensureFeedback(inst, input){
+  function ensureFeedback(inst, input, float){
     if (inst._fb && inst._fb[0].w === E.rw && inst._fb[0].h === E.rh) return;
     if (inst._fb) inst._fb.forEach(freeTarget);
-    inst._fb = [makeTarget(E.rw, E.rh), makeTarget(E.rw, E.rh)];
+    inst._fb = [makeTarget(E.rw, E.rh, float), makeTarget(E.rw, E.rh, float)];
     /* seed history with the current frame so trails don't start from black */
     if (input){ gl.useProgram(copyP.prog); bindUnits(input.tex, null, null); draw(inst._fb[0]); draw(inst._fb[1]); }
   }
@@ -221,7 +237,8 @@ void main(){
   function run(inst, input, target, g){
     const m = FX.byId[inst.id];
     if (!m) return input || target;
-    const params = typeof Identity !== 'undefined' ? Identity.resolve(m, inst.params) : inst.params;
+    let params = typeof Identity !== 'undefined' ? Identity.resolve(m, inst.params) : inst.params;
+    if (inst.bind) params = Data.bind(m, inst, params, g);
     if (m.kind === '2d'){
       let inCanvas = null;
       if (input){ present(input); snapCtx.clearRect(0, 0, E.rw, E.rh); snapCtx.drawImage(canvas, 0, 0); inCanvas = snap; }
@@ -243,14 +260,29 @@ void main(){
     const P = programFor(m);
     if (!P) return input || target;
     let out = target, prev = null;
-    if (m.feedback){ ensureFeedback(inst, input); out = inst._fb[0]; prev = inst._fb[1].tex; }
+    const isFb = !!m.feedback, isFloat = m.feedback === 'float';
+    if (isFb){ ensureFeedback(inst, isFloat ? null : input, isFloat); out = inst._fb[0]; prev = inst._fb[1].tex; }
     if (m.aux) ensureAux(inst, m, params);
     gl.useProgram(P.prog);
-    bindUnits(input ? input.tex : null, prev, inst._auxTex);
     setGlobals(P, g); setParams(P, m, params);
     const ai = P.u('uAuxInfo'); if (ai) gl.uniform4fv(ai, inst._auxInfo || [0,0,0,0]);
-    draw(out);
-    if (m.feedback){ inst._fb.reverse(); return inst._fb[1]; }
+    /* a simulation may want several steps per frame (m.steps, a number or a function of the params);
+       each step reads the last one's result, which is what makes slow diffusion visible */
+    const steps = isFloat ? Math.max(1, Math.min(64, Math.round(typeof m.steps === 'function' ? m.steps(params) : (m.steps || 1)))) : 1;
+    for (let i = 0; i < steps; i++){
+      bindUnits(input ? input.tex : null, prev, inst._auxTex);
+      draw(out);
+      if (isFb){ inst._fb.reverse(); out = inst._fb[0]; prev = inst._fb[1].tex; }
+    }
+    if (isFloat && m.show){
+      const SP = showProgram(m);
+      if (SP){
+        gl.useProgram(SP.prog); setGlobals(SP, g); setParams(SP, m, params);
+        bindUnits(input ? input.tex : null, inst._fb[1].tex, inst._auxTex);
+        draw(target); return target;
+      }
+    }
+    if (isFb) return inst._fb[1];
     return out;
   }
 
@@ -291,9 +323,30 @@ void main(){
     E.tile = saved;
   }
 
+  /* A vector source (canvas tagged with vecId by Assets.sourceImage) is drawn again at the size
+     the frame shows it, so a thin line stays thin at 2x, in print tiles and when zoomed in.
+     Sizes step in 256 px and only change when they'd be too soft or more than twice too big. */
+  function ensureVector(state){
+    const need = new Map();
+    for (const k of ['A', 'B']){
+      const m = media[k], c = m.el; if (!c || !c.vecId || m.video) continue;
+      const s = state.sources[k], fw = fit.A.w, fh = fit.A.h, sa = c.width / c.height, wide = sa > fw / fh;
+      const dw = (+s.fit === 1 ? (wide ? fw : fh * sa) : (wide ? fh * sa : fw)) * Math.max(.05, +s.zoom || 1);
+      need.set(c, Math.max(need.get(c) || 0, sa >= 1 ? dw : dw / sa));
+    }
+    const cap = Math.min(4096, gl.getParameter(gl.MAX_TEXTURE_SIZE));
+    for (const [c, long] of need){
+      const want = Math.min(cap, Math.max(1024, Math.ceil(long / 256) * 256)), have = Math.max(c.width, c.height);
+      if (want <= have && want * 2 > have) continue;
+      Assets.rasterTo(c, want);
+      for (const k of ['A', 'B']) if (media[k].el === c){ media[k].w = c.width; media[k].h = c.height; media[k].dirty = true; }
+    }
+  }
+
   /* render one frame of the project at time t */
   E.frame = (state, t, g) => {
     E.frameId++;
+    ensureVector(state);
     uploadMedia('A'); uploadMedia('B');
     /* Session UI bypass (App.stageOn) skips processing without mutating lists.
        Combine always runs — there is no skip-base path in this architecture. */

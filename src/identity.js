@@ -1,22 +1,17 @@
 /* ---------------- Identity system ----------------
-   Brand roles that modules can link to instead of fixed values:
-     colours  'role:ink' 'role:ground' 'role:accent' 'role:accent2'  (from the active colourway)
-     fonts    'role:display' 'role:text'
-     logos    'role:logo' 'role:symbol' 'role:wordmark'
-   Change the colourway, font or logo role and every linked module updates.
-   Motion tokens (easing, slant, beat) drive modules set to "Brand".
+   Colour roles that modules can link to instead of fixed values:
+     'role:ink' 'role:ground' 'role:accent' 'role:accent2'  (from the active colourway)
+   Change the colourway and every linked module updates.
+   Motion tokens (easing, beat) drive modules set to "Brand".
    Stored with Assets (this browser + .fxkit kits).
 --------------------------------------------------- */
 const Identity = (() => {
   const I = {};
   I.COLOR_ROLES = [['ink', 'Ink'], ['ground', 'Ground'], ['accent', 'Accent'], ['accent2', 'Accent 2']];
-  I.FONT_ROLES = [['display', 'Display'], ['text', 'Text']];
-  I.LOGO_ROLES = [['logo', 'Primary logo'], ['symbol', 'Symbol'], ['wordmark', 'Wordmark']];
   I.EASES = ['Expo out', 'Quint out', 'Back out', 'Elastic out', 'Circ out', 'Custom curve'];
   const FALLBACK = { name:'Default', ink:'#e4e2dc', ground:'#141516', accent:'#ff5a36', accent2:'#c9f5e4' };
 
-  I.blank = () => ({ colourways:[], active:0, type:{ display:'', text:'' }, logos:{ logo:'', symbol:'', wordmark:'' },
-    motion:{ ease:0, bezier:[.16, 1, .3, 1], slant:1, beat:4 }, autoApply:true, looks:[] });
+  I.blank = () => ({ colourways:[], active:0, motion:{ ease:0, bezier:[.16, 1, .3, 1], beat:4 }, autoApply:true, looks:[] });
   const D = () => Assets.identity;
 
   /* ---------- colour maths ---------- */
@@ -31,21 +26,9 @@ const Identity = (() => {
   /* ---------- resolution ---------- */
   I.colourway = () => { const d = D(); return (d && d.colourways[d.active]) || d && d.colourways[0] || FALLBACK; };
   I.color = v => (typeof v === 'string' && v.startsWith('role:')) ? (I.colourway()[v.slice(5)] || FALLBACK[v.slice(5)] || '#ffffff') : v;
-  I.fontRef = v => {
-    if (typeof v !== 'string' || !v.startsWith('role:')) return v;
-    const d = D(), r = v.slice(5), ref = d && d.type[r];
-    if (ref && (!ref.startsWith('asset:') || Assets.get(ref))) return ref;
-    const f = Assets.pickFont(); return f ? 'asset:' + f.id : 'Helvetica';
-  };
-  I.logoRef = v => {
-    if (typeof v !== 'string' || !v.startsWith('role:')) return v;
-    const d = D(), r = v.slice(5), ref = d && (d.logos[r] || d.logos.logo || d.logos.symbol);
-    if (ref && Assets.get(ref)) return ref;
-    const im = Assets.images()[0]; return im ? 'asset:' + im.id : '';
-  };
   I.roleLabel = v => {
     if (typeof v !== 'string' || !v.startsWith('role:')) return '';
-    const r = v.slice(5); return ([...I.COLOR_ROLES, ...I.FONT_ROLES, ...I.LOGO_ROLES].find(x => x[0] === r) || [, r])[1];
+    const r = v.slice(5); return (I.COLOR_ROLES.find(x => x[0] === r) || [, r])[1];
   };
   /* params with role links swapped for concrete values (what modules actually see) */
   I.resolve = (m, params) => {
@@ -54,7 +37,7 @@ const Identity = (() => {
       const v = params[p.id];
       if (typeof v !== 'string' || !v.startsWith('role:')) continue;
       out = out || { ...params };
-      out[p.id] = p.type === 'color' ? I.color(v) : p.type === 'font' ? I.fontRef(v) : p.type === 'asset' ? I.logoRef(v) : v;
+      out[p.id] = p.type === 'color' ? I.color(v) : v;
     }
     return out || params;
   };
@@ -69,21 +52,23 @@ const Identity = (() => {
       t = Math.min(1, Math.max(0, t)); return sy(t);
     };
   }
+  const back = x => { const c1 = 1.9, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
+  const elastic = x => x <= 0 ? 0 : x >= 1 ? 1 : Math.pow(2, -9 * x) * Math.sin((x * 9 - .75) * (Math.PI * 2 / 3)) + 1;
+  const expo = x => x >= 1 ? 1 : 1 - Math.pow(2, -10 * x);
   let bzKey = '', bzFn = null;
   I.ease = x => {
     x = Math.min(1, Math.max(0, x));
     const m = D() ? D().motion : I.blank().motion;
     switch (m.ease | 0){
       case 1: return 1 - Math.pow(1 - x, 5);
-      case 2: return KT.ease.back(x);
-      case 3: return KT.ease.elastic(x);
+      case 2: return back(x);
+      case 3: return elastic(x);
       case 4: return Math.sqrt(1 - Math.pow(x - 1, 2));
       case 5: { const k = m.bezier.join(','); if (k !== bzKey){ bzKey = k; bzFn = bezier(...m.bezier); } return bzFn(x); }
-      default: return KT.ease.expo(x);
+      default: return expo(x);
     }
   };
   I.easeInOut = x => x < .5 ? (1 - I.ease(1 - 2 * x)) / 2 : (1 + I.ease(2 * x - 1)) / 2;
-  I.slant = () => (D() ? D().motion.slant : 1);
   I.beat = () => Math.max(1, (D() ? D().motion.beat : 4) | 0);
 
   /* ---------- defaults for new modules ---------- */
@@ -96,14 +81,12 @@ const Identity = (() => {
       if (typeof p.role === 'string' && hasCw) return 'role:' + p.role;
       if (hasCw) for (const [role, ids] of Object.entries(COLOR_MAP)) if (ids.includes(p.id)) return 'role:' + role;
     }
-    if (p.type === 'font' && (d.type.display || Assets.fonts().length)) return p.role ? 'role:' + p.role : 'role:display';
-    if (p.type === 'asset' && p.auto && Assets.images().length) return 'role:' + (typeof p.auto === 'string' ? p.auto : 'logo');
     if (p.type === 'select' && p.id === 'easing' && p.options.includes('Brand')) return p.options.indexOf('Brand');
     return undefined;
   };
-  I.active = () => { const d = D(); return !!(d && (d.colourways.length || d.type.display || d.logos.logo)); };
+  I.active = () => { const d = D(); return !!(d && d.colourways.length); };
 
-  /* ---------- build a starting system from the assets ---------- */
+  /* ---------- build a starting system from the palette ---------- */
   I.autoSetup = (force = false) => {
     const d = D(); let changed = false;
     const pal = Assets.palette.map(c => c.hex);
@@ -121,25 +104,6 @@ const Identity = (() => {
         return { name:g === dark && !pal.includes(dark) ? 'Night' : nameOf(g), ink, ground:g, accent, accent2 };
       });
       d.active = 0; changed = true;
-    }
-    const fonts = Assets.fonts();
-    if (fonts.length && (force || !d.type.display)){
-      const disp = Assets.pickFont(), first = s => s.name.split(' ')[0].toLowerCase();
-      const text = fonts.find(f => first(f) !== first(disp)) || disp;
-      d.type.display = 'asset:' + disp.id; d.type.text = 'asset:' + text.id; changed = true;
-    }
-    const imgs = Assets.images();
-    if (imgs.length && (force || !d.logos.logo)){
-      const ink = I.colourway().ink;
-      const pick = re => {
-        const hits = imgs.filter(a => re.test(a.name + ' ' + a.file));
-        if (!hits.length) return null;
-        return hits.find(a => a.colors && a.colors.length === 1 && a.colors[0] === ink) || hits.find(a => /white/i.test(a.name)) || hits[0];
-      };
-      const logo = pick(/marketing|lockup|primary|master|combination/i) || pick(/logotype|wordmark|logo/i) || imgs[0];
-      const symbol = pick(/symbol|icon|monogram|\bmark\b|glyph/i) || logo;
-      const wordmark = pick(/logotype/i) || pick(/wordmark|type/i) || logo;
-      d.logos = { logo:'asset:' + logo.id, symbol:'asset:' + symbol.id, wordmark:'asset:' + wordmark.id }; changed = true;
     }
     return changed;
   };

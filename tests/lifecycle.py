@@ -303,6 +303,19 @@ JS = """(TEST_LOOKS) => {
   if (JSON.stringify(cloneLane(S.sources.B.process)) !== JSON.stringify(bBefore)) bad.push('Prepare A randomise touched B');
   if (ids(S.stack).join() !== stackBefore) bad.push('Prepare A randomise touched Finish');
   if (S.sources.A.process.some(i => !eligible.has(i.id))) bad.push('Prepare A randomise added ineligible');
+  // Combine filters: only the chosen transition families are drawn from
+  const famOff = Object.fromEntries(TR_FAMILIES.map(x => [`fam_${x.id}`, x.id === 'wipes' || x.id === 'craft']));
+  f.setRandScope({ prepareA:false, prepareB:false, combine:true, finish:false, base_transition:true, base_mix:false, base_generator:false, ...famOff });
+  for (let i = 0; i < 25; i++){
+    f.randomise();
+    const m = f.FX.byId[S.base.id];
+    if (m.cat !== 'transition' || !['wipes', 'craft'].includes(trFamily(m))){ bad.push(`family filter let through ${S.base.id}`); break; }
+  }
+  f.setRandScope({ base_transition:false });
+  const keepFiltered = S.base.id;
+  f.randomise();
+  if (S.base.id !== keepFiltered) bad.push('an empty Combine filter still changed the base');
+  f.setRandScope(Object.fromEntries([...TR_FAMILIES.map(x => [`fam_${x.id}`, true]), ['base_transition', true], ['base_mix', true], ['base_generator', true]]));
   const menu = document.getElementById('randMenu');
   if (!menu) bad.push('missing Randomise scope menu');
   if (!document.getElementById('btnRandScope')) bad.push('missing Randomise scope button');

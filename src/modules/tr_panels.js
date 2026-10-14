@@ -2,7 +2,7 @@
 /* Panels, curtains and staggered strips: the frame is covered or cut into pieces that move on their
    own clocks. Every module returns exactly A at progress 0 and exactly B at progress 1. */
 
-FX.register({ id:'tr-panel-cover', name:'Panel cover', cat:'transition', search:['page transition', 'curtain', 'overlay', 'barba', 'swup', 'cover'],
+FX.register({ id:'tr-panel-cover', name:'Panel cover', cat:'transition', family:'panels', search:['page transition', 'curtain', 'overlay', 'barba', 'swup', 'cover'],
   desc:'Solid panels sweep across to cover A, then carry on off the far edge to uncover B.',
   params:[ S('dir','Direction',DIRS4,1), I('layers','Layers',2,1,3), R('lag','Layer lag',.18,0,.4), R('hold','Hold',.1,0,.5), R('drift','Image drift',.08,0,.4),
     C('color','Panel','#141516','ground'), C('color2','Panel 2','#ff5a36','accent'), C('color3','Panel 3','#c9f5e4','accent2') ],
@@ -35,7 +35,7 @@ vec4 fx(vec2 uv){
   return vec4(texture(uB, uv + off * (1. - pc_ease(p * 2. - 1.))).rgb, 1.);
 }` });
 
-FX.register({ id:'tr-shutter-split', name:'Shutter split', cat:'transition', search:['double door', 'split', 'open', 'shutter', 'reveal'],
+FX.register({ id:'tr-shutter-split', name:'Shutter split', cat:'transition', family:'panels', search:['double door', 'split', 'open', 'shutter', 'reveal'],
   desc:'The frame splits down the middle and the halves slide apart, close over it, or close through a colour.',
   params:[ S('mode','Mode',['A opens','B closes in','Through colour'],0), S('axis','Split',['Vertical','Horizontal'],0), R('zoom','Settle zoom',.12,0,.5), R('shadow','Edge shadow',.45,0,1),
     R('line','Seam line',0,0,.02), C('color','Panel colour','#141516','ground') ],
@@ -83,7 +83,7 @@ vec4 fx(vec2 uv){
   return vec4(fromSeam >= o && q > 0. ? pan : img, 1.);
 }` });
 
-FX.register({ id:'tr-strip-slide', name:'Strip slide', cat:'transition', search:['sliding bands', 'sliding boxes', 'slash slide', 'stagger', 'strips', 'multi-slide'],
+FX.register({ id:'tr-strip-slide', name:'Strip slide', cat:'transition', family:'panels', search:['sliding bands', 'sliding boxes', 'slash slide', 'stagger', 'strips', 'multi-slide'],
   desc:'B arrives in strips that slide in one after another, from alternating sides if you like, at any angle.',
   params:[ I('count','Strips',8,2,40), R('angle','Angle',0,-180,180,1), T('alt','Alternate sides',true), S('order','Order',['In sequence','From centre','Random'],0), R('stagger','Stagger',.5,0,.9),
     S('mode','Mode',['Slide over','Push A out'],0), R('shadow','Edge shadow',.35,0,1) ],
@@ -122,7 +122,7 @@ vec4 fx(vec2 uv){
   return vec4(a, 1.);
 }` });
 
-FX.register({ id:'tr-band-rise', name:'Band rise', cat:'transition', search:['line reveal', 'split text', 'mask reveal', 'stagger', 'rows'],
+FX.register({ id:'tr-band-rise', name:'Band rise', cat:'transition', family:'panels', search:['line reveal', 'split text', 'mask reveal', 'stagger', 'rows'],
   desc:'The frame is cut into bands and inside each one B rises into place behind its own edge, band after band.',
   params:[ I('bands','Bands',6,2,30), S('dir','Travel',['Up','Down','Left','Right'],0), S('order','Order',['In sequence','Reverse','From centre','Random'],0), R('stagger','Stagger',.55,0,.9),
     T('push','Push A out',true), R('overshoot','Overshoot',0,0,1) ],
@@ -161,7 +161,7 @@ vec4 fx(vec2 uv){
   return vec4(texture(uA, uv + tv * (sa - s)).rgb, 1.);
 }` });
 
-FX.register({ id:'tr-shape-overlay', name:'Shape overlays', cat:'transition', search:['page transition', 'curtain', 'wave', 'overlay', 'bezier'],
+FX.register({ id:'tr-shape-overlay', name:'Shape overlays', cat:'transition', family:'panels', search:['page transition', 'curtain', 'wave', 'overlay', 'bezier'],
   desc:'Layers of colour rise with a soft, uneven curved edge to cover A, then sweep on to leave B.',
   params:[ S('dir','Direction',['Up','Down','Left','Right'],0), I('layers','Layers',3,1,3), R('curve','Curve',.35,0,1), R('wobble','Unevenness',.3,0,1), R('lag','Layer lag',.12,0,.3), R('hold','Hold',.06,0,.4),
     C('color','Colour 1','#141516','ground'), C('color2','Colour 2','#ff5a36','accent'), C('color3','Colour 3','#c9f5e4','accent2') ],
@@ -197,7 +197,7 @@ vec4 fx(vec2 uv){
   return vec4(p < .5 ? texture(uA, uv).rgb : texture(uB, uv).rgb, 1.);
 }` });
 
-FX.register({ id:'tr-drip-cover', name:'Drip cover', cat:'transition', search:['gooey', 'liquid', 'paint', 'melt', 'blob', 'metaball'],
+FX.register({ id:'tr-drip-cover', name:'Drip cover', cat:'transition', family:'panels', search:['gooey', 'liquid', 'paint', 'melt', 'blob', 'metaball'],
   desc:'Thick drips run down the frame and merge, through a colour or straight into B.',
   params:[ S('mode','Mode',['Through colour','Straight to B'],0), S('dir','Direction',['Down','Up'],0), I('columns','Drips',7,3,24), R('random','Unevenness',.45,0,.9), R('goo','Merge',.08,0,.25), R('rim','Sheen',.4,0,1),
     C('color','Colour','#ff5a36','accent') ],
@@ -258,7 +258,7 @@ vec4 fx(vec2 uv){
   return vec4(col, 1.);
 }` });
 
-FX.register({ id:'tr-skew-panel', name:'Skew panel', cat:'transition', search:['diagonal', 'slant', 'agency', 'skew', 'sweep'],
+FX.register({ id:'tr-skew-panel', name:'Skew panel', cat:'transition', family:'panels', search:['diagonal', 'slant', 'agency', 'skew', 'sweep'],
   desc:'A slanted panel sweeps across and B follows it in, sheared at first and straightening as it lands.',
   params:[ S('dir','Direction',['Left → right','Right → left','Bottom → top','Top → bottom'],0), R('angle','Slant',22,-45,45,1), R('skew','Shear',.35,0,1), R('slide','Slide',.3,0,1), R('width','Panel width',.22,0,.6),
     C('color','Panel','#141516','ground') ],
@@ -298,7 +298,7 @@ FX.register({ id:'tr-skew-panel', name:'Skew panel', cat:'transition', search:['
   return vec4(col, 1.);
 }` });
 
-FX.register({ id:'tr-curtain-draw', name:'Curtains', cat:'transition', search:['stage', 'theatre', 'drape', 'cloth', 'fabric', 'open'],
+FX.register({ id:'tr-curtain-draw', name:'Curtains', cat:'transition', family:'panels', search:['stage', 'theatre', 'drape', 'cloth', 'fabric', 'open'],
   desc:'A becomes two cloth curtains that gather into folds as they are drawn aside to show B.',
   params:[ S('split','Opens',['From centre','To the left','To the right'],0), I('folds','Folds',9,2,24), R('shade','Fold shading',.55,0,1), R('gather','Gather',.6,0,1), R('tint','Cloth tint',0,0,1),
     C('color','Cloth colour','#7a1f24',false) ],
@@ -343,7 +343,7 @@ vec4 fx(vec2 uv){
   return vec4(col, 1.);
 }` });
 
-FX.register({ id:'tr-shred-fall', name:'Shred', cat:'transition', search:['strips', 'fall', 'paper', 'shredder', 'drop', 'gravity'],
+FX.register({ id:'tr-shred-fall', name:'Shred', cat:'transition', family:'panels', search:['strips', 'fall', 'paper', 'shredder', 'drop', 'gravity'],
   desc:'A is cut into strips that drop away one by one, tipping as they fall, to leave B.',
   params:[ I('strips','Strips',16,4,60), R('random','Randomness',.6,0,.9), R('tilt','Tilt',.35,0,1), R('sway','Sway',.3,0,1), S('dir','Fall',['Down','Up'],0), R('shade','Edge shade',.35,0,1) ],
   fs:`vec4 fx(vec2 uv){
@@ -381,7 +381,7 @@ FX.register({ id:'tr-shred-fall', name:'Shred', cat:'transition', search:['strip
   return vec4(b * (1. - .25 * (1. - p)), 1.);
 }` });
 
-FX.register({ id:'tr-tile-shrink', name:'Tile shrink', cat:'transition', search:['grid', 'mosaic', 'scale down', 'squares', 'stagger'],
+FX.register({ id:'tr-tile-shrink', name:'Tile shrink', cat:'transition', family:'panels', search:['grid', 'mosaic', 'scale down', 'squares', 'stagger'],
   desc:'A breaks into a grid of tiles that shrink and turn away in a wave, or B arrives as tiles that grow to fill the frame.',
   params:[ I('rows','Rows',8,2,30), S('order','Order',['Diagonal','From centre','Random','Rows'],0), S('mode','Mode',['A shrinks away','B grows in'],0), R('turn','Turn',45,-180,180,1), R('round','Rounding',0,0,1), R('stagger','Stagger',.6,0,.95) ],
   fs:`float ts_local(vec2 id, vec2 grid){
@@ -423,7 +423,7 @@ vec4 fx(vec2 uv){
   return vec4(grow ? a : b, 1.);
 }` });
 
-FX.register({ id:'tr-honeycomb', name:'Honeycomb pop', cat:'transition', search:['hexagon', 'hex', 'cells', 'pop', 'powerpoint'],
+FX.register({ id:'tr-honeycomb', name:'Honeycomb pop', cat:'transition', family:'panels', search:['hexagon', 'hex', 'cells', 'pop', 'powerpoint'],
   desc:'Hexagonal cells pull in and pop back out as B, rippling out from a point.',
   params:[ R('size','Cell size',.09,.03,.3), S('order','Order',['From a point','Random','Sweep down'],0), R('x','Origin X',0,-1,1), R('y','Origin Y',0,-1,1), R('stagger','Stagger',.65,0,.95), R('pop','Pop',.5,0,1),
     C('color','Gap','#141516','ground') ],
@@ -475,7 +475,7 @@ vec4 fx(vec2 uv){
   return vec4(mix(img, p_color, smoothstep(-aa, aa, d)), 1.);
 }` });
 
-FX.register({ id:'tr-glitter', name:'Glitter', cat:'transition', search:['sparkle', 'diamonds', 'flip', 'shimmer', 'keynote', 'powerpoint'],
+FX.register({ id:'tr-glitter', name:'Glitter', cat:'transition', family:'panels', search:['sparkle', 'diamonds', 'flip', 'shimmer', 'keynote', 'powerpoint'],
   desc:'Small diamond or triangle facets flip over from A to B in a ragged wave, catching the light edge-on.',
   params:[ S('shape','Facets',['Diamonds','Triangles'],0), R('rows','Rows',16,4,50,1), S('dir','Direction',DIRS4,1), R('random','Raggedness',.6,0,1), R('glint','Glint',.8,0,2),
     C('color','Glint colour','#ffffff',false), R('dim','Gap darkness',.6,0,1) ],
@@ -541,7 +541,7 @@ vec4 fx(vec2 uv){
   return vec4(col, 1.);
 }` });
 
-FX.register({ id:'tr-tri-shards', name:'Triangle shards', cat:'transition', search:['triangles', 'shatter', 'geometric', 'facets', 'carousel'],
+FX.register({ id:'tr-tri-shards', name:'Triangle shards', cat:'transition', family:'panels', search:['triangles', 'shatter', 'geometric', 'facets', 'carousel'],
   desc:'A breaks into a lattice of triangles that spin down to nothing at random, and B grows back out of the same lattice.',
   params:[ R('rows','Rows',9,3,30,1), R('random','Randomness',.6,0,.9), R('spin','Spin',.6,0,2), R('jitter','Size jitter',.4,0,1), R('turn','Lattice turn',.08,0,.5), R('dim','Gap darkness',.65,0,1) ],
   fs:`vec4 fx(vec2 uv){

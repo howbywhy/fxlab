@@ -2,7 +2,7 @@
    Per-pixel colour blends and light passes between A and B. Each one starts exactly
    on A at progress 0 and lands exactly on B at 1; the character lives in the middle. */
 
-FX.register({ id:'tr-hue-fade', name:'Hue crossfade', cat:'transition', search:['hsv', 'colour shift', 'rainbow', 'hue rotate'],
+FX.register({ id:'tr-hue-fade', name:'Hue crossfade', cat:'transition', family:'blend', search:['hsv', 'colour shift', 'rainbow', 'hue rotate'],
   desc:'Crossfades through hue, saturation and value instead of RGB, so colours travel round the wheel rather than going muddy.',
   params:[ S('route','Hue route',['Shortest way','Long way round','Extra full turn'],0), R('sat','Saturation lift',.35,0,1) ],
   fs:`vec4 fx(vec2 uv){
@@ -27,7 +27,7 @@ FX.register({ id:'tr-hue-fade', name:'Hue crossfade', cat:'transition', search:[
   return vec4(col, 1.);
 }` });
 
-FX.register({ id:'tr-grey-dip', name:'Greyscale dip', cat:'transition', search:['desaturate', 'black and white', 'mono', 'fade to grey'],
+FX.register({ id:'tr-grey-dip', name:'Greyscale dip', cat:'transition', family:'blend', search:['desaturate', 'black and white', 'mono', 'fade to grey'],
   desc:'A drains to grey, the greys cross, and B comes back up into colour.',
   params:[ R('depth','Time in grey',.45,.05,.9), R('contrast','Grey contrast',1.15,.5,2), C('tint','Grey tint','#ffffff',false) ],
   fs:`vec3 greydip_g(vec3 c){
@@ -43,7 +43,7 @@ vec4 fx(vec2 uv){
   return vec4(mix(a2, b2, smoothstep(lead * .5, 1. - lead * .5, p)), 1.);
 }` });
 
-FX.register({ id:'tr-channel-fade', name:'Channel stagger fade', cat:'transition', search:['rgb', 'colour phase', 'separation', 'colour fade'],
+FX.register({ id:'tr-channel-fade', name:'Channel stagger fade', cat:'transition', family:'blend', search:['rgb', 'colour phase', 'separation', 'colour fade'],
   desc:'Red, green and blue each crossfade on their own clock, so the frame passes through colour casts on the way to B.',
   params:[ S('first','First channel',['Red','Green','Blue'],0), R('stagger','Stagger',.22,0,.45), T('reverse','Reverse order') ],
   fs:`vec4 fx(vec2 uv){
@@ -59,7 +59,7 @@ FX.register({ id:'tr-channel-fade', name:'Channel stagger fade', cat:'transition
   return vec4(mix(a, b, m), 1.);
 }` });
 
-FX.register({ id:'tr-blend-bridge', name:'Blend-mode bridge', cat:'transition', search:['multiply', 'screen', 'overlay', 'difference', 'double exposure', 'superimpose'],
+FX.register({ id:'tr-blend-bridge', name:'Blend-mode bridge', cat:'transition', family:'blend', search:['multiply', 'screen', 'overlay', 'difference', 'double exposure', 'superimpose'],
   desc:'A turns into a blend of A and B, holds there, then resolves into B.',
   params:[ S('mode','Blend',['Multiply','Screen','Overlay','Soft light','Difference','Exclusion','Darken','Lighten'],2), R('hold','Hold on blend',.2,0,.7), R('amount','Blend strength',1,0,1) ],
   fs:`vec4 fx(vec2 uv){
@@ -72,7 +72,7 @@ FX.register({ id:'tr-blend-bridge', name:'Blend-mode bridge', cat:'transition', 
   return vec4(col, 1.);
 }` });
 
-FX.register({ id:'tr-colour-distance', name:'Colour-distance reveal', cat:'transition', search:['similar', 'match', 'difference key', 'morph'],
+FX.register({ id:'tr-colour-distance', name:'Colour-distance reveal', cat:'transition', family:'blend', search:['similar', 'match', 'difference key', 'morph'],
   desc:'Pixels where A and B already agree switch first, and the most different areas follow last.',
   params:[ S('order','First to change',['Where they match','Where they differ'],0), R('soft','Softness',.08,.005,.4), R('tail','Final fade',4,1,10) ],
   fs:`vec4 fx(vec2 uv){
@@ -87,7 +87,7 @@ FX.register({ id:'tr-colour-distance', name:'Colour-distance reveal', cat:'trans
   return vec4(mix(a, b, m), 1.);
 }` });
 
-FX.register({ id:'tr-diff-fade', name:'Difference-paced fade', cat:'transition', search:['fade fast', 'fade slow', 'uneven fade', 'ffmpeg'],
+FX.register({ id:'tr-diff-fade', name:'Difference-paced fade', cat:'transition', family:'blend', search:['fade fast', 'fade slow', 'uneven fade', 'ffmpeg'],
   desc:'Each pixel fades at its own rate, set by how far A and B are apart there, so the dissolve runs unevenly across the frame.',
   params:[ S('lead','Leads the fade',['Matching areas','Differing areas'],0), R('strength','Strength',10,0,24), T('channels','Per channel',true) ],
   fs:`vec4 fx(vec2 uv){
@@ -99,7 +99,7 @@ FX.register({ id:'tr-diff-fade', name:'Difference-paced fade', cat:'transition',
   return vec4(mix(a, b, m), 1.);
 }` });
 
-FX.register({ id:'tr-additive', name:'Additive dissolve', cat:'transition', search:['overexposure', 'bright dissolve', 'hot dissolve', 'premiere'],
+FX.register({ id:'tr-additive', name:'Additive dissolve', cat:'transition', family:'blend', search:['overexposure', 'bright dissolve', 'hot dissolve', 'premiere'],
   desc:'Both images are added together, so the frame brightens through the middle instead of dipping.',
   params:[ R('strength','Strength',.3,0,2), T('roll','Soft highlights',true) ],
   fs:`vec4 fx(vec2 uv){
@@ -113,7 +113,7 @@ FX.register({ id:'tr-additive', name:'Additive dissolve', cat:'transition', sear
   return vec4(col, 1.);
 }` });
 
-FX.register({ id:'tr-nonadditive', name:'Non-additive dissolve', cat:'transition', search:['lighten dissolve', 'max', 'premiere'],
+FX.register({ id:'tr-nonadditive', name:'Non-additive dissolve', cat:'transition', family:'blend', search:['lighten dissolve', 'max', 'premiere'],
   desc:'The brighter of the two images wins at each pixel, so B’s highlights break through first and its darks arrive last.',
   params:[ S('compare','Compare',['Each channel','Brightness'],0), R('soft','Softness',.06,0,.3) ],
   fs:`vec4 fx(vec2 uv){
@@ -132,7 +132,7 @@ FX.register({ id:'tr-nonadditive', name:'Non-additive dissolve', cat:'transition
   return vec4(col, 1.);
 }` });
 
-FX.register({ id:'tr-film-dissolve', name:'Film dissolve', cat:'transition', search:['linear light', 'gamma', 'optical', 'resolve'],
+FX.register({ id:'tr-film-dissolve', name:'Film dissolve', cat:'transition', family:'blend', search:['linear light', 'gamma', 'optical', 'resolve'],
   desc:'Crossfades in light rather than in screen values, as an optical printer would, so the middle holds its brightness.',
   params:[ S('space','Blend in',['Linear light','Density (darker)'],0), R('gamma','Gamma',2.2,1,3) ],
   fs:`vec4 fx(vec2 uv){
@@ -148,7 +148,7 @@ FX.register({ id:'tr-film-dissolve', name:'Film dissolve', cat:'transition', sea
   return vec4(col, 1.);
 }` });
 
-FX.register({ id:'tr-tonal-dissolve', name:'Highlights-first dissolve', cat:'transition', search:['shadows first', 'luma', 'tonal', 'resolve'],
+FX.register({ id:'tr-tonal-dissolve', name:'Highlights-first dissolve', cat:'transition', family:'blend', search:['shadows first', 'luma', 'tonal', 'resolve'],
   desc:'A soft dissolve keyed on tone: the incoming highlights (or shadows) rise first and the rest of the range follows smoothly.',
   params:[ S('mode','Arrives first',['Highlights','Shadows'],0), S('key','Key from',['Incoming image','Both images'],0), R('spread','Tonal spread',.8,0,1) ],
   fs:`vec4 fx(vec2 uv){
@@ -163,7 +163,7 @@ FX.register({ id:'tr-tonal-dissolve', name:'Highlights-first dissolve', cat:'tra
   return vec4(mix(a, b, t), 1.);
 }` });
 
-FX.register({ id:'tr-subtractive', name:'Subtractive dissolve', cat:'transition', search:['dark dissolve', 'linear burn', 'resolve'],
+FX.register({ id:'tr-subtractive', name:'Subtractive dissolve', cat:'transition', family:'blend', search:['dark dissolve', 'linear burn', 'resolve'],
   desc:'The two images subtract into each other, so the frame darkens and deepens through the middle.',
   params:[ R('depth','Depth',.8,0,1) ],
   fs:`vec4 fx(vec2 uv){
@@ -174,7 +174,7 @@ FX.register({ id:'tr-subtractive', name:'Subtractive dissolve', cat:'transition'
   return vec4(mix(mix(a, b, p), sub, p_depth), 1.);
 }` });
 
-FX.register({ id:'tr-exposure-flash', name:'Exposure flash', cat:'transition', search:['dip to white', 'flash', 'overexpose', 'blow out', 'whiteout'],
+FX.register({ id:'tr-exposure-flash', name:'Exposure flash', cat:'transition', family:'blend', search:['dip to white', 'flash', 'overexpose', 'blow out', 'whiteout'],
   desc:'Exposure climbs until the highlights burn out to white, B is swapped in under the glare, then it comes back down.',
   params:[ R('stops','Peak stops',3.5,1,8), R('hold','Hold at peak',.1,0,.5), C('color','Flash colour','#ffffff',false) ],
   fs:`vec4 fx(vec2 uv){
@@ -188,7 +188,7 @@ FX.register({ id:'tr-exposure-flash', name:'Exposure flash', cat:'transition', s
   return vec4(col, 1.);
 }` });
 
-FX.register({ id:'tr-flash-frame', name:'Flash frame', cat:'transition', search:['flash cut', 'strobe', 'white flash', 'invert', 'capcut'],
+FX.register({ id:'tr-flash-frame', name:'Flash frame', cat:'transition', family:'blend', search:['flash cut', 'strobe', 'white flash', 'invert', 'capcut'],
   desc:'A hard cut hidden under a burst of white, a colour or a negative that decays into B.',
   params:[ S('style','Flash',['Colour','Negative','Blown highlights'],0), C('color','Colour','#ffffff',false), R('length','Decay',.18,.03,.5), I('hits','Flashes',1,1,3) ],
   fs:`vec4 fx(vec2 uv){
@@ -217,7 +217,7 @@ FX.register({ id:'tr-flash-frame', name:'Flash frame', cat:'transition', search:
   return vec4(col, 1.);
 }` });
 
-FX.register({ id:'tr-cross-blur', name:'Cross blur', cat:'transition', nonLocal:true, search:['defocus', 'blur dissolve', 'focus pull', 'blur through'],
+FX.register({ id:'tr-cross-blur', name:'Cross blur', cat:'transition', family:'blend', nonLocal:true, search:['defocus', 'blur dissolve', 'focus pull', 'blur through'],
   desc:'A drifts out of focus while it dissolves into an equally soft B, which then sharpens.',
   params:[ R('radius','Blur',.035,0,.12), S('shape','Blur shape',['Round','Horizontal','Vertical'],0), R('lift','Brightness lift',.05,0,.3) ],
   fs:`vec4 fx(vec2 uv){
@@ -238,7 +238,7 @@ FX.register({ id:'tr-cross-blur', name:'Cross blur', cat:'transition', nonLocal:
   return vec4(col, 1.);
 }` });
 
-FX.register({ id:'tr-bokeh', name:'Bokeh dissolve', cat:'transition', nonLocal:true, search:['defocus', 'bloom', 'lens blur', 'out of focus'],
+FX.register({ id:'tr-bokeh', name:'Bokeh dissolve', cat:'transition', family:'blend', nonLocal:true, search:['defocus', 'bloom', 'lens blur', 'out of focus'],
   desc:'Both images melt out of focus into bright discs of light, then B pulls back into focus.',
   params:[ R('radius','Disc size',.045,.005,.12), R('gain','Highlight bloom',4,0,10), S('shape','Aperture',['Round','Hexagon'],0) ],
   fs:`vec2 bokeh_hex(vec2 o){
@@ -270,7 +270,7 @@ vec4 fx(vec2 uv){
   return vec4(min(col, 1.), 1.);
 }` });
 
-FX.register({ id:'tr-light-rays', name:'Light rays', cat:'transition', nonLocal:true, search:['god rays', 'volumetric', 'streaks', 'shine', 'sapphire'],
+FX.register({ id:'tr-light-rays', name:'Light rays', cat:'transition', family:'blend', nonLocal:true, search:['god rays', 'volumetric', 'streaks', 'shine', 'sapphire'],
   desc:'The bright parts of both images throw rays out from a light point, peaking as A dissolves into B.',
   params:[ R('threshold','Threshold',.45,0,1), R('length','Ray length',.55,0,1), R('amount','Intensity',3.5,0,8), R('x','Light X',0,-1,1), R('y','Light Y',.2,-1,1), C('color','Ray tint','#fff1d8',false) ],
   fs:`vec4 fx(vec2 uv){
@@ -291,7 +291,7 @@ FX.register({ id:'tr-light-rays', name:'Light rays', cat:'transition', nonLocal:
   return vec4(1. - (1. - base) * (1. - min(rays, 1.)), 1.);
 }` });
 
-FX.register({ id:'tr-light-leak', name:'Light leak', cat:'transition', search:['film', 'warm glow', 'lens flare', 'flare', 'capcut'],
+FX.register({ id:'tr-light-leak', name:'Light leak', cat:'transition', family:'blend', search:['film', 'warm glow', 'lens flare', 'flare', 'capcut'],
   desc:'Soft warm light spills across the frame and drifts, peaking over the cut, with a dissolve underneath.',
   params:[ C('color','Leak colour','#ff8a3d',false), C('color2','Second colour','#ff3d6e',false), R('amount','Intensity',.8,0,2.5), S('drift','Drift',['Left to right','Right to left','Upwards','Downwards'],0), R('scale','Size',1.2,.4,4), I('seed','Seed',3,0,99) ],
   fs:`vec4 fx(vec2 uv){
@@ -315,7 +315,7 @@ FX.register({ id:'tr-light-leak', name:'Light leak', cat:'transition', search:['
   return vec4(col, 1.);
 }` });
 
-FX.register({ id:'tr-bloom', name:'Bloom dissolve', cat:'transition', nonLocal:true, search:['glow', 'exposure blur', 'glow out', 'dreamy', 'fcp'],
+FX.register({ id:'tr-bloom', name:'Bloom dissolve', cat:'transition', family:'blend', nonLocal:true, search:['glow', 'exposure blur', 'glow out', 'dreamy', 'fcp'],
   desc:'Highlights swell into a soft glow and the exposure lifts, carrying A over into B before both settle.',
   params:[ R('threshold','Threshold',.55,0,1), R('radius','Glow size',.06,.005,.15), R('amount','Glow',1.5,0,5), R('stops','Exposure lift',.5,0,3) ],
   fs:`vec4 fx(vec2 uv){
@@ -338,7 +338,7 @@ FX.register({ id:'tr-bloom', name:'Bloom dissolve', cat:'transition', nonLocal:t
   return vec4(clamp(col, 0., 1.), 1.);
 }` });
 
-FX.register({ id:'tr-tint-wash', name:'Tinted wash', cat:'transition', search:['colour wash', 'warm wash', 'burn', 'colour dip'],
+FX.register({ id:'tr-tint-wash', name:'Tinted wash', cat:'transition', family:'blend', search:['colour wash', 'warm wash', 'burn', 'colour dip'],
   desc:'A colour washes over both images through the dissolve without hiding them, like a gel in front of the lens.',
   params:[ C('color','Wash','#e8663a','accent'), R('amount','Strength',1,0,2), S('mode','Mix',['Add','Screen','Multiply'],0) ],
   fs:`vec4 fx(vec2 uv){
@@ -353,7 +353,7 @@ FX.register({ id:'tr-tint-wash', name:'Tinted wash', cat:'transition', search:['
   return vec4(clamp(mix(ta, tb, p), 0., 1.), 1.);
 }` });
 
-FX.register({ id:'tr-edge-glow', name:'Edge glow', cat:'transition', search:['neon', 'outline', 'sobel', 'line art', 'edges'],
+FX.register({ id:'tr-edge-glow', name:'Edge glow', cat:'transition', family:'blend', search:['neon', 'outline', 'sobel', 'line art', 'edges'],
   desc:'A strips down to glowing outlines on dark, the outlines cross into B’s, and B fills back in behind them.',
   params:[ R('thick','Line weight',1.1,.5,4), R('bright','Glow',1.2,.2,3), R('dark','Darken behind',.85,0,1), S('colour','Line colour',['From the image','Single colour'],0), C('color','Colour','#7af0ff','accent') ],
   fs:`float edgeglow_g(sampler2D s, vec2 uv, vec2 px){
@@ -382,7 +382,7 @@ vec4 fx(vec2 uv){
   return vec4(clamp(col, 0., 1.), 1.);
 }` });
 
-FX.register({ id:'tr-sheen', name:'Sheen sweep', cat:'transition', search:['shine', 'gloss', 'glint', 'highlight sweep', 'stripe'],
+FX.register({ id:'tr-sheen', name:'Sheen sweep', cat:'transition', family:'blend', search:['shine', 'gloss', 'glint', 'highlight sweep', 'stripe'],
   desc:'A soft band of light glides across at an angle and B is swapped in beneath it as it passes.',
   params:[ R('angle','Angle',30,-180,180,1), R('width','Band width',.28,.05,.8), R('amount','Intensity',.7,0,2), C('color','Sheen','#ffffff','accent'), C('color2','Sheen edge','#8fd0ff','accent2') ],
   fs:`vec4 fx(vec2 uv){
@@ -402,7 +402,7 @@ FX.register({ id:'tr-sheen', name:'Sheen sweep', cat:'transition', search:['shin
   return vec4(col, 1.);
 }` });
 
-FX.register({ id:'tr-ken-burns', name:'Ken Burns crossfade', cat:'transition', search:['pan and zoom', 'slow zoom', 'documentary', 'drift'],
+FX.register({ id:'tr-ken-burns', name:'Ken Burns crossfade', cat:'transition', family:'blend', search:['pan and zoom', 'slow zoom', 'documentary', 'drift'],
   desc:'A keeps creeping in as it fades, and B arrives already moving and settles to its full frame.',
   params:[ R('zoom','Zoom',.18,0,.4), S('drift','Drift',['Centre','Left','Right','Up','Down'],1), R('window','Fade length',.45,.1,1) ],
   fs:`vec4 fx(vec2 uv){
@@ -419,7 +419,7 @@ FX.register({ id:'tr-ken-burns', name:'Ken Burns crossfade', cat:'transition', s
   return vec4(mix(texture(uA, ua).rgb, texture(uB, ub).rgb, m), 1.);
 }` });
 
-FX.register({ id:'tr-glow-dissolve', name:'Glow-edge dissolve', cat:'transition', search:['neon', 'emissive', 'rim', 'noise reveal', 'webgl'],
+FX.register({ id:'tr-glow-dissolve', name:'Glow-edge dissolve', cat:'transition', family:'blend', search:['neon', 'emissive', 'rim', 'noise reveal', 'webgl'],
   desc:'B opens through soft noise with a clean glowing rim in two colours at the edge, light rather than burnt.',
   params:[ R('scale','Noise scale',1.8,.5,10), R('width','Rim width',.05,.005,.2), R('glow','Glow',1.4,0,4), C('color','Rim','#7aa8ff','accent'), C('color2','Rim core','#f4f0ff','accent2') ],
   fs:`vec4 fx(vec2 uv){
@@ -441,7 +441,7 @@ FX.register({ id:'tr-glow-dissolve', name:'Glow-edge dissolve', cat:'transition'
   return vec4(clamp(col, 0., 1.), 1.);
 }` });
 
-FX.register({ id:'tr-spin-flash', name:'Spin flash', cat:'transition', search:['dreamy zoom', 'zoom flash', 'rotate', 'twist'],
+FX.register({ id:'tr-spin-flash', name:'Spin flash', cat:'transition', family:'blend', search:['dreamy zoom', 'zoom flash', 'rotate', 'twist'],
   desc:'A zooms in and turns slightly as it brightens to a flash, and B unwinds out of the light.',
   params:[ R('rotation','Turn',8,0,45,1), R('scale','Zoom',1.25,1,2), R('flash','Flash',1,0,1), C('color','Flash colour','#ffffff',false) ],
   fs:`vec4 fx(vec2 uv){

@@ -2,7 +2,7 @@
    Distortion-led transitions: the picture bends, folds, flows or breaks into cells
    while A becomes B. Every one is exactly A at p=0 and exactly B at p=1. */
 
-FX.register({ id:'tr-mosaic-fade', name:'Mosaic crossfade', cat:'transition', search:['pixelate', 'pixelize', 'hexagon', 'hex', 'blocks', 'mosaic'],
+FX.register({ id:'tr-mosaic-fade', name:'Mosaic crossfade', cat:'transition', family:'warp', search:['pixelate', 'pixelize', 'hexagon', 'hex', 'blocks', 'mosaic'],
   desc:'The picture coarsens into square or hexagonal cells, crossfades while it is at its coarsest, then sharpens up as B.',
   params:[ S('shape','Cells',['Square','Hexagon'],0), R('cells','Coarsest cells',14,3,60,1), I('steps','Steps',0,0,24), R('soft','Crossfade width',.35,0,1), R('jitter','Cell stagger',.25,0,1) ],
   fs:`vec4 fx(vec2 uv){
@@ -25,7 +25,7 @@ FX.register({ id:'tr-mosaic-fade', name:'Mosaic crossfade', cat:'transition', se
   return vec4(mix(texture(uA, st).rgb, texture(uB, st).rgb, m), 1.);
 }` });
 
-FX.register({ id:'tr-swirl', name:'Swirl', cat:'transition', search:['twirl', 'vortex', 'twist', 'whirlpool', 'twister'],
+FX.register({ id:'tr-swirl', name:'Swirl', cat:'transition', family:'warp', search:['twirl', 'vortex', 'twist', 'whirlpool', 'twister'],
   desc:'The middle of the frame winds up like water down a drain, and B unwinds out of it.',
   params:[ R('turns','Twist',1.25,-4,4), R('radius','Radius',.75,.2,1.5), R('pull','Pull in',.35,0,1), S('unwind','B unwinds',['Same way','Back the other way'],0), R('x','Centre X',0,-1,1), R('y','Centre Y',0,-1,1) ],
   fs:`vec2 swirl_at(vec2 c, vec2 o, float k, float pull){
@@ -46,7 +46,7 @@ vec4 fx(vec2 uv){
   return vec4(mix(A, B, smoothstep(.3, .7, p)), 1.);
 }` });
 
-FX.register({ id:'tr-kaleido-through', name:'Kaleidoscope through', cat:'transition', nonLocal:true, search:['kaleidoscope', 'mirror', 'tunnel', 'fold'],
+FX.register({ id:'tr-kaleido-through', name:'Kaleidoscope through', cat:'transition', family:'warp', nonLocal:true, search:['kaleidoscope', 'mirror', 'tunnel', 'fold'],
   desc:'A folds into a turning kaleidoscope, the images change over while it is fully folded, and it opens out again as B.',
   params:[ I('segments','Segments',6,2,16), R('spin','Spin',.35,-2,2), R('zoom','Zoom',.7,.4,3), R('fold','Fold speed',.6,.1,1) ],
   fs:`vec2 kaleido_uv(vec2 c, float spin, float z){
@@ -77,7 +77,7 @@ vec4 fx(vec2 uv){
   return vec4(col, 1.);
 }` });
 
-FX.register({ id:'tr-flyeye', name:'Fly eye', cat:'transition', search:['compound eye', 'lens array', 'insect', 'facets'],
+FX.register({ id:'tr-flyeye', name:'Fly eye', cat:'transition', family:'warp', search:['compound eye', 'lens array', 'insect', 'facets'],
   desc:'The frame breaks into a field of tiny lenses with split colour edges, and B comes into focus through them.',
   params:[ R('lenses','Lenses',9,3,40,1), R('size','Lens strength',.05,0,.15), R('sep','Colour split',.3,0,1.5) ],
   fs:`vec4 fx(vec2 uv){
@@ -90,7 +90,7 @@ FX.register({ id:'tr-flyeye', name:'Fly eye', cat:'transition', search:['compoun
   return vec4(mix(A, B, smoothstep(.2, .8, p)), 1.);
 }` });
 
-FX.register({ id:'tr-colour-morph', name:'Colour morph', cat:'transition', search:['morph', 'displace', 'warp', 'colour displacement'],
+FX.register({ id:'tr-colour-morph', name:'Colour morph', cat:'transition', family:'warp', search:['morph', 'displace', 'warp', 'colour displacement'],
   desc:'Each picture is pushed around by its own colours, so the two slide into one another along their light and shade.',
   params:[ S('field','Pushed by',['Red and green','Brightness','Hue']), R('amount','Strength',.2,0,.6), R('cross','Cross-over',.5,.15,1) ],
   fs:`vec2 cmorph_dir(vec3 c, int m){
@@ -108,7 +108,7 @@ vec4 fx(vec2 uv){
   return vec4(mix(A, B, smoothstep(.5 - p_cross * .5, .5 + p_cross * .5, p)), 1.);
 }` });
 
-FX.register({ id:'tr-displace-fade', name:'Displacement crossfade', cat:'transition', search:['displacement map', 'hover effect', 'distort', 'warp'],
+FX.register({ id:'tr-displace-fade', name:'Displacement crossfade', cat:'transition', family:'warp', search:['displacement map', 'hover effect', 'distort', 'warp'],
   desc:'A pattern pulls A one way and pushes B in from the other while they fade, like the hover effect on a portfolio site.',
   params:[ S('map','Pattern',['Cloud','Stripes','Blocks','Swirl']), R('amount','Strength',.35,0,1), R('angle','Angle',45,-180,180,1), R('scale','Pattern size',3,.5,12), R('lead','Pattern leads',.4,0,1) ],
   fs:`float disp_map(vec2 c, int m){
@@ -131,7 +131,7 @@ vec4 fx(vec2 uv){
   return vec4(mix(A, B, m), 1.);
 }` });
 
-FX.register({ id:'tr-stripe-shear', name:'Stripe shear', cat:'transition', search:['sliced glass', 'strips', 'streak', 'shear'],
+FX.register({ id:'tr-stripe-shear', name:'Stripe shear', cat:'transition', family:'warp', search:['sliced glass', 'strips', 'streak', 'shear'],
   desc:'Thin strips each slip by their own ramp, so A shears apart in a fine sawtooth and B settles back into place.',
   params:[ R('strips','Strips',40,4,160,1), R('amount','Shear',.2,0,.6), R('angle','Strip angle',90,-90,180,1), R('push','Push angle',45,-180,180,1) ],
   fs:`vec4 fx(vec2 uv){
@@ -147,7 +147,7 @@ FX.register({ id:'tr-stripe-shear', name:'Stripe shear', cat:'transition', searc
   return vec4(mix(A, B, smoothstep(.25, .75, p)), 1.);
 }` });
 
-FX.register({ id:'tr-revolve', name:'Revolve', cat:'transition', nonLocal:true, search:['spin', 'swirl zoom', 'vortex', 'revolve'],
+FX.register({ id:'tr-revolve', name:'Revolve', cat:'transition', family:'warp', nonLocal:true, search:['spin', 'swirl zoom', 'vortex', 'revolve'],
   desc:'The frame spins, swells and bends around the middle with motion blur, and comes out of the turn as B.',
   params:[ S('dir','Turn',['Anticlockwise','Clockwise']), R('spin','Spin',.3,0,1), R('zoom','Zoom',2.2,1,4), R('swirl','Swirl',2.8,0,6), R('barrel','Bulge',.38,0,1.2), I('blur','Motion blur',12,1,24) ],
   fs:`vec2 revolve_uv(vec2 c, float e, float extra){
@@ -176,7 +176,7 @@ vec4 fx(vec2 uv){
   return vec4(acc / float(n), 1.);
 }` });
 
-FX.register({ id:'tr-zoom-rings', name:'Zoom rings', cat:'transition', search:['telescope', 'concentric', 'circles', 'rings'],
+FX.register({ id:'tr-zoom-rings', name:'Zoom rings', cat:'transition', family:'warp', search:['telescope', 'concentric', 'circles', 'rings'],
   desc:'Concentric rings each zoom at their own rate and change over one after another, so the frame telescopes into B.',
   params:[ I('rings','Rings',4,2,10), R('zoom','Zoom',.25,0,.8), R('stagger','Stagger',.5,0,.9), S('order','Order',['Outside in','Inside out']), R('edge','Ring edge',.35,0,1) ],
   fs:`vec4 fx(vec2 uv){
@@ -199,7 +199,7 @@ FX.register({ id:'tr-zoom-rings', name:'Zoom rings', cat:'transition', search:['
   return vec4(col, 1.);
 }` });
 
-FX.register({ id:'tr-dream-wave', name:'Dream wave', cat:'transition', search:['dreamy', 'flashback', 'wavy', 'memory', 'dream sequence'],
+FX.register({ id:'tr-dream-wave', name:'Dream wave', cat:'transition', family:'warp', search:['dreamy', 'flashback', 'wavy', 'memory', 'dream sequence'],
   desc:'The picture wobbles in a slow wave and softens to haze as it drifts into B, the old dream-sequence dissolve.',
   params:[ R('amp','Wave',.04,0,.15), R('freq','Waves',10,1,40,1), S('axis','Wave runs',['Across','Down']), R('haze','Haze',.35,0,1) ],
   fs:`vec4 fx(vec2 uv){
@@ -218,7 +218,7 @@ FX.register({ id:'tr-dream-wave', name:'Dream wave', cat:'transition', search:['
   return vec4(col, 1.);
 }` });
 
-FX.register({ id:'tr-zoom-sweep', name:'Zoom sweep', cat:'transition', search:['cross warp', 'directional warp', 'crosswarp', 'stretch'],
+FX.register({ id:'tr-zoom-sweep', name:'Zoom sweep', cat:'transition', family:'warp', search:['cross warp', 'directional warp', 'crosswarp', 'stretch'],
   desc:'A front sweeps across the frame; behind it A has rushed away into the distance and B has flown up out of it.',
   params:[ S('front','Front',['Straight','Circle']), R('dir','Direction',0,-180,180,1), R('soft','Softness',.6,.05,1.5), R('rough','Ragged edge',0,0,1), R('x','Centre X',0,-1,1), R('y','Centre Y',0,-1,1) ],
   fs:`vec4 fx(vec2 uv){
@@ -243,7 +243,7 @@ FX.register({ id:'tr-zoom-sweep', name:'Zoom sweep', cat:'transition', search:['
   return vec4(mix(A, B, x), 1.);
 }` });
 
-FX.register({ id:'tr-lens-pass', name:'Lens pass-through', cat:'transition', search:['magnifier', 'bulge', 'loupe', 'magnifying glass', 'fisheye'],
+FX.register({ id:'tr-lens-pass', name:'Lens pass-through', cat:'transition', family:'warp', search:['magnifier', 'bulge', 'loupe', 'magnifying glass', 'fisheye'],
   desc:'A magnifying lens crosses the frame, showing B enlarged inside it and leaving B behind it as it goes.',
   params:[ R('dir','Direction',0,-180,180,1), R('radius','Lens size',.32,.1,.7), R('strength','Magnify',.6,0,.95), R('chroma','Colour fringe',.4,0,1.5), R('rim','Rim',.5,0,1) ],
   fs:`vec4 fx(vec2 uv){
@@ -270,7 +270,7 @@ FX.register({ id:'tr-lens-pass', name:'Lens pass-through', cat:'transition', sea
   return vec4(clamp(col, 0., 1.), 1.);
 }` });
 
-FX.register({ id:'tr-lens-distort', name:'Lens distortion', cat:'transition', nonLocal:true, search:['barrel', 'fisheye', 'pinch', 'bulge', 'warp'],
+FX.register({ id:'tr-lens-distort', name:'Lens distortion', cat:'transition', family:'warp', nonLocal:true, search:['barrel', 'fisheye', 'pinch', 'bulge', 'warp'],
   desc:'A swells into a fisheye with colour fringing, hands over at the peak, and B relaxes back to flat.',
   params:[ S('shape','Shape',['Bulge','Pinch']), R('amount','Distortion',1.2,0,3), R('zoom','Zoom',.35,0,1), R('chroma','Colour fringe',.012,0,.06), R('x','Centre X',0,-1,1), R('y','Centre Y',0,-1,1) ],
   fs:`vec4 fx(vec2 uv){
@@ -296,7 +296,7 @@ FX.register({ id:'tr-lens-distort', name:'Lens distortion', cat:'transition', no
   return vec4(col, 1.);
 }` });
 
-FX.register({ id:'tr-glass-wipe', name:'Glass wipe', cat:'transition', search:['refraction', 'water', 'wipe', 'glass'],
+FX.register({ id:'tr-glass-wipe', name:'Glass wipe', cat:'transition', family:'warp', search:['refraction', 'water', 'wipe', 'glass'],
   desc:'A soft wipe whose edge behaves like poured glass, bending both pictures by their own light and shade as it passes.',
   params:[ R('dir','Direction',90,-180,180,1), R('soft','Softness',.22,.04,.6), R('amount','Bend',.06,0,.2), S('map','Bent by',['Outgoing image','Incoming image','Both']), R('chroma','Colour split',.4,0,1.5) ],
   fs:`float gw_h(vec2 uv, int m){
@@ -327,7 +327,7 @@ vec4 fx(vec2 uv){
   return vec4(clamp(col, 0., 1.), 1.);
 }` });
 
-FX.register({ id:'tr-curl-flow', name:'Curl flow', cat:'transition', search:['liquid', 'smoke', 'paint', 'fluid', 'marble', 'curl noise'],
+FX.register({ id:'tr-curl-flow', name:'Curl flow', cat:'transition', family:'warp', search:['liquid', 'smoke', 'paint', 'fluid', 'marble', 'curl noise'],
   desc:'A swirls away along a slow current like paint stirred in water, and B is drawn back out of the same current.',
   params:[ R('amount','Flow',.4,0,1), R('scale','Eddy size',2,.5,8), I('steps','Smoothness',6,1,12), R('seed','Seed',0,0,100,1), R('cross','Cross-over',.4,.1,1) ],
   fs:`vec2 curl_v(vec2 q){
@@ -356,7 +356,7 @@ vec4 fx(vec2 uv){
   return vec4(mix(A, B, smoothstep(.5 - p_cross * .5, .5 + p_cross * .5, p)), 1.);
 }` });
 
-FX.register({ id:'tr-droplet', name:'Droplet', cat:'transition', search:['ripple', 'drop', 'water', 'splash', 'pond'],
+FX.register({ id:'tr-droplet', name:'Droplet', cat:'transition', family:'warp', search:['ripple', 'drop', 'water', 'splash', 'pond'],
   desc:'A drop lands and one ring spreads out across the frame, bending the picture at its crest and leaving B behind it.',
   params:[ R('wave','Wavelength',.05,.01,.2), R('amp','Strength',.03,0,.1), R('trail','Ripple trail',.25,.05,.8), R('shine','Shine',.4,0,1), R('x','Centre X',0,-1,1), R('y','Centre Y',0,-1,1) ],
   fs:`vec4 fx(vec2 uv){
@@ -379,7 +379,7 @@ FX.register({ id:'tr-droplet', name:'Droplet', cat:'transition', search:['ripple
   return vec4(clamp(col, 0., 1.), 1.);
 }` });
 
-FX.register({ id:'tr-flow-morph', name:'Flow morph', cat:'transition', search:['morph cut', 'smooth cut', 'flow', 'jump cut'],
+FX.register({ id:'tr-flow-morph', name:'Flow morph', cat:'transition', family:'warp', search:['morph cut', 'smooth cut', 'flow', 'jump cut'],
   desc:'A and B nudge their shapes toward each other while they dissolve, a soft morph that hides a jump cut.',
   params:[ R('amount','Strength',1,0,2), R('reach','Reach',.06,.01,.15), R('cross','Cross-over',.6,.1,1) ],
   fs:`float fm_d(vec2 uv){ return luma(texture(uB, uv).rgb) - luma(texture(uA, uv).rgb); }
@@ -397,7 +397,7 @@ vec4 fx(vec2 uv){
   return vec4(mix(A, B, smoothstep(.5 - p_cross * .5, .5 + p_cross * .5, p)), 1.);
 }` });
 
-FX.register({ id:'tr-slice-offset', name:'Sliced offsets', cat:'transition', search:['slices', 'strips', 'hover distortion', 'slice'],
+FX.register({ id:'tr-slice-offset', name:'Sliced offsets', cat:'transition', family:'warp', search:['slices', 'strips', 'hover distortion', 'slice'],
   desc:'The frame is cut into bands that sway sideways in a rolling wave, and each band changes to B as it swings back.',
   params:[ I('slices','Slices',12,2,48), R('amp','Sway',.12,0,.5), R('wave','Wave',3,0,10), R('delay','Band delay',.4,0,.9), S('axis','Bands',['Rows','Columns']) ],
   fs:`vec4 fx(vec2 uv){
@@ -416,7 +416,7 @@ FX.register({ id:'tr-slice-offset', name:'Sliced offsets', cat:'transition', sea
   return vec4(mix(texture(uA, s).rgb, texture(uB, s).rgb, m), 1.);
 }` });
 
-FX.register({ id:'tr-edge-stretch', name:'Stretch reveal', cat:'transition', search:['pixel stretch', 'streak', 'smear', 'edge stretch', 'wipe'],
+FX.register({ id:'tr-edge-stretch', name:'Stretch reveal', cat:'transition', family:'warp', search:['pixel stretch', 'streak', 'smear', 'edge stretch', 'wipe'],
   desc:'B wipes in while its leading row of pixels is dragged out ahead of it in long, uneven streaks over A.',
   params:[ S('dir','Direction',DIRS4,0), R('length','Streak length',.35,0,1), R('jitter','Unevenness',.6,0,1), R('fine','Streak detail',60,4,240,1), R('fade','Fade into A',.5,0,1) ],
   fs:`vec4 fx(vec2 uv){

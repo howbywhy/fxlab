@@ -3,7 +3,7 @@
    spins and zooms. Everything is driven by uProgress, and each one is checked
    to be exactly A at 0 and exactly B at 1. */
 
-FX.register({ id:'tr-squeeze-line', name:'Squeeze to a line', cat:'transition', search:['tv off', 'collapse', 'crt', 'squash'],
+FX.register({ id:'tr-squeeze-line', name:'Squeeze to a line', cat:'transition', family:'moves', search:['tv off', 'collapse', 'crt', 'squash'],
   desc:'A squeezes down to a thin bright line and goes, with the colour channels tearing slightly as it closes.',
   params:[ S('axis','Squeeze to',['Horizontal line','Vertical line']), S('mode','Mode',['A closes over B','A closes, B opens']),
     R('sep','Colour tearing',.04,0,.15), R('glow','Line glow',.6,0,1), C('bg','Ground','#0d0d0e','ground') ],
@@ -43,7 +43,7 @@ vec4 fx(vec2 uv){
   return vec4(col, 1.);
 }` });
 
-FX.register({ id:'tr-axis-stretch', name:'Stretch', cat:'transition', search:['squeeze', 'accordion', 'squash', 'stretch in', 'stretch over'],
+FX.register({ id:'tr-axis-stretch', name:'Stretch', cat:'transition', family:'moves', search:['squeeze', 'accordion', 'squash', 'stretch in', 'stretch over'],
   desc:'B stretches in from one side while A squashes up to make room, so the two share the frame until A is gone.',
   params:[ S('dir','From',['Left','Right','Top','Bottom']), S('anchor','Anchor',['Edge','Centre']), R('shade','Fold shading',.4,0,1) ],
   fs:`vec4 fx(vec2 uv){
@@ -72,7 +72,7 @@ FX.register({ id:'tr-axis-stretch', name:'Stretch', cat:'transition', search:['s
   return vec4(col, 1.);
 }` });
 
-FX.register({ id:'tr-split-slide', name:'Split slide', cat:'transition', search:['split', 'swap', 'halves', 'slide'],
+FX.register({ id:'tr-split-slide', name:'Split slide', cat:'transition', family:'moves', search:['split', 'swap', 'halves', 'slide'],
   desc:'The frame splits into two halves that slide in opposite directions, taking A away or bringing B in.',
   params:[ S('axis','Split',['Left | right','Top / bottom']), S('motion','Halves move',['Past each other','Apart']),
     S('mode','Mode',['A slides away','B slides in','Both']), R('shadow','Shadow',.4,0,1), R('blur','Motion blur',.4,0,1) ],
@@ -102,7 +102,7 @@ vec4 fx(vec2 uv){
   return vec4(acc / 10., 1.);
 }` });
 
-FX.register({ id:'tr-scaled-push', name:'Scaled push', cat:'transition', search:['push', 'slide', 'zoom out', 'carousel', 'pull back'],
+FX.register({ id:'tr-scaled-push', name:'Scaled push', cat:'transition', family:'moves', search:['push', 'slide', 'zoom out', 'carousel', 'pull back'],
   desc:'Both pictures pull back a little while B pushes A out of frame, then B settles to full size.',
   params:[ S('dir','Direction',['Left','Right','Up','Down']), R('scale','Pull back',.3,0,.7), R('gap','Gap',.05,0,.3),
     R('radius','Corner radius',.03,0,.12), C('bg','Ground','#0d0d0e','ground') ],
@@ -127,7 +127,7 @@ vec4 fx(vec2 uv){
   return vec4(col, 1.);
 }` });
 
-FX.register({ id:'tr-card-fly', name:'Picture fly-off', cat:'transition', search:['pop up', 'zoom boxes', 'picture in picture', 'pull back', 'box slide', 'card'],
+FX.register({ id:'tr-card-fly', name:'Picture fly-off', cat:'transition', family:'moves', search:['pop up', 'zoom boxes', 'picture in picture', 'pull back', 'box slide', 'card'],
   desc:'A shrinks into a card with a soft shadow, then flies off or tucks into a corner to leave B.',
   params:[ S('exit','Exit',['Off left','Off right','Off top','Off bottom','Into top left','Into top right','Into bottom left','Into bottom right','Into the centre']),
     R('card','Card size',.62,.3,.9), R('radius','Corner radius',.04,0,.15), R('shadow','Shadow',.6,0,1), T('rev','B arrives as a card',false) ],
@@ -166,7 +166,7 @@ FX.register({ id:'tr-card-fly', name:'Picture fly-off', cat:'transition', search
   return vec4(mix(under, card, m), 1.);
 }` });
 
-FX.register({ id:'tr-scale-fade', name:'Scale and fade', cat:'transition', search:['zoom in', 'zoom out', 'scale in', 'fade through', 'ios', 'settle'],
+FX.register({ id:'tr-scale-fade', name:'Scale and fade', cat:'transition', family:'moves', search:['zoom in', 'zoom out', 'scale in', 'fade through', 'ios', 'settle'],
   desc:'A eases back and fades while B settles in from slightly larger, or the picture zooms in before it hands over.',
   params:[ S('mode','Mode',['Settle','Zoom in, then fade','Zoom through colour']), R('amount','Scale',.12,0,.4),
     R('overlap','Overlap',.5,0,1), C('bg','Ground','#0d0d0e','ground') ],
@@ -201,7 +201,7 @@ vec4 fx(vec2 uv){
   return vec4(col, 1.);
 }` });
 
-FX.register({ id:'tr-whip-pan', name:'Whip pan', cat:'transition', search:['swish', 'swipe', 'whip', 'speed ramp', 'velocity', 'camera', 'pan'],
+FX.register({ id:'tr-whip-pan', name:'Whip pan', cat:'transition', family:'moves', search:['swish', 'swipe', 'whip', 'speed ramp', 'velocity', 'camera', 'pan'],
   desc:'The camera whips sideways in a blur of motion, A streaks out and B lands in place.',
   params:[ S('dir','Direction',['Left','Right','Up','Down']), R('blur','Blur',.6,0,1), R('ramp','Speed ramp',.5,0,1) ],
   fs:`float whip_sig(float x){ return 1. / (1. + exp(-x)); }
@@ -238,7 +238,7 @@ vec4 fx(vec2 uv){
   return vec4(acc / ws, 1.);
 }` });
 
-FX.register({ id:'tr-spin-blur', name:'Spin blur', cat:'transition', search:['spin', 'roll', 'rotate', 'twirl', 'camera'],
+FX.register({ id:'tr-spin-blur', name:'Spin blur', cat:'transition', family:'moves', search:['spin', 'roll', 'rotate', 'twirl', 'camera'],
   desc:'The frame spins about its centre in a rotary blur and comes out of the turn on B.',
   params:[ R('turn','Turn (degrees)',180,30,720,1), S('dirn','Direction',['Clockwise','Anticlockwise']), R('blur','Blur',.5,0,1), R('zoom','Punch-in',.2,0,.6) ],
   fs:`vec3 spinb_at(vec2 uv, float ang, float m, bool b){
@@ -263,7 +263,7 @@ vec4 fx(vec2 uv){
   return vec4(acc / 16., 1.);
 }` });
 
-FX.register({ id:'tr-dutch-roll', name:'Dutch roll', cat:'transition', search:['roll', 'tilt', 'camera roll', 'canted', 'push'],
+FX.register({ id:'tr-dutch-roll', name:'Dutch roll', cat:'transition', family:'moves', search:['roll', 'tilt', 'camera roll', 'canted', 'push'],
   desc:'The camera rolls onto a tilt while it pushes across, then levels out on B.',
   params:[ S('dir','Direction',['Left','Right']), R('angle','Roll (degrees)',25,0,60,1), R('zoom','Punch-in',.25,0,.6), R('blur','Motion blur',.5,0,1) ],
   fs:`vec3 droll_frame(vec2 uv, float p){
@@ -285,7 +285,7 @@ vec4 fx(vec2 uv){
   return vec4(acc / 12., 1.);
 }` });
 
-FX.register({ id:'tr-zoom-punch', name:'Zoom punch', cat:'transition', search:['scale cut', 'zoom in', 'pull in', 'pull back', 'zoom out', 'punch'],
+FX.register({ id:'tr-zoom-punch', name:'Zoom punch', cat:'transition', family:'moves', search:['scale cut', 'zoom in', 'pull in', 'pull back', 'zoom out', 'punch'],
   desc:'The camera punches in on A and keeps going, so B arrives small and grows into the frame, or the reverse.',
   params:[ S('mode','Move',['Punch in','Pull out']), R('scale','Scale',2.2,1.2,5), R('blur','Blur',.5,0,1), R('x','Centre X',0,-1,1), R('y','Centre Y',0,-1,1) ],
   fs:`vec3 zpunch_at(vec2 uv, vec2 c, float lm, bool b){
@@ -310,7 +310,7 @@ vec4 fx(vec2 uv){
   return vec4(acc / 20., 1.);
 }` });
 
-FX.register({ id:'tr-spin-away', name:'Spin away', cat:'transition', search:['newspaper', 'spin', 'rotate', 'vanish', 'shrink'],
+FX.register({ id:'tr-spin-away', name:'Spin away', cat:'transition', family:'moves', search:['newspaper', 'spin', 'rotate', 'vanish', 'shrink'],
   desc:'A spins and shrinks to nothing over B, or B spins in out of the centre, like the old newspaper spin.',
   params:[ S('mode','Mode',['A spins away','B spins in','Both, through the ground']), R('turns','Turns',1,0,4), R('shadow','Shadow',.5,0,1), C('bg','Ground','#0d0d0e','ground') ],
   fs:`/* coverage of a card spun by ang and scaled by s about the centre; st is where it samples its picture */
@@ -345,7 +345,7 @@ vec4 fx(vec2 uv){
   return vec4(mix(under, card, m), 1.);
 }` });
 
-FX.register({ id:'tr-mosaic-pan', name:'Mosaic pan', cat:'transition', search:['wall', 'grid', 'tiles', 'zoom out', 'pan', 'contact sheet'],
+FX.register({ id:'tr-mosaic-pan', name:'Mosaic pan', cat:'transition', family:'moves', search:['wall', 'grid', 'tiles', 'zoom out', 'pan', 'contact sheet'],
   desc:'The camera pulls back over a wall of tiles, pans across a few of them and lands on B.',
   params:[ I('endx','End column',2,-4,4), I('endy','End row',-1,-4,4), R('zoom','Zoom out',3,1.5,6), R('gap','Gap',.3,0,1),
     T('flip','Mirror tiles',true), C('grout','Gap colour','#0d0d0e','ground') ],
@@ -373,7 +373,7 @@ FX.register({ id:'tr-mosaic-pan', name:'Mosaic pan', cat:'transition', search:['
   return vec4(mix(p_grout, col, clamp((d - gw * .5) / px + .5, 0., 1.)), 1.);
 }` });
 
-FX.register({ id:'tr-bounce-drop', name:'Bounce drop', cat:'transition', search:['drop', 'bounce', 'fall', 'gravity', 'slide in'],
+FX.register({ id:'tr-bounce-drop', name:'Bounce drop', cat:'transition', family:'moves', search:['drop', 'bounce', 'fall', 'gravity', 'slide in'],
   desc:'B drops in over A and bounces to rest, casting a soft shadow that tightens as it lands.',
   params:[ S('from','Drops from',['Top','Bottom','Left','Right']), I('bounces','Bounces',3,0,6), R('shadow','Shadow',.6,0,1), R('soft','Shadow height',.08,.01,.3) ],
   fs:`vec4 fx(vec2 uv){
@@ -391,7 +391,7 @@ FX.register({ id:'tr-bounce-drop', name:'Bounce drop', cat:'transition', search:
   return vec4(texture(uA, uv).rgb * (1. - .8 * sh), 1.);
 }` });
 
-FX.register({ id:'tr-fling', name:'Fling', cat:'transition', search:['throw', 'toss', 'swipe away', 'flick', 'motion blur', 'card'],
+FX.register({ id:'tr-fling', name:'Fling', cat:'transition', family:'moves', search:['throw', 'toss', 'swipe away', 'flick', 'motion blur', 'card'],
   desc:'A is flicked off the frame along a curve, trailing a motion blur, and leaves B underneath.',
   params:[ S('dir','Fling toward',['Top right','Top left','Bottom right','Bottom left']), R('spin','Spin',.35,0,1), R('blur','Motion blur',.6,0,1), R('shadow','Shadow',.5,0,1) ],
   fs:`/* where the card is at time t: a small wind-up, then an accelerating curve off the frame */
@@ -422,7 +422,7 @@ vec4 fx(vec2 uv){
   return vec4(acc / 16., 1.);
 }` });
 
-FX.register({ id:'tr-parallax-slide', name:'Parallax slide', cat:'transition', search:['parallax', 'slideshow', 'carousel', 'swiper', 'push'],
+FX.register({ id:'tr-parallax-slide', name:'Parallax slide', cat:'transition', family:'moves', search:['parallax', 'slideshow', 'carousel', 'swiper', 'push'],
   desc:'A slides out while its picture lags behind inside the frame, and B slides in the same way, like a parallax slideshow.',
   params:[ S('dir','Direction',['Left','Right','Up','Down']), R('parallax','Parallax',.5,0,1), R('dim','Dim outgoing',.35,0,1),
     R('shadow','Edge shadow',.4,0,1), R('blur','Motion blur',.25,0,1) ],
@@ -448,7 +448,7 @@ vec4 fx(vec2 uv){
   return vec4(acc / 8., 1.);
 }` });
 
-FX.register({ id:'tr-stacked-card', name:'Stacked card', cat:'transition', search:['stack', 'navigation', 'ios', 'sheet', 'cover', 'slide over'],
+FX.register({ id:'tr-stacked-card', name:'Stacked card', cat:'transition', family:'moves', search:['stack', 'navigation', 'ios', 'sheet', 'cover', 'slide over'],
   desc:'B slides in on top while A steps back, darkens and rounds its corners, like a card going under a stack.',
   params:[ S('dir','B comes from',['Right','Left','Bottom','Top']), R('recede','Recede',.1,0,.3), R('shift','Shift',.25,0,.6), R('dim','Dim',.5,0,1),
     R('radius','Corner radius',.04,0,.1), R('shadow','Shadow',.5,0,1), C('bg','Ground','#0d0d0e','ground') ],
@@ -468,7 +468,7 @@ vec4 fx(vec2 uv){
   return vec4(mix(col, texture(uB, ub).rgb, clamp(.5 - dB * uRes.y, 0., 1.)), 1.);
 }` });
 
-FX.register({ id:'tr-card-carousel', name:'Card carousel', cat:'transition', search:['carousel', 'gallery', 'slider', 'product', 'zoom out'],
+FX.register({ id:'tr-card-carousel', name:'Card carousel', cat:'transition', family:'moves', search:['carousel', 'gallery', 'slider', 'product', 'zoom out'],
   desc:'A shrinks into a card, slides along a row as B comes in beside it, and B grows back to full frame.',
   params:[ S('dir','Direction',['Left','Right']), R('card','Card size',.72,.5,.95), R('radius','Corner radius',.04,0,.12), R('gap','Gap',.06,0,.25),
     R('shadow','Shadow',.4,0,1), C('bg','Ground','#0d0d0e','ground') ],
@@ -493,7 +493,7 @@ FX.register({ id:'tr-card-carousel', name:'Card carousel', cat:'transition', sea
   return vec4(col, 1.);
 }` });
 
-FX.register({ id:'tr-velocity-stretch', name:'Velocity stretch', cat:'transition', search:['squash and stretch', 'elastic', 'slideshow', 'rubber', 'speed'],
+FX.register({ id:'tr-velocity-stretch', name:'Velocity stretch', cat:'transition', family:'moves', search:['squash and stretch', 'elastic', 'slideshow', 'rubber', 'speed'],
   desc:'A push where both pictures stretch along the move at full speed and snap back as they land, with the seam bowing like a sheet.',
   params:[ S('dir','Direction',['Left','Right','Up','Down']), R('stretch','Stretch',1.2,0,4), R('bend','Bend',.5,0,1), R('blur','Motion blur',.3,0,1) ],
   fs:`vec3 vstretch_frame(vec2 uv, float p){
@@ -520,7 +520,7 @@ vec4 fx(vec2 uv){
   return vec4(acc / 10., 1.);
 }` });
 
-FX.register({ id:'tr-flag-sheet', name:'Flag sheet', cat:'transition', search:['cloth', 'wave', 'fabric', 'flag', 'ripple slide'],
+FX.register({ id:'tr-flag-sheet', name:'Flag sheet', cat:'transition', family:'moves', search:['cloth', 'wave', 'fabric', 'flag', 'ripple slide'],
   desc:'The two pictures travel across like sheets of fabric, rippling with a travelling wave and lit across the folds.',
   params:[ S('dir','Direction',['Left','Right','Up','Down']), R('amp','Wave height',.05,0,.2), R('freq','Waves',2.5,.5,8),
     R('shade','Fold shading',.5,0,1), R('gap','Gap',.04,0,.2), C('bg','Ground','#0d0d0e','ground') ],
@@ -548,7 +548,7 @@ FX.register({ id:'tr-flag-sheet', name:'Flag sheet', cat:'transition', search:['
   return vec4(mix(p_bg, pic * lit, inside), 1.);
 }` });
 
-FX.register({ id:'tr-match-zoom', name:'Match zoom', cat:'transition', search:['match cut', 'match on action', 'graphic match', 'zoom'],
+FX.register({ id:'tr-match-zoom', name:'Match zoom', cat:'transition', family:'moves', search:['match cut', 'match on action', 'graphic match', 'zoom'],
   desc:'Zooms into a point on A and out of a matching point on B, with the two points held together through the dissolve.',
   params:[ R('ax','A point X',-.3,-1,1), R('ay','A point Y',.25,-1,1), R('bx','B point X',.1,-1,1), R('by','B point Y',-.05,-1,1),
     R('scale','Zoom',2.5,1,6), R('soft','Dissolve',.35,.05,1) ],
@@ -564,7 +564,7 @@ FX.register({ id:'tr-match-zoom', name:'Match zoom', cat:'transition', search:['
   return vec4(mix(a, b, x), 1.);
 }` });
 
-FX.register({ id:'tr-window-grow', name:'Window grow', cat:'transition', search:['grid to full', 'shared element', 'flip', 'expand', 'hero', 'scroll reveal', 'thumbnail'],
+FX.register({ id:'tr-window-grow', name:'Window grow', cat:'transition', family:'moves', search:['grid to full', 'shared element', 'flip', 'expand', 'hero', 'scroll reveal', 'thumbnail'],
   desc:'B opens as a small window and grows to fill the frame while its picture settles inside, as on a scrolling hero or a thumbnail opening.',
   params:[ R('size','Start size',.3,.05,.9), R('x','Start X',0,-1,1), R('y','Start Y',0,-1,1), S('fit','B in the window',['Clipped','Whole picture']),
     R('counter','Content scale',.35,0,1), R('radius','Corner radius',.04,0,.2), R('wave','Unfold wave',0,0,1) ],

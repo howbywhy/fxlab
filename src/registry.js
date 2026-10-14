@@ -52,6 +52,8 @@
                        lookups, polar/kaleido wraps, long streaks…). Print then
                        renders the stack in one pass instead of tiles, or seams
                        appear. Set it when you write the module, not later.
+     family: 'wipes'  → transitions only: which family Randomise can filter by
+                       (TR_FAMILIES below). Transitions without one are 'classic'.
      search: ['distort'] → extra words the Library search matches. Invisible;
                        not a second category. Only add when name/desc would miss
                        a designer’s word (print, window, combine, feedback…).
@@ -102,6 +104,14 @@ const CATS = [
   { id:'data',       label:'Data',        role:'stack' },
   { id:'overlay',    label:'Overlays',    role:'stack' },
 ];
+/* Transition families. Randomise can draw Combine from any mix of them. */
+const TR_FAMILIES = [
+  { id:'classic', label:'Classic' }, { id:'blend', label:'Blends & light' }, { id:'wipes', label:'Wipes' },
+  { id:'moves', label:'Moves' }, { id:'panels', label:'Panels' }, { id:'3d', label:'3D' },
+  { id:'warp', label:'Warps' }, { id:'signal', label:'Signal & glitch' }, { id:'physics', label:'Physics & optics' },
+  { id:'craft', label:'Print & craft' }, { id:'systems', label:'Systems & nature' },
+];
+const trFamily = m => m.family || 'classic';
 const catRole = id => (CATS.find(c => c.id === id) || {}).role;
 
 /* param helpers */

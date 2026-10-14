@@ -46,7 +46,7 @@ float ${k}face(vec3 u, vec3 v){ return abs(normalize(cross(u, v)).z); }
 `;
 
 /* ---- Card flip ---- */
-FX.register({ id:'tr-card-flip', name:'Card flip', cat:'transition', search:['3d', 'flip over', 'turn', 'rotate', 'card'],
+FX.register({ id:'tr-card-flip', name:'Card flip', cat:'transition', family:'3d', search:['3d', 'flip over', 'turn', 'rotate', 'card'],
   desc:'The whole frame turns over like a card in perspective, with A on the front and B on the back.',
   params:[ S('axis','Turns about',['Upright axis','Level axis'],0), R('persp','Perspective',.45,0,1), R('lift','Lift',.35,0,1), R('shade','Shading',.5,0,1), R('shadow','Shadow',.5,0,1), C('bg','Behind','#0e0f10','ground') ],
   fs: tr3d('cf') + `vec4 fx(vec2 uv){
@@ -79,7 +79,7 @@ FX.register({ id:'tr-card-flip', name:'Card flip', cat:'transition', search:['3d
 }` });
 
 /* ---- Doors (covers the doorway variant: B arrives from depth over a glossy floor) ---- */
-FX.register({ id:'tr-gate-doors', name:'Doors', cat:'transition', search:['3d', 'doorway', 'gate', 'gate fold', 'open', 'split'],
+FX.register({ id:'tr-gate-doors', name:'Doors', cat:'transition', family:'3d', search:['3d', 'doorway', 'gate', 'gate fold', 'open', 'split'],
   desc:'A splits down the middle and swings open away from you like a pair of doors, while B comes forward through the doorway.',
   params:[ S('split','Split',['Vertical','Horizontal'],0), R('depth','B starts back',.45,0,1), R('reflect','Floor reflection',.3,0,1), R('persp','Perspective',.55,0,1), R('shade','Door shading',.55,0,1), C('bg','Behind','#0e0f10','ground') ],
   fs: tr3d('gd') + `vec4 fx(vec2 uv){
@@ -129,7 +129,7 @@ FX.register({ id:'tr-gate-doors', name:'Doors', cat:'transition', search:['3d', 
 }` });
 
 /* ---- Book flip ---- */
-FX.register({ id:'tr-book-flip', name:'Book flip', cat:'transition', search:['3d', 'page', 'book', 'spine', 'hinge', 'calendar'],
+FX.register({ id:'tr-book-flip', name:'Book flip', cat:'transition', family:'3d', search:['3d', 'page', 'book', 'spine', 'hinge', 'calendar'],
   desc:'Half of A lifts on a centre spine and turns over like a stiff page, carrying half of B on its back.',
   params:[ S('dir','Turns',['Right to left','Left to right','Bottom to top','Top to bottom'],0), R('persp','Perspective',.5,0,1), R('shade','Page shading',.5,0,1), R('shadow','Spine shadow',.5,0,1) ],
   fs: tr3d('bf') + `vec4 fx(vec2 uv){
@@ -164,7 +164,7 @@ FX.register({ id:'tr-book-flip', name:'Book flip', cat:'transition', search:['3d
 }` });
 
 /* ---- Swing ---- */
-FX.register({ id:'tr-hinge-swing', name:'Swing', cat:'transition', search:['3d', 'fall', 'pivot', 'drape', 'hinge', 'fall over', 'flap'],
+FX.register({ id:'tr-hinge-swing', name:'Swing', cat:'transition', family:'3d', search:['3d', 'fall', 'pivot', 'drape', 'hinge', 'fall over', 'flap'],
   desc:'A swings away on a hinge along one edge until it is edge on, showing B beneath it; drape lets the sheet ripple as it goes.',
   params:[ S('hinge','Hinge',['Top','Bottom','Left','Right'],0), R('drape','Drape',.3,0,1), R('persp','Perspective',.7,0,1), R('shade','Shading',.6,0,1), R('shadow','Shadow on B',.5,0,1) ],
   fs: tr3d('hs') + `vec4 fx(vec2 uv){
@@ -214,7 +214,7 @@ FX.register({ id:'tr-hinge-swing', name:'Swing', cat:'transition', search:['3d',
 }` });
 
 /* ---- Tilt back (with an optional sheen sweep, the Prestige look) ---- */
-FX.register({ id:'tr-tilt-back', name:'Tilt back', cat:'transition', search:['3d', 'prestige', 'tilt', 'perspective', 'lay down', 'sheen', 'fall back'],
+FX.register({ id:'tr-tilt-back', name:'Tilt back', cat:'transition', family:'3d', search:['3d', 'prestige', 'tilt', 'perspective', 'lay down', 'sheen', 'fall back'],
   desc:'A tips back on its bottom edge and fades into the dark while B tips up out of it, with an optional sheen passing over both.',
   params:[ S('hinge','Hinge',['Bottom','Top'],0), R('angle','Tilt',62,20,85,1), R('persp','Perspective',.55,0,1), R('sheen','Sheen',.25,0,1), C('glint','Sheen colour','#ffe2a8',false), C('bg','Fog colour','#0e0f10','ground') ],
   fs: tr3d('tb') + `vec4 fx(vec2 uv){
@@ -256,7 +256,7 @@ FX.register({ id:'tr-tilt-back', name:'Tilt back', cat:'transition', search:['3d
 }` });
 
 /* ---- Revolving door ---- */
-FX.register({ id:'tr-revolving-door', name:'Revolving door', cat:'transition', search:['3d', 'rotate', 'switch', 'door', 'turn', 'pivot'],
+FX.register({ id:'tr-revolving-door', name:'Revolving door', cat:'transition', family:'3d', search:['3d', 'rotate', 'switch', 'door', 'turn', 'pivot'],
   desc:'A and B are two wings of a revolving door turning on an upright axis: A swings away into the depth as B swings round into place.',
   params:[ S('side','Axis',['Left','Right','Top','Bottom'],0), R('offset','Axis position',0,0,.5), R('persp','Perspective',.5,0,1), R('shade','Shading',.6,0,1), C('bg','Behind','#0e0f10','ground') ],
   fs: tr3d('rv') + `vec4 fx(vec2 uv){
@@ -301,7 +301,7 @@ FX.register({ id:'tr-revolving-door', name:'Revolving door', cat:'transition', s
 }` });
 
 /* ---- 3D swap ---- */
-FX.register({ id:'tr-card-swap', name:'3D swap', cat:'transition', search:['3d', 'swap', 'perspective', 'gallery', 'reflection', 'cards', 'page swing'],
+FX.register({ id:'tr-card-swap', name:'3D swap', cat:'transition', family:'3d', search:['3d', 'swap', 'perspective', 'gallery', 'reflection', 'cards', 'page swing'],
   desc:'A and B stand as cards on a glossy floor: A turns away and slides off to one side as B swings round from the other and comes forward.',
   params:[ S('dir','B comes from',['Right','Left'],0), R('depth','Depth',.6,0,1), R('turn','Turn',45,0,70,1), R('reflect','Floor reflection',.35,0,1), R('persp','Perspective',.55,0,1), C('bg','Behind','#0e0f10','ground') ],
   fs: tr3d('cs') + `
@@ -358,7 +358,7 @@ vec4 fx(vec2 uv){
 }` });
 
 /* ---- Stereo cards ---- */
-FX.register({ id:'tr-stereo-cards', name:'Stereo cards', cat:'transition', search:['view-master', 'reel', 'carousel', 'slide', 'rounded', 'cards'],
+FX.register({ id:'tr-stereo-cards', name:'Stereo cards', cat:'transition', family:'3d', search:['view-master', 'reel', 'carousel', 'slide', 'rounded', 'cards'],
   desc:'A shrinks into a rounded card, the next card on the reel turns into place carrying B, and B grows back to fill the frame.',
   params:[ R('size','Card size',.78,.5,.95), R('round','Corner radius',.12,0,.4), R('curve','Reel curve',.55,0,1), R('shadow','Shadow',.5,0,1), C('bg','Behind','#0e0f10','ground') ],
   fs:`
@@ -400,7 +400,7 @@ vec4 fx(vec2 uv){
 }` });
 
 /* ---- Conveyor ---- */
-FX.register({ id:'tr-conveyor', name:'Conveyor', cat:'transition', search:['3d', 'gallery', 'clothesline', 'rail', 'cards', 'reflection', 'pan'],
+FX.register({ id:'tr-conveyor', name:'Conveyor', cat:'transition', family:'3d', search:['3d', 'gallery', 'clothesline', 'rail', 'cards', 'reflection', 'pan'],
   desc:'A steps back onto a rail as a card, the rail carries it off while B comes along behind it, and B steps forward to fill the frame.',
   params:[ S('dir','Travels',['Right to left','Left to right'],0), R('depth','Step back',.45,.1,1), R('angle','Rail angle',22,-40,40,1), R('swing','Swing',.35,0,1), R('reflect','Floor reflection',.3,0,1), R('persp','Perspective',.5,0,1), C('bg','Behind','#0e0f10','ground') ],
   fs: tr3d('cv') + `
@@ -452,7 +452,7 @@ vec4 fx(vec2 uv){
 }` });
 
 /* ---- Orbit ---- */
-FX.register({ id:'tr-orbit', name:'Orbit', cat:'transition', search:['3d', 'carousel', 'ferris wheel', 'ring', 'rotate', 'box', 'cards'],
+FX.register({ id:'tr-orbit', name:'Orbit', cat:'transition', family:'3d', search:['3d', 'carousel', 'ferris wheel', 'ring', 'rotate', 'box', 'cards'],
   desc:'A and B ride a ring that turns in depth, so A travels round and away while B comes round to the front.',
   params:[ S('path','Ring',['Carousel','Ferris wheel'],0), S('facing','Cards face',['The camera','Outwards'],1), R('spread','Spacing',75,40,180,1), R('persp','Perspective',.5,0,1), R('shade','Shading',.5,0,1), C('bg','Behind','#0e0f10','ground') ],
   fs: tr3d('ob') + `vec4 fx(vec2 uv){
@@ -498,7 +498,7 @@ FX.register({ id:'tr-orbit', name:'Orbit', cat:'transition', search:['3d', 'caro
 }` });
 
 /* ---- Origami ---- */
-FX.register({ id:'tr-origami', name:'Origami', cat:'transition', search:['3d', 'fold', 'paper', 'airplane', 'fold up', 'crease'],
+FX.register({ id:'tr-origami', name:'Origami', cat:'transition', family:'3d', search:['3d', 'fold', 'paper', 'airplane', 'fold up', 'crease'],
   desc:'A is folded in half, then in half again, like a sheet of paper, and the folded square flies off to leave B.',
   params:[ S('dir','First fold',['Right over left','Left over right'],0), C('paper','Paper','#e9e4d8',false), R('show','Show-through',.6,0,1), R('persp','Perspective',.55,0,1), R('shade','Fold shading',.55,0,1) ],
   fs: tr3d('og') + `
@@ -572,7 +572,7 @@ vec4 fx(vec2 uv){
 }` });
 
 /* ---- Fan fold ---- */
-FX.register({ id:'tr-fan-fold', name:'Fan fold', cat:'transition', search:['3d', 'accordion', 'fold', 'pleat', 'concertina', 'zigzag'],
+FX.register({ id:'tr-fan-fold', name:'Fan fold', cat:'transition', family:'3d', search:['3d', 'accordion', 'fold', 'pleat', 'concertina', 'zigzag'],
   desc:'A pleats into a row of hinged panels that fold up like a fan and collapse against one edge, uncovering B.',
   params:[ I('panels','Panels',6,2,14), S('dir','Collapses to',['Left','Right','Top','Bottom'],0), R('persp','Perspective',.55,0,1), R('shade','Fold shading',.6,0,1) ],
   fs: tr3d('ff') + `vec4 fx(vec2 uv){
@@ -612,7 +612,7 @@ FX.register({ id:'tr-fan-fold', name:'Fan fold', cat:'transition', search:['3d',
 }` });
 
 /* ---- Ribbon twist ---- */
-FX.register({ id:'tr-ribbon-twist', name:'Ribbon twist', cat:'transition', search:['3d', 'twist', 'flip', 'ribbon', 'slats', 'twirl'],
+FX.register({ id:'tr-ribbon-twist', name:'Ribbon twist', cat:'transition', family:'3d', search:['3d', 'twist', 'flip', 'ribbon', 'slats', 'twirl'],
   desc:'The frame turns over in a twisting ribbon that runs across it, A on one side and B on the other, either smooth or in slats.',
   params:[ S('axis','Runs',['Left to right','Bottom to top'],0), I('slats','Slats',0,0,40), R('stagger','Twist length',.6,0,.95), R('persp','Perspective',.5,0,1), R('shade','Shading',.55,0,1), C('bg','Behind','#0e0f10','ground') ],
   fs:`vec4 fx(vec2 uv){
@@ -649,7 +649,7 @@ FX.register({ id:'tr-ribbon-twist', name:'Ribbon twist', cat:'transition', searc
 }` });
 
 /* ---- Clone spin ---- */
-FX.register({ id:'tr-clone-spin', name:'Clone spin', cat:'transition', search:['replicator', 'clones', 'tiles', 'spin', 'grid', 'copies'],
+FX.register({ id:'tr-clone-spin', name:'Clone spin', cat:'transition', family:'3d', search:['replicator', 'clones', 'tiles', 'spin', 'grid', 'copies'],
   desc:'A pulls back into a grid of small copies that spin on the spot, turn into copies of B, and gather back into one frame.',
   params:[ I('copies','Copies across',3,2,7), R('spin','Spin',1,0,3), T('alt','Alternate direction',true), R('gap','Gap',.12,0,.4), C('bg','Behind','#0e0f10','ground') ],
   fs:`vec4 fx(vec2 uv){
@@ -680,7 +680,7 @@ FX.register({ id:'tr-clone-spin', name:'Clone spin', cat:'transition', search:['
 }` });
 
 /* ---- Cube grid ---- */
-FX.register({ id:'tr-cube-grid', name:'Cube grid', cat:'transition', search:['3d', 'object cube', 'cubes', 'tiles', 'box', 'rotate'],
+FX.register({ id:'tr-cube-grid', name:'Cube grid', cat:'transition', family:'3d', search:['3d', 'object cube', 'cubes', 'tiles', 'box', 'rotate'],
   desc:'The frame is a wall of small cubes; each one turns a quarter to bring a face of B round, in a wave across the grid.',
   params:[ I('rows','Rows',4,1,16), S('order','Order',['Diagonal','Left to right','Centre out','Random'],0), S('dir','Turns towards',['Left','Right','Up','Down'],0), R('stagger','Stagger',.6,0,.95), R('shade','Shading',.5,0,1), C('bg','Gaps','#0e0f10','ground') ],
   fs: tr3d('cg') + `vec4 fx(vec2 uv){
@@ -724,7 +724,7 @@ FX.register({ id:'tr-cube-grid', name:'Cube grid', cat:'transition', search:['3d
 }` });
 
 /* ---- Corner roll ---- */
-FX.register({ id:'tr-corner-roll', name:'Corner roll', cat:'transition', search:['rotate', 'swing', 'pivot', 'roll', 'corner'],
+FX.register({ id:'tr-corner-roll', name:'Corner roll', cat:'transition', family:'3d', search:['rotate', 'swing', 'pivot', 'roll', 'corner'],
   desc:'A swings out of the frame on a pivot at one corner, like a door turning flat on the wall, and B is there behind it.',
   params:[ S('corner','Pivot',['Bottom left','Bottom right','Top left','Top right'],0), S('turn','Swings',['Downwards','Upwards'],0), R('blur','Motion blur',.35,0,1), R('shadow','Shadow',.5,0,1) ],
   fs:`vec4 fx(vec2 uv){
@@ -758,7 +758,7 @@ FX.register({ id:'tr-corner-roll', name:'Corner roll', cat:'transition', search:
 }` });
 
 /* ---- Reflection floor ---- */
-FX.register({ id:'tr-reflection-floor', name:'Reflection floor', cat:'transition', search:['3d', 'reflection', 'mirror', 'floor', 'stage', 'sink', 'rise'],
+FX.register({ id:'tr-reflection-floor', name:'Reflection floor', cat:'transition', family:'3d', search:['3d', 'reflection', 'mirror', 'floor', 'stage', 'sink', 'rise'],
   desc:'A steps back onto a glossy floor and sinks through it while B rises up out of the floor in its place, then steps forward.',
   params:[ R('depth','Step back',.5,.1,1), R('reflect','Reflection',.4,0,1), R('blur','Floor blur',.3,0,1), R('persp','Perspective',.5,0,1), C('bg','Floor and wall','#0e0f10','ground') ],
   fs: tr3d('rf') + `

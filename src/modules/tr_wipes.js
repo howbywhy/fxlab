@@ -5,7 +5,7 @@
 const WIPE_END = 'if (uProgress <= 0.) m = 0.; if (uProgress >= 1.) m = 1.;';
 const WIPE_ANCHORS = ['Centre','Top left','Top','Top right','Right','Bottom right','Bottom','Bottom left','Left'];
 
-FX.register({ id:'tr-barndoor', name:'Barn door', cat:'transition', search:['split', 'doors', 'centre split', 'open', 'close'],
+FX.register({ id:'tr-barndoor', name:'Barn door', cat:'transition', family:'wipes', search:['split', 'doors', 'centre split', 'open', 'close'],
   desc:'B opens out from a centre line, or closes in from both edges, at any angle.',
   params:[ R('angle','Angle',0,0,180,1), S('mode','Mode',['Open from centre','Close from edges'],0), R('soft','Softness',.01,0,.3), R('line','Edge line',.004,0,.04), C('color','Line colour','#ffffff','accent') ],
   fs:`vec4 fx(vec2 uv){
@@ -23,7 +23,7 @@ FX.register({ id:'tr-barndoor', name:'Barn door', cat:'transition', search:['spl
   return vec4(col, 1.);
 }` });
 
-FX.register({ id:'tr-bowtie', name:'Bow-tie', cat:'transition', search:['triangles', 'hourglass', 'wipe'],
+FX.register({ id:'tr-bowtie', name:'Bow-tie', cat:'transition', family:'wipes', search:['triangles', 'hourglass', 'wipe'],
   desc:'Two triangles grow in from opposite edges and meet at their points.',
   params:[ S('axis','From',['Left and right','Top and bottom'],0), R('meet','Meeting point',.5,.15,.85), T('inv','Reverse'), R('soft','Softness',.01,0,.2), R('line','Edge line',0,0,.03), C('color','Line colour','#ffffff','accent') ],
   fs:`vec4 fx(vec2 uv){
@@ -43,7 +43,7 @@ FX.register({ id:'tr-bowtie', name:'Bow-tie', cat:'transition', search:['triangl
   return vec4(col, 1.);
 }` });
 
-FX.register({ id:'tr-boxwipe', name:'Box wipe', cat:'transition', search:['inset', 'centre wipe', 'corner wipe', 'clip-path', 'rectangle', 'reveal'],
+FX.register({ id:'tr-boxwipe', name:'Box wipe', cat:'transition', family:'wipes', search:['inset', 'centre wipe', 'corner wipe', 'clip-path', 'rectangle', 'reveal'],
   desc:'A frame-shaped box grows out of a corner, an edge or the centre, its corners rounding off as it fills.',
   params:[ S('anchor','Grows from',WIPE_ANCHORS,1), R('round','Corner rounding',.35,0,1), R('soft','Softness',.004,0,.2), R('line','Edge line',.004,0,.04), C('color','Line colour','#ffffff','accent'), T('inv','Shrink A instead') ],
   fs:`vec2 box_anchor(int k){
@@ -68,7 +68,7 @@ vec4 fx(vec2 uv){
   return vec4(col, 1.);
 }` });
 
-FX.register({ id:'tr-irisdip', name:'Iris through colour', cat:'transition', search:['circle crop', 'iris out', 'iris in', 'cartoon', 'dip'],
+FX.register({ id:'tr-irisdip', name:'Iris through colour', cat:'transition', family:'wipes', search:['circle crop', 'iris out', 'iris in', 'cartoon', 'dip'],
   desc:'An iris closes on A over a flat colour, holds, then opens again on B.',
   params:[ S('shape','Shape',['Circle','Frame-shaped box','Diamond'],0), C('color','Colour','#0e0f10','ground'), R('hold','Hold on colour',.12,0,.6), R('x','Centre X',0,-1,1), R('y','Centre Y',0,-1,1), R('soft','Softness',.004,0,.2) ],
   fs:`vec4 fx(vec2 uv){
@@ -93,7 +93,7 @@ FX.register({ id:'tr-irisdip', name:'Iris through colour', cat:'transition', sea
   return vec4(mix(p_color, img, m), 1.);
 }` });
 
-FX.register({ id:'tr-cornercurve', name:'Corner curve', cat:'transition', search:['hyperbolic', 'diagonal', 'corner wipe', 'diag'],
+FX.register({ id:'tr-cornercurve', name:'Corner curve', cat:'transition', family:'wipes', search:['hyperbolic', 'diagonal', 'corner wipe', 'diag'],
   desc:'B sweeps in from a corner behind a curved front that hugs the two far edges last.',
   params:[ S('corner','Corner',['Top left','Top right','Bottom right','Bottom left'],0), R('bend','Bend',.8,0,1), R('soft','Softness',.03,0,.3), R('line','Edge line',0,0,.03), C('color','Line colour','#ffffff','accent') ],
   fs:`vec4 fx(vec2 uv){
@@ -112,7 +112,7 @@ FX.register({ id:'tr-cornercurve', name:'Corner curve', cat:'transition', search
   return vec4(col, 1.);
 }` });
 
-FX.register({ id:'tr-rosewipe', name:'Rose wipe', cat:'transition', search:['flower', 'petals', 'bloom', 'polar', 'iris'],
+FX.register({ id:'tr-rosewipe', name:'Rose wipe', cat:'transition', family:'wipes', search:['flower', 'petals', 'bloom', 'polar', 'iris'],
   desc:'B blooms open through deep petals, with a second layer turning the other way.',
   params:[ I('petals','Petals',5,2,12), R('depth','Petal depth',.7,0,.92), R('turn','Turn',60,-360,360,1), T('layers','Second layer',true), R('x','Centre X',0,-1,1), R('y','Centre Y',0,-1,1), R('soft','Softness',.006,0,.2) ],
   fs:`float rose_petal(float a, float n, float depth){ return 1. - depth * (.5 - .5 * cos(a * n)); }
@@ -136,7 +136,7 @@ vec4 fx(vec2 uv){
   return vec4(mix(texture(uA, uv).rgb, texture(uB, uv).rgb, m), 1.);
 }` });
 
-FX.register({ id:'tr-wobbleiris', name:'Wobble iris', cat:'transition', search:['blob', 'organic', 'burn out', 'liquid', 'morph mask'],
+FX.register({ id:'tr-wobbleiris', name:'Wobble iris', cat:'transition', family:'wipes', search:['blob', 'organic', 'burn out', 'liquid', 'morph mask'],
   desc:'A soft-edged blob opens from a point, its outline wobbling as it grows, with an optional scorched rim.',
   params:[ I('lobes','Lobes',5,2,12), R('wobble','Wobble',.22,0,.5), R('rim','Rim',.02,0,.08), C('color','Rim colour','#1b0e06',false), R('x','Centre X',0,-1,1), R('y','Centre Y',0,-1,1), R('soft','Softness',.006,0,.1) ],
   fs:`vec4 fx(vec2 uv){
@@ -165,7 +165,7 @@ FX.register({ id:'tr-wobbleiris', name:'Wobble iris', cat:'transition', search:[
   return vec4(col, 1.);
 }` });
 
-FX.register({ id:'tr-spiralwipe', name:'Spiral wipe', cat:'transition', search:['spiral', 'swirl', 'coil', 'radial'],
+FX.register({ id:'tr-spiralwipe', name:'Spiral wipe', cat:'transition', family:'wipes', search:['spiral', 'swirl', 'coil', 'radial'],
   desc:'B unrolls along a spiral ribbon from the centre out, or winds in from the edge.',
   params:[ R('turns','Turns',3,1,8), I('arms','Arms',1,1,4), S('dir','Direction',['Outward','Inward'],0), T('ccw','Anticlockwise'), R('soft','Softness',.01,0,.2), R('x','Centre X',0,-1,1), R('y','Centre Y',0,-1,1) ],
   fs:`vec4 fx(vec2 uv){
@@ -188,7 +188,7 @@ FX.register({ id:'tr-spiralwipe', name:'Spiral wipe', cat:'transition', search:[
   return vec4(mix(texture(uA, uv).rgb, texture(uB, uv).rgb, m), 1.);
 }` });
 
-FX.register({ id:'tr-ringswipe', name:'Rings wipe', cat:'transition', search:['concentric', 'radial', 'clock', 'target'],
+FX.register({ id:'tr-ringswipe', name:'Rings wipe', cat:'transition', family:'wipes', search:['concentric', 'radial', 'clock', 'target'],
   desc:'Concentric rings each sweep round like a clock hand, alternate rings turning opposite ways.',
   params:[ I('rings','Rings',6,2,24), R('stagger','Stagger',.5,0,.9), S('order','Order',['Outer first','Inner first'],0), R('start','Start angle',0,-180,180,1), R('soft','Softness',.01,0,.2), R('x','Centre X',0,-1,1), R('y','Centre Y',0,-1,1) ],
   fs:`vec4 fx(vec2 uv){
@@ -211,7 +211,7 @@ FX.register({ id:'tr-ringswipe', name:'Rings wipe', cat:'transition', search:['c
   return vec4(mix(texture(uA, uv).rgb, texture(uB, uv).rgb, m), 1.);
 }` });
 
-FX.register({ id:'tr-ringblinds', name:'Ring blinds', cat:'transition', search:['radial blinds', 'venetian', 'concentric', 'spokes', 'scale wipe'],
+FX.register({ id:'tr-ringblinds', name:'Ring blinds', cat:'transition', family:'wipes', search:['radial blinds', 'venetian', 'concentric', 'spokes', 'scale wipe'],
   desc:'Blinds bent into concentric rings or spokes, each slat opening from its middle in turn.',
   params:[ I('count','Slats',10,2,40), S('kind','Pattern',['Rings','Spokes'],0), R('stagger','Stagger',.5,0,.9), S('order','Order',['Centre out','Edge in'],0), R('x','Centre X',0,-1,1), R('y','Centre Y',0,-1,1) ],
   fs:`vec4 fx(vec2 uv){
@@ -235,7 +235,7 @@ FX.register({ id:'tr-ringblinds', name:'Ring blinds', cat:'transition', search:[
   return vec4(mix(texture(uA, uv).rgb, texture(uB, uv).rgb, m), 1.);
 }` });
 
-FX.register({ id:'tr-checker', name:'Checker wipe', cat:'transition', search:['checkerboard', 'chessboard', 'squares', 'grid'],
+FX.register({ id:'tr-checker', name:'Checker wipe', cat:'transition', family:'wipes', search:['checkerboard', 'chessboard', 'squares', 'grid'],
   desc:'Half the squares of a checkerboard wipe across, then the other half follow.',
   params:[ I('rows','Rows',8,2,40), S('dir','Direction',DIRS4,1), R('overlap','Overlap',.2,0,1), R('soft','Softness',.02,0,.3) ],
   fs:`vec4 fx(vec2 uv){
@@ -253,7 +253,7 @@ FX.register({ id:'tr-checker', name:'Checker wipe', cat:'transition', search:['c
   return vec4(mix(texture(uA, uv).rgb, texture(uB, uv).rgb, m), 1.);
 }` });
 
-FX.register({ id:'tr-combwipe', name:'Comb wipe', cat:'transition', nonLocal:true, search:['band wipe', 'split band', 'interlocking', 'strips'],
+FX.register({ id:'tr-combwipe', name:'Comb wipe', cat:'transition', family:'wipes', nonLocal:true, search:['band wipe', 'split band', 'interlocking', 'strips'],
   desc:'Bands wipe or slide in from alternate sides and interlock like the teeth of a comb.',
   params:[ I('bands','Bands',7,2,40), R('angle','Angle',0,-90,90,1), S('mode','Motion',['Wipe','Slide in'],1), R('stagger','Stagger',0,0,.8), R('soft','Softness',.004,0,.1) ],
   fs:`vec4 fx(vec2 uv){
@@ -277,7 +277,7 @@ FX.register({ id:'tr-combwipe', name:'Comb wipe', cat:'transition', nonLocal:tru
   return vec4(mix(texture(uA, uv).rgb, texture(uB, buv).rgb, m), 1.);
 }` });
 
-FX.register({ id:'tr-randombars', name:'Random bars', cat:'transition', search:['random blocks', 'random wipe', 'stripes', 'scanlines'],
+FX.register({ id:'tr-randombars', name:'Random bars', cat:'transition', family:'wipes', search:['random blocks', 'random wipe', 'stripes', 'scanlines'],
   desc:'Full-width bars, or blocks, switch to B one by one in random order.',
   params:[ S('mode','Pattern',['Bars','Blocks'],0), I('count','Count',48,4,200), S('dir','Bars run',['Across','Down'],0), R('fade','Fade per bar',.12,0,1) ],
   fs:`vec4 fx(vec2 uv){
@@ -291,7 +291,7 @@ FX.register({ id:'tr-randombars', name:'Random bars', cat:'transition', search:[
   return vec4(mix(texture(uA, uv).rgb, texture(uB, uv).rgb, m), 1.);
 }` });
 
-FX.register({ id:'tr-boxpath', name:'Box path', cat:'transition', search:['spiral boxes', 'zig-zag blocks', 'snake', 'boustrophedon', 'grid'],
+FX.register({ id:'tr-boxpath', name:'Box path', cat:'transition', family:'wipes', search:['spiral boxes', 'zig-zag blocks', 'snake', 'boustrophedon', 'grid'],
   desc:'A grid of boxes fills with B along a path, spiralling in or out or snaking row by row.',
   params:[ S('path','Path',['Spiral in','Spiral out','Snake by rows','Snake by columns'],0), I('rows','Rows',8,2,24), R('trail','Trail',2,1,12), S('fill','Each box',['Sweeps in','Fades in'],0) ],
   fs:`vec4 fx(vec2 uv){
@@ -330,7 +330,7 @@ FX.register({ id:'tr-boxpath', name:'Box path', cat:'transition', search:['spira
   return vec4(mix(texture(uA, uv).rgb, texture(uB, uv).rgb, m), 1.);
 }` });
 
-FX.register({ id:'tr-splatter', name:'Paint splatter', cat:'transition', search:['splash', 'brush', 'ink', 'paint', 'blot'],
+FX.register({ id:'tr-splatter', name:'Paint splatter', cat:'transition', family:'wipes', search:['splash', 'brush', 'ink', 'paint', 'blot'],
   desc:'Ragged splats of B land one after another, spread and run together until A is covered.',
   params:[ I('count','Splats',16,4,32), R('rough','Roughness',.55,0,1), R('spread','Timing spread',.8,0,.9), R('size','Splat size',.13,.05,.6), I('seed','Seed',1,0,99) ],
   fs:`vec4 fx(vec2 uv){
@@ -360,7 +360,7 @@ FX.register({ id:'tr-splatter', name:'Paint splatter', cat:'transition', search:
   return vec4(mix(texture(uA, uv).rgb, texture(uB, uv).rgb, m), 1.);
 }` });
 
-FX.register({ id:'tr-bubbles', name:'Bubble reveal', cat:'transition', search:['circles', 'dots', 'scattered', 'pop', 'reveal'],
+FX.register({ id:'tr-bubbles', name:'Bubble reveal', cat:'transition', family:'wipes', search:['circles', 'dots', 'scattered', 'pop', 'reveal'],
   desc:'Circles of B open at scattered points, swell and merge until they fill the frame.',
   params:[ I('count','Bubbles',14,3,32), R('size','Size',.22,.05,.6), R('spread','Timing spread',.6,0,.9), I('seed','Seed',3,0,99), R('line','Rim',.004,0,.03), C('color','Rim colour','#ffffff','accent') ],
   fs:`vec4 fx(vec2 uv){
@@ -387,7 +387,7 @@ FX.register({ id:'tr-bubbles', name:'Bubble reveal', cat:'transition', search:['
   return vec4(col, 1.);
 }` });
 
-FX.register({ id:'tr-gradientwipe', name:'Gradient wipe', cat:'transition', search:['gradient map', 'image wipe', 'luma map', 'conic', 'radial', 'threshold'],
+FX.register({ id:'tr-gradientwipe', name:'Gradient wipe', cat:'transition', family:'wipes', search:['gradient map', 'image wipe', 'luma map', 'conic', 'radial', 'threshold'],
   desc:'B arrives through a built-in gradient map, from the darkest tone of the map to the lightest.',
   params:[ S('map','Map',['Linear','Radial','Conic','Spiral','Diamond','Noise','Ripple'],3), R('angle','Angle',30,-180,180,1), R('scale','Scale',1,.5,12), R('soft','Softness',.05,0,.5), T('inv','Invert'), R('x','Centre X',0,-1,1), R('y','Centre Y',0,-1,1) ],
   fs:`vec4 fx(vec2 uv){
@@ -415,7 +415,7 @@ FX.register({ id:'tr-gradientwipe', name:'Gradient wipe', cat:'transition', sear
   return vec4(mix(texture(uA, uv).rgb, texture(uB, uv).rgb, m), 1.);
 }` });
 
-FX.register({ id:'tr-staircase', name:'Staircase sweep', cat:'transition', search:['line sweep', 'stepped', 'diagonal', 'stairs'],
+FX.register({ id:'tr-staircase', name:'Staircase sweep', cat:'transition', family:'wipes', search:['line sweep', 'stepped', 'diagonal', 'stairs'],
   desc:'A diagonal wipe built from thin staggered lines, so the edge climbs like a staircase.',
   params:[ R('angle','Angle',0,-180,180,1), R('thick','Line thickness',.03,.004,.2), R('slant','Slant',.7,0,2), R('jitter','Jitter',.25,0,1), R('soft','Softness',.002,0,.05) ],
   fs:`vec4 fx(vec2 uv){
@@ -436,7 +436,7 @@ FX.register({ id:'tr-staircase', name:'Staircase sweep', cat:'transition', searc
   return vec4(mix(texture(uA, uv).rgb, texture(uB, uv).rgb, m), 1.);
 }` });
 
-FX.register({ id:'tr-jaws', name:'Jaws', cat:'transition', nonLocal:true, search:['teeth', 'sawtooth', 'split', 'zipper', 'spikes'],
+FX.register({ id:'tr-jaws', name:'Jaws', cat:'transition', family:'wipes', nonLocal:true, search:['teeth', 'sawtooth', 'split', 'zipper', 'spikes'],
   desc:'A splits along a toothed line and the two halves pull apart to show B.',
   params:[ I('teeth','Teeth',8,2,40), R('height','Tooth height',.12,0,.4), S('shape','Teeth',['Spikes','Blocks','Waves','Bevelled'],0), R('angle','Angle',0,-90,90,1), R('shadow','Shadow',.5,0,1) ],
   fs:`float jaws_profile(float x, int s){
@@ -466,7 +466,7 @@ vec4 fx(vec2 uv){
   return vec4(col, 1.);
 }` });
 
-FX.register({ id:'tr-gridiris', name:'Grid iris', cat:'transition', search:['grid wipe', 'cells', 'doors', 'pinwheel', 'tiles'],
+FX.register({ id:'tr-gridiris', name:'Grid iris', cat:'transition', family:'wipes', search:['grid wipe', 'cells', 'doors', 'pinwheel', 'tiles'],
   desc:'Every cell of a grid opens on its own, as doors, a shutter, a clock hand or a corner box, in a wave.',
   params:[ I('rows','Rows',7,2,30), S('shape','Each cell opens as',['Doors','Shutter','Clock','Corner'],2), S('order','Order',['Centre out','Diagonal','Random'],0), R('stagger','Stagger',.6,0,.9), R('tilt','Tilt',0,-45,45,1) ],
   fs:`vec4 fx(vec2 uv){
@@ -489,7 +489,7 @@ FX.register({ id:'tr-gridiris', name:'Grid iris', cat:'transition', search:['gri
   return vec4(mix(texture(uA, uv).rgb, texture(uB, uv).rgb, m), 1.);
 }` });
 
-FX.register({ id:'tr-chevron', name:'Chevron wipe', cat:'transition', search:['arrows', 'arrow wipe', 'v shape', 'pointed'],
+FX.register({ id:'tr-chevron', name:'Chevron wipe', cat:'transition', family:'wipes', search:['arrows', 'arrow wipe', 'v shape', 'pointed'],
   desc:'A pointed front pushes across with a few chevron stripes of B running ahead of it.',
   params:[ R('angle','Direction',0,-180,180,1), R('sharp','Point',.6,0,2), I('arrows','Arrows ahead',3,0,6), R('width','Arrow width',.05,.01,.2), R('soft','Softness',.003,0,.05) ],
   fs:`vec4 fx(vec2 uv){
@@ -512,7 +512,7 @@ FX.register({ id:'tr-chevron', name:'Chevron wipe', cat:'transition', search:['a
   return vec4(mix(texture(uA, uv).rgb, texture(uB, uv).rgb, m), 1.);
 }` });
 
-FX.register({ id:'tr-wedge', name:'Wedge wipe', cat:'transition', search:['fan', 'v wipe', 'radial', 'pie'],
+FX.register({ id:'tr-wedge', name:'Wedge wipe', cat:'transition', family:'wipes', search:['fan', 'v wipe', 'radial', 'pie'],
   desc:'A wedge opens both ways at once from a centre line until it closes behind the far side.',
   params:[ R('angle','Angle',90,-180,180,1), I('wedges','Wedges',1,1,8), R('x','Centre X',0,-1,1), R('y','Centre Y',0,-1,1), R('soft','Softness',.006,0,.2) ],
   fs:`vec4 fx(vec2 uv){
@@ -527,7 +527,7 @@ FX.register({ id:'tr-wedge', name:'Wedge wipe', cat:'transition', search:['fan',
   return vec4(mix(texture(uA, uv).rgb, texture(uB, uv).rgb, m), 1.);
 }` });
 
-FX.register({ id:'tr-crosshatch', name:'Crosshatch spread', cat:'transition', search:['lines', 'threads', 'scratch', 'grid lines'],
+FX.register({ id:'tr-crosshatch', name:'Crosshatch spread', cat:'transition', family:'wipes', search:['lines', 'threads', 'scratch', 'grid lines'],
   desc:'B shoots out from a point along random horizontal and vertical lines, then the gaps fill in.',
   params:[ R('x','Centre X',0,-1,1), R('y','Centre Y',0,-1,1), R('reach','Reach',2.5,1,8), R('lines','Line width (px)',6,1,24,1), R('fade','Fill at the end',.15,.01,.5) ],
   fs:`vec4 fx(vec2 uv){
@@ -542,7 +542,7 @@ FX.register({ id:'tr-crosshatch', name:'Crosshatch spread', cat:'transition', se
   return vec4(mix(texture(uA, uv).rgb, texture(uB, uv).rgb, m), 1.);
 }` });
 
-FX.register({ id:'tr-noisewipe', name:'Noise-broken wipe', cat:'transition', search:['organic wipe', 'erode', 'blobs', 'crumble'],
+FX.register({ id:'tr-noisewipe', name:'Noise-broken wipe', cat:'transition', family:'wipes', search:['organic wipe', 'erode', 'blobs', 'crumble'],
   desc:'A straight wipe whose front breaks up into islands and inlets of noise as it passes.',
   params:[ R('angle','Angle',0,-180,180,1), R('width','Break-up width',.35,.05,1), R('scale','Noise scale',8,1,40), R('line','Edge line',0,0,.1), C('color','Edge colour','#ffd9a0','accent') ],
   fs:`vec4 fx(vec2 uv){
@@ -563,7 +563,7 @@ FX.register({ id:'tr-noisewipe', name:'Noise-broken wipe', cat:'transition', sea
   return vec4(col, 1.);
 }` });
 
-FX.register({ id:'tr-shapezoom', name:'Shape zoom-through', cat:'transition', nonLocal:true, search:['zoom through', 'mask zoom', 'fly through', 'portal', 'keyhole'],
+FX.register({ id:'tr-shapezoom', name:'Shape zoom-through', cat:'transition', family:'wipes', nonLocal:true, search:['zoom through', 'mask zoom', 'fly through', 'portal', 'keyhole'],
   desc:'A shape opens in A and the camera flies through it into B.',
   params:[ S('shape','Shape',['Circle','Rounded square','Diamond','Triangle','Hexagon','Plus'],0), R('size','Opening size',.2,.05,.5), R('zoom','Zoom depth',24,4,80), R('spin','Turn',15,-180,180,1), R('rim','Rim',.015,0,.1), C('color','Rim colour','#ffffff','accent') ],
   fs:`float zt_sd(vec2 p, int s){
@@ -593,7 +593,7 @@ vec4 fx(vec2 uv){
   return vec4(col, 1.);
 }` });
 
-FX.register({ id:'tr-lightwipe', name:'Light wipe', cat:'transition', search:['glow wipe', 'light front', 'flare', 'iris', 'doors'],
+FX.register({ id:'tr-lightwipe', name:'Light wipe', cat:'transition', family:'wipes', search:['glow wipe', 'light front', 'flare', 'iris', 'doors'],
   desc:'A glowing front opens out as a circle, doors, a box or a diamond, lighting the edge where A turns into B.',
   params:[ S('shape','Shape',['Circle','Doors','Box','Diamond'],0), R('width','Glow width',.07,.01,.3), R('intensity','Intensity',.8,0,4), C('color','Light','#fff1d6','accent2'), T('source','Light takes the image colour'), R('x','Centre X',0,-1,1), R('y','Centre Y',0,-1,1) ],
   fs:`vec4 fx(vec2 uv){

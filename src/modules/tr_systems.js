@@ -4,7 +4,7 @@
 
 /* ---- Data and computation ---- */
 
-FX.register({ id:'tr-contour-terraces', name:'Contour terraces', cat:'transition', nonLocal:true,
+FX.register({ id:'tr-contour-terraces', name:'Contour terraces', cat:'transition', family:'systems', nonLocal:true,
   search:['topographic', 'contour', 'map', 'isoline', 'elevation', 'cartographic', 'hypsometric'],
   desc:'A is drawn as a contour map of its own tones, then every band fills with B at once, like terraces flooding.',
   params:[ I('count','Contours',12,4,40), R('weight','Line weight (px)',1.4,.5,4), C('line','Line colour','#141516','ground'), R('tint','Band shading',.22,0,.5), R('blur','Smoothing (px)',4,0,10) ],
@@ -31,7 +31,7 @@ vec4 fx(vec2 uv){
   return vec4(col, 1.);
 }` });
 
-FX.register({ id:'tr-hilbert-path', name:'Hilbert path', cat:'transition',
+FX.register({ id:'tr-hilbert-path', name:'Hilbert path', cat:'transition', family:'systems',
   search:['space filling', 'curve', 'snake', 'maze', 'path', 'grid', 'generative'],
   desc:'B is laid in along one unbroken space-filling curve that snakes through the whole frame without crossing itself.',
   params:[ I('order','Order',5,3,7), R('head','Head length',.06,.005,.25), R('round','Cell rounding',.6,0,1), T('path','Draw the path',true), R('trail','Path trail',.15,.01,1), R('weight','Path weight (px)',2,.5,6), C('color','Path colour','#ff5a36','accent') ],
@@ -90,7 +90,7 @@ vec4 fx(vec2 uv){
   return vec4(col, 1.);
 }` });
 
-FX.register({ id:'tr-quadtree', name:'Quadtree', cat:'transition', nonLocal:true,
+FX.register({ id:'tr-quadtree', name:'Quadtree', cat:'transition', family:'systems', nonLocal:true,
   search:['subdivide', 'blocks', 'compression', 'mosaic', 'adaptive', 'content aware', 'pixelate'],
   desc:'A breaks down into big flat blocks wherever there is little detail, then B refines back in square by square.',
   params:[ I('depth','Finest level',7,4,8), R('sens','Detail sensitivity',.5,0,1), R('border','Border opacity',.35,0,1), C('bcolor','Border colour','#e4e2dc','ink'), S('leaf','Block colour',['Average','Centre'],0) ],
@@ -139,7 +139,7 @@ vec4 fx(vec2 uv){
   return vec4(mix(ends, col, keep), 1.);
 }` });
 
-FX.register({ id:'tr-rule-ninety', name:'Rule 90 bloom', cat:'transition',
+FX.register({ id:'tr-rule-ninety', name:'Rule 90 bloom', cat:'transition', family:'systems',
   search:['cellular automaton', 'sierpinski', 'fractal', 'pascal', 'generative', 'pixel', 'triangle'],
   desc:'B grows down the frame as a Sierpinski triangle of cells, generation by generation, then the gaps fill in.',
   params:[ R('cell','Cell size (px)',9,3,30), R('seed','Seed position',.5,0,1), S('origin','Grows from',['Top','Centre, both ways'],0), R('delay','Fill delay',.3,.05,.6), R('glow','Newborn glow',.6,0,1), C('color','Glow colour','#ff5a36','accent') ],
@@ -168,7 +168,7 @@ FX.register({ id:'tr-rule-ninety', name:'Rule 90 bloom', cat:'transition',
   return vec4(col, 1.);
 }` });
 
-FX.register({ id:'tr-sketch-wash', name:'Line drawing and wash', cat:'transition',
+FX.register({ id:'tr-sketch-wash', name:'Line drawing and wash', cat:'transition', family:'systems',
   search:['watercolour', 'sketch', 'pen', 'drawing', 'illustration', 'paper', 'ink'],
   desc:'A fades to paper, B is sketched in as pen lines, then a watercolour wash floods colour into it.',
   params:[ R('thresh','Line threshold',.12,.04,.6), C('ink','Line colour','#2b2b2b',false), C('paper','Paper','#f1ece2',false), R('pool','Wash edge darkening',.22,0,.5), R('grain','Granulation',.15,0,.4), R('ox','Start X',.2,0,1), R('oy','Start Y',.7,0,1) ],
@@ -200,7 +200,7 @@ vec4 fx(vec2 uv){
   return vec4(col, 1.);
 }` });
 
-FX.register({ id:'tr-posterise-relay', name:'Posterise relay', cat:'transition',
+FX.register({ id:'tr-posterise-relay', name:'Posterise relay', cat:'transition', family:'systems',
   search:['posterize', 'levels', 'bit depth', 'reduce', 'graphic', 'two tone', 'stepped'],
   desc:'A drops colour levels step by step down to a few tones, cuts to B at its starkest, then B builds back up to full colour.',
   params:[ I('min','Fewest levels',3,2,8), S('mode','Mode',['Tones','Channels','Two colours'],0), I('steps','Stepped time',12,0,30), C('dark','Shadow colour','#141516','ground'), C('light','Highlight colour','#ff5a36','accent') ],
@@ -226,7 +226,7 @@ vec4 fx(vec2 uv){
   return vec4(col, 1.);
 }` });
 
-FX.register({ id:'tr-duotone-bridge', name:'Duotone bridge', cat:'transition',
+FX.register({ id:'tr-duotone-bridge', name:'Duotone bridge', cat:'transition', family:'systems',
   search:['duotone', 'two colour', 'brand colours', 'tritone', 'monotone', 'palette'],
   desc:'Both images pass through two brand colours, so the cut happens in duotone and colour returns on B.',
   params:[ C('dark','Shadow colour','#141516','ground'), C('light','Highlight colour','#ff5a36','accent'), T('tri','Add a mid colour'), C('mid','Mid colour','#c9f5e4','accent2'), R('hold','Hold length',.4,0,.8), S('swap','Swap',['By tone','Crossfade'],0) ],
@@ -250,7 +250,7 @@ vec4 fx(vec2 uv){
   return vec4(mix(da, dbb, m), 1.);
 }` });
 
-FX.register({ id:'tr-pinscreen', name:'Pinscreen', cat:'transition', nonLocal:true,
+FX.register({ id:'tr-pinscreen', name:'Pinscreen', cat:'transition', family:'systems', nonLocal:true,
   search:['alexeieff', 'pins', 'shadow', 'relief', 'animation', 'tactile', 'monochrome'],
   desc:'Thousands of pins push in and out, casting shadows that draw A, then B, like an old pinscreen.',
   params:[ R('spacing','Pin spacing (px)',12,4,24), R('angle','Light angle',35,0,360,1), R('len','Shadow length',1.6,.5,3), R('ret','Colour return',.8,.6,.95), C('light','Board','#ece8df',false), C('shade','Shadow','#141516','ground') ],
@@ -289,7 +289,7 @@ vec4 fx(vec2 uv){
 
 /* ---- Nature ---- */
 
-FX.register({ id:'tr-frost-thaw', name:'Frost and thaw', cat:'transition', nonLocal:true,
+FX.register({ id:'tr-frost-thaw', name:'Frost and thaw', cat:'transition', family:'systems', nonLocal:true,
   search:['ice', 'freeze', 'winter', 'frozen', 'melt', 'cold', 'seasonal'],
   desc:'Frost creeps in from the edges and freezes A over, then thaws in clear patches to show B.',
   params:[ C('frost','Frost colour','#eaf4fa',false), R('branch','Branching',.7,0,1.5), S('origin','Grows from',['Edges','Corners','Centre'],0), R('blur','Ice blur',.01,0,.03), R('thaw','Thaw starts',.5,.3,.8) ],
@@ -326,7 +326,7 @@ vec4 fx(vec2 uv){
   return vec4(clamp(col, 0., 1.), 1.);
 }` });
 
-FX.register({ id:'tr-rain-glass', name:'Rain on glass', cat:'transition', nonLocal:true,
+FX.register({ id:'tr-rain-glass', name:'Rain on glass', cat:'transition', family:'systems', nonLocal:true,
   search:['raindrops', 'droplets', 'window', 'wet', 'weather', 'lens', 'condensation'],
   desc:'Raindrops land on the glass, each holding a tiny upside-down B, until they run together and B is everywhere.',
   params:[ R('density','Drop density',8,3,30), R('size','Drop size',.75,.1,1), T('inv','Upside-down in each drop',true), R('refract','Refraction',.5,0,1), R('fog','Dew fog',.3,0,.7) ],
@@ -372,7 +372,7 @@ vec4 fx(vec2 uv){
   return vec4(clamp(col, 0., 1.), 1.);
 }` });
 
-FX.register({ id:'tr-tide-line', name:'Tide line', cat:'transition', nonLocal:true,
+FX.register({ id:'tr-tide-line', name:'Tide line', cat:'transition', family:'systems', nonLocal:true,
   search:['wave', 'sea', 'beach', 'shore', 'water', 'surf', 'coastal'],
   desc:'B comes in like a tide, surging up the beach and drawing back a few times, leaving wet sand before it covers everything.',
   params:[ I('surges','Surges',3,1,5), R('foam','Foam width',.02,0,.06), R('wet','Wet sand',.55,0,1), R('refract','Refraction',.012,0,.03), S('dir','Comes in from',['Bottom','Left','Top','Right'],0) ],
@@ -409,7 +409,7 @@ vec4 fx(vec2 uv){
   return vec4(clamp(col, 0., 1.), 1.);
 }` });
 
-FX.register({ id:'tr-craquelure', name:'Craquelure', cat:'transition', nonLocal:true,
+FX.register({ id:'tr-craquelure', name:'Craquelure', cat:'transition', family:'systems', nonLocal:true,
   search:['crack', 'mud', 'varnish', 'dry', 'shatter', 'plates', 'aged'],
   desc:'A dries and cracks like old varnish, the plates curl and drop away, and B is underneath.',
   params:[ R('plate','Plate size',.12,.04,.4), R('rough','Crack roughness',.5,0,1), R('curl','Curl shadow',.35,0,.6), R('rand','Fall randomness',.7,0,1), T('fine','Fine cracks',true) ],
@@ -459,7 +459,7 @@ vec4 fx(vec2 uv){
   return vec4(col, 1.);
 }` });
 
-FX.register({ id:'tr-growth-rings', name:'Growth rings', cat:'transition',
+FX.register({ id:'tr-growth-rings', name:'Growth rings', cat:'transition', family:'systems',
   search:['tree rings', 'wood', 'timber', 'annual', 'radial', 'sweep', 'age'],
   desc:'B grows out ring by ring like the rings of a tree, each ring sweeping round before the next begins.',
   params:[ R('spacing','Ring spacing',.035,.01,.1), R('warp','Warp',.05,0,.15), T('sweep','Sweep round each ring',true), R('late','Latewood line',.45,0,1), R('x','Centre X',-.16,-1,1), R('y','Centre Y',.1,-1,1) ],
@@ -491,7 +491,7 @@ FX.register({ id:'tr-growth-rings', name:'Growth rings', cat:'transition',
   return vec4(mix(texture(uA, uv).rgb, b, on), 1.);
 }` });
 
-FX.register({ id:'tr-leaf-veins', name:'Leaf veins', cat:'transition',
+FX.register({ id:'tr-leaf-veins', name:'Leaf veins', cat:'transition', family:'systems',
   search:['botanical', 'leaf', 'venation', 'network', 'organic', 'plant', 'branching'],
   desc:'B flows in through a network of leaf veins, from the midrib out, then fills the small cells between them.',
   params:[ R('spacing','Vein spacing',.11,.04,.3), R('angle','Vein angle',50,20,80,1), R('ter','Fine vein scale',.045,.015,.1), R('line','Vein line',.35,0,1), R('delay','Fill delay',.25,0,.5), C('color','Vein line colour','#141516','ground') ],
@@ -543,7 +543,7 @@ vec4 fx(vec2 uv){
   return vec4(col, 1.);
 }` });
 
-FX.register({ id:'tr-smoke-lift', name:'Smoke lift', cat:'transition', nonLocal:true,
+FX.register({ id:'tr-smoke-lift', name:'Smoke lift', cat:'transition', family:'systems', nonLocal:true,
   search:['smoke', 'vapour', 'evaporate', 'drift', 'atmospheric', 'mist', 'dissolve'],
   desc:'A lifts off the page like smoke, curling upward and thinning to show B.',
   params:[ R('lift','Lift',.35,0,1), R('curl','Curl',.6,0,1.5), R('soft','Softness',.1,.02,.3), S('dir','Drifts',['Up','Down','Left','Right'],0), T('sharpen','B comes into focus',true) ],
@@ -576,7 +576,7 @@ FX.register({ id:'tr-smoke-lift', name:'Smoke lift', cat:'transition', nonLocal:
 
 /* Pulses run on clock time, not progress, so the strobe rate is fixed in seconds whatever
    the duration and easing. Capped at 3 a second (one pulse = one flash) for photosensitive viewers. */
-FX.register({ id:'tr-duty-cycle', name:'Duty cycle', cat:'transition',
+FX.register({ id:'tr-duty-cycle', name:'Duty cycle', cat:'transition', family:'systems',
   search:['strobe', 'flicker', 'pulse', 'pwm', 'beat', 'rhythm', 'flash cut'],
   desc:'A and B strobe against each other, with B holding a little longer on each pulse until it is all that is left. Never more than three pulses a second.',
   params:[ R('rate','Pulses a second',2,.5,3), I('bands','Bands',6,0,32), R('offset','Band offset',.5,0,1), S('axis','Bands',['Horizontal','Vertical'],0) ],
@@ -594,7 +594,7 @@ FX.register({ id:'tr-duty-cycle', name:'Duty cycle', cat:'transition',
   return vec4(mix(texture(uA, uv).rgb, texture(uB, uv).rgb, onB), 1.);
 }` });
 
-FX.register({ id:'tr-cast-shadow', name:'Cast shadow', cat:'transition',
+FX.register({ id:'tr-cast-shadow', name:'Cast shadow', cat:'transition', family:'systems',
   search:['sundial', 'gnomon', 'shadow', 'sunset', 'bauhaus', 'primitive', 'light'],
   desc:'A simple shape sits in the frame as the light drops towards it, and its lengthening shadow carries B across the whole frame.',
   params:[ S('shape','Shape',['Circle','Square','Triangle'],0), R('size','Size',.13,.05,.35), R('az','Light from',200,0,360,1), R('pen','Penumbra',.2,0,.6), R('tint','Shadow depth',.35,0,.6), R('x','Position X',0,-1,1), R('y','Position Y',-.1,-1,1) ],
@@ -649,7 +649,7 @@ vec4 fx(vec2 uv){
 
 /* ---- Design systems ---- */
 
-FX.register({ id:'tr-grid-reflow', name:'Grid reflow', cat:'transition', nonLocal:true,
+FX.register({ id:'tr-grid-reflow', name:'Grid reflow', cat:'transition', family:'systems', nonLocal:true,
   search:['responsive', 'columns', 'layout', 'grid', 'editorial', 'panels', 'reflow'],
   desc:'The columns of A narrow and give way as the columns of B open up beside them, like a responsive grid reflowing.',
   params:[ I('cols','Columns',5,2,24), R('gutter','Gutter (px)',10,0,40), R('stagger','Stagger',.5,0,.9), S('content','Content',['Squash','Crop'],0), S('axis','Axis',['Columns','Rows'],0), C('bg','Gutter colour','#141516','ground') ],
@@ -691,7 +691,7 @@ vec4 fx(vec2 uv){
   return vec4(col, 1.);
 }` });
 
-FX.register({ id:'tr-baseline-set', name:'Baseline set', cat:'transition',
+FX.register({ id:'tr-baseline-set', name:'Baseline set', cat:'transition', family:'systems',
   search:['typesetting', 'lines', 'baseline grid', 'editorial', 'caret', 'leading', 'rows'],
   desc:'B is set in line by line along a baseline grid, like type being set, without any letters.',
   params:[ R('leading','Leading (px)',40,8,120), R('stagger','Stagger',.6,0,1), R('xh','x-height',.5,.3,.8), R('ragged','Ragged edge',.22,0,.5), C('caret','Caret colour','#ff5a36','accent'), T('rtl','Right to left') ],
@@ -725,7 +725,7 @@ FX.register({ id:'tr-baseline-set', name:'Baseline set', cat:'transition',
   return vec4(col, 1.);
 }` });
 
-FX.register({ id:'tr-modular-fill', name:'Modular fill', cat:'transition', nonLocal:true,
+FX.register({ id:'tr-modular-fill', name:'Modular fill', cat:'transition', family:'systems', nonLocal:true,
   search:['swiss', 'modular grid', 'layout', 'panels', 'mosaic', 'editorial', 'boxes'],
   desc:'The frame divides into a modular grid of different-sized fields, and each one brings B in from its own direction.',
   params:[ I('cols','Modules across',4,2,12), I('depth','Split depth',3,1,5), R('stagger','Stagger',.55,0,.9), R('gutter','Gutter (px)',12,0,30), S('motion','Motion',['Slide','Scale','Wipe'],0), C('bg','Gutter colour','#141516','ground'), I('seed','Layout seed',3,1,99) ],
@@ -782,7 +782,7 @@ FX.register({ id:'tr-modular-fill', name:'Modular fill', cat:'transition', nonLo
   return vec4(col, 1.);
 }` });
 
-FX.register({ id:'tr-quasicrystal', name:'Quasicrystal', cat:'transition',
+FX.register({ id:'tr-quasicrystal', name:'Quasicrystal', cat:'transition', family:'systems',
   search:['penrose', 'aperiodic', 'tiling', 'geometric', 'pattern', 'islamic', 'rosette', 'mathematical'],
   desc:'A never-repeating lattice of rosettes spreads out from the centre, B fills its cells, then the lattice lines fade.',
   params:[ R('scale','Scale',7,3,20), S('sym','Symmetry',['5-fold','7-fold','8-fold'],0), R('lattice','Lattice in the order',.4,0,.8), C('seam','Line colour','#e4e2dc','ink'), R('weight','Line weight (px)',1.4,0,4), R('glint','Glint',.3,0,1) ],
@@ -819,7 +819,7 @@ FX.register({ id:'tr-quasicrystal', name:'Quasicrystal', cat:'transition',
   return vec4(clamp(col, 0., 1.), 1.);
 }` });
 
-FX.register({ id:'tr-truchet-flow', name:'Truchet flow', cat:'transition',
+FX.register({ id:'tr-truchet-flow', name:'Truchet flow', cat:'transition', family:'systems',
   search:['truchet', 'tiles', 'maze', 'tubes', 'pattern', 'arcs', 'modular'],
   desc:'B flows through the frame along a maze of curving tubes made from quarter-circle tiles, then the tubes swell and merge.',
   params:[ R('tile','Tile size (px)',72,16,200), R('width','Tube width',.12,.04,.3), S('style','Tiles',['Arcs','Diagonals'],0), R('outline','Outline (px)',1.5,0,4), S('order','Order',['From the centre','Random','Left to right'],0), C('line','Outline colour','#141516','ground') ],

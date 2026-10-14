@@ -4,7 +4,7 @@
    and masks run from fully closed to fully open, so cuts on either side are clean. */
 
 /* ---- Lens pass ---- */
-FX.register({ id:'tr-lens-swell', name:'Lens swell', cat:'transition', nonLocal:true, search:['magnify', 'loupe', 'magnifying glass', 'refraction', 'glass ball'],
+FX.register({ id:'tr-lens-swell', name:'Lens swell', cat:'transition', family:'physics', nonLocal:true, search:['magnify', 'loupe', 'magnifying glass', 'refraction', 'glass ball'],
   desc:'A glass lens drifts across A showing B magnified through it, then swells until B is all that is left.',
   params:[ R('size','Lens size',.24,.05,.5), R('mag','Magnification',1.6,1,3), R('refract','Dome bend',.35,0,1), R('disp','Colour fringe',.012,0,.05,.001), R('angle','Path angle',20,0,360,1), R('rim','Rim light',.4,0,1) ],
   fs:`vec3 lenspass_b(vec2 uv){ return texture(uB, mirrorUv(uv)).rgb; }
@@ -39,7 +39,7 @@ vec4 fx(vec2 uv){
 }` });
 
 /* ---- Event horizon ---- */
-FX.register({ id:'tr-event-horizon', name:'Event horizon', cat:'transition', nonLocal:true, search:['black hole', 'gravity', 'gravitational lens', 'einstein ring', 'space'],
+FX.register({ id:'tr-event-horizon', name:'Event horizon', cat:'transition', family:'physics', nonLocal:true, search:['black hole', 'gravity', 'gravitational lens', 'einstein ring', 'space'],
   desc:'A small black hole passes through and bends A into a bright ring, and B is waiting on the other side of the horizon.',
   params:[ R('mass','Mass',.04,.005,.15,.001), R('x','Centre X',.5,0,1), R('y','Centre Y',.5,0,1), R('drift','Drift',.2,0,.5), R('glow','Ring glow',.3,0,1), R('soft','Horizon softness',.01,0,.05,.001) ],
   fs:`vec4 fx(vec2 uv){
@@ -67,7 +67,7 @@ FX.register({ id:'tr-event-horizon', name:'Event horizon', cat:'transition', non
 }` });
 
 /* ---- Caustic reveal ---- */
-FX.register({ id:'tr-caustic', name:'Caustic reveal', cat:'transition', search:['water', 'pool', 'dappled light', 'ripple light', 'swimming pool'],
+FX.register({ id:'tr-caustic', name:'Caustic reveal', cat:'transition', family:'physics', search:['water', 'pool', 'dappled light', 'ripple light', 'swimming pool'],
   desc:'Light through rippling water plays over A, and B appears where the light pools brightest.',
   params:[ R('scale','Scale',6,1,12), R('light','Light',.35,0,1.5), R('drift','Drift speed',.3,0,2), R('soft','Edge softness',.14,.01,.3), C('color','Light colour','#cff4ff',false) ],
   fs:`/* pool caustics: the bright web is where a warped cell pattern's edges meet, two layers multiplied */
@@ -103,7 +103,7 @@ vec4 fx(vec2 uv){
 }` });
 
 /* ---- Field lines ---- */
-FX.register({ id:'tr-field-lines', name:'Field lines', cat:'transition', search:['magnetic', 'dipole', 'flux', 'iron filings', 'streamlines'],
+FX.register({ id:'tr-field-lines', name:'Field lines', cat:'transition', family:'physics', search:['magnetic', 'dipole', 'flux', 'iron filings', 'streamlines'],
   desc:'B is drawn in along magnetic field lines, which thicken until they meet.',
   params:[ I('count','Line count',24,6,80), S('layout','Layout',['Dipole','Quadrupole','Scattered'],0), R('sep','Charge spacing',.4,.1,.9), R('hair','Hairline',.6,0,1), R('drift','Drift',.05,0,.2,.001), C('color','Line colour','#ffffff',false) ],
   fs:`float field_psi(vec2 c){
@@ -143,7 +143,7 @@ vec4 fx(vec2 uv){
 }` });
 
 /* ---- Crystal growth ---- */
-FX.register({ id:'tr-crystal-growth', name:'Crystal growth', cat:'transition', search:['voronoi', 'grain', 'mineral', 'crystallise', 'facets', 'nucleation'],
+FX.register({ id:'tr-crystal-growth', name:'Crystal growth', cat:'transition', family:'physics', search:['voronoi', 'grain', 'mineral', 'crystallise', 'facets', 'nucleation'],
   desc:'B crystallises in grain by grain, each grain growing from its own seed until they lock together.',
   params:[ R('size','Grain size',.12,.03,.4), R('spread','Nucleation spread',.6,0,1), R('tilt','Facet rotation',4,0,20,.1), R('line','Boundaries',.3,0,1), R('tint','Tint',.05,0,.2,.001), R('glint','Growth glint',.5,0,1) ],
   fs:`vec4 fx(vec2 uv){
@@ -185,7 +185,7 @@ FX.register({ id:'tr-crystal-growth', name:'Crystal growth', cat:'transition', s
 }` });
 
 /* ---- Heat shimmer ---- */
-FX.register({ id:'tr-heat-shimmer', name:'Heat shimmer', cat:'transition', search:['haze', 'mirage', 'heat haze', 'tarmac', 'summer', 'wobble'],
+FX.register({ id:'tr-heat-shimmer', name:'Heat shimmer', cat:'transition', family:'physics', search:['haze', 'mirage', 'heat haze', 'tarmac', 'summer', 'wobble'],
   desc:'The air shimmers like tarmac in summer, and B rises through the haze.',
   params:[ R('amp','Amplitude',.035,0,.08,.001), R('scale','Scale',6,2,20), R('speed','Rise speed',1.5,0,4), R('vert','Verticality',.3,0,1), S('dir','From',['Bottom','Top','Left','Right'],0), R('soft','Gradient width',.3,.05,.6) ],
   fs:`vec4 fx(vec2 uv){
@@ -210,7 +210,7 @@ FX.register({ id:'tr-heat-shimmer', name:'Heat shimmer', cat:'transition', searc
 }` });
 
 /* ---- Soap film ---- */
-FX.register({ id:'tr-soap-film', name:'Soap film', cat:'transition', nonLocal:true, search:['bubble', 'iridescent', 'thin film', 'oil slick', 'pop', 'rainbow'],
+FX.register({ id:'tr-soap-film', name:'Soap film', cat:'transition', family:'physics', nonLocal:true, search:['bubble', 'iridescent', 'thin film', 'oil slick', 'pop', 'rainbow'],
   desc:'A soap film slides over A in iridescent swirls, thins out and pops, and B is behind it.',
   params:[ R('strength','Film strength',.35,0,1), R('scale','Swirl scale',3,1,8), R('drain','Drain',.5,0,1), R('x','Burst X',.5,0,1), R('y','Burst Y',.68,0,1), R('burst','Burst time',.42,.3,.9) ],
   fs:`vec4 fx(vec2 uv){
@@ -247,7 +247,7 @@ FX.register({ id:'tr-soap-film', name:'Soap film', cat:'transition', nonLocal:tr
 }` });
 
 /* ---- Chladni plate ---- */
-FX.register({ id:'tr-chladni', name:'Chladni plate', cat:'transition', search:['sand', 'vibration', 'nodal', 'cymatics', 'sound', 'resonance'],
+FX.register({ id:'tr-chladni', name:'Chladni plate', cat:'transition', family:'physics', search:['sand', 'vibration', 'nodal', 'cymatics', 'sound', 'resonance'],
   desc:'B gathers like sand on a vibrating plate, settling into symmetric nodal patterns that thicken until they fill the frame.',
   params:[ I('mode','Start mode',1,1,5), I('steps','Mode steps',3,1,5), R('grain','Grain',.15,0,.5), R('sand','Sand',.6,0,1), S('shape','Plate',['Square','Round'],0), C('color','Sand colour','#efe6d6',false) ],
   fs:`float chladni_f(vec2 x, float n, float m, float round){
@@ -284,7 +284,7 @@ vec4 fx(vec2 uv){
 }` });
 
 /* ---- Turing bloom ---- */
-FX.register({ id:'tr-turing', name:'Turing bloom', cat:'transition', search:['reaction diffusion', 'labyrinth', 'coral', 'animal markings', 'organic', 'maze', 'spots'],
+FX.register({ id:'tr-turing', name:'Turing bloom', cat:'transition', family:'physics', search:['reaction diffusion', 'labyrinth', 'coral', 'animal markings', 'organic', 'maze', 'spots'],
   desc:'B grows in as a living labyrinth, like coral or animal markings, that closes up into the full image.',
   params:[ R('wave','Wavelength',.055,.01,.15,.001), S('pattern','Pattern',['Spots','Stripes','Labyrinth'],2), R('warp','Warp',.1,0,.3), R('front','Front strength',1,0,5), S('origin','Origin',['Centre','Bottom','Top','Left'],0), R('rim','Rim',.4,0,1) ],
   fs:`vec4 fx(vec2 uv){
@@ -320,7 +320,7 @@ FX.register({ id:'tr-turing', name:'Turing bloom', cat:'transition', search:['re
 }` });
 
 /* ---- Moiré beat ---- */
-FX.register({ id:'tr-moire-beat', name:'Moiré beat', cat:'transition', search:['moire', 'op art', 'interference', 'line screen', 'optical'],
+FX.register({ id:'tr-moire-beat', name:'Moiré beat', cat:'transition', family:'physics', search:['moire', 'op art', 'interference', 'line screen', 'optical'],
   desc:'Two fine line screens slide over each other, and B appears through the broad moiré fringes they make.',
   params:[ R('freq','Line frequency',120,40,400,1), R('beat','Beat angle',6,0,30,.1), R('lines','Screen visibility',.5,0,1), R('angle','Base angle',0,-90,90,1), S('shape','Screens',['Lines','Rings'],1), R('band','Edge band',.12,.02,.4) ],
   fs:`vec4 fx(vec2 uv){
@@ -355,7 +355,7 @@ FX.register({ id:'tr-moire-beat', name:'Moiré beat', cat:'transition', search:[
 }` });
 
 /* ---- Polariser ---- */
-FX.register({ id:'tr-polariser', name:'Polariser', cat:'transition', search:['polarizer', 'photoelastic', 'stress', 'filter', 'rainbow', 'birefringence'],
+FX.register({ id:'tr-polariser', name:'Polariser', cat:'transition', family:'physics', search:['polarizer', 'photoelastic', 'stress', 'filter', 'rainbow', 'birefringence'],
   desc:'Like turning a polarising filter: A dims, stress colours bloom in rainbow streaks, and B comes through as the filter turns.',
   params:[ R('stress','Stress amount',.5,0,2), R('scale','Stress scale',2,.5,8), R('dark','Midpoint darkness',.35,0,.8), R('colour','Colour strength',.35,0,1), R('follow','Follow the picture',.5,0,1) ],
   fs:`vec4 fx(vec2 uv){
@@ -378,7 +378,7 @@ FX.register({ id:'tr-polariser', name:'Polariser', cat:'transition', search:['po
 }` });
 
 /* ---- Rack focus ---- */
-FX.register({ id:'tr-rack-focus', name:'Rack focus', cat:'transition', nonLocal:true, search:['focus pull', 'bokeh', 'defocus', 'blur', 'aperture', 'cinematic'],
+FX.register({ id:'tr-rack-focus', name:'Rack focus', cat:'transition', family:'physics', nonLocal:true, search:['focus pull', 'bokeh', 'defocus', 'blur', 'aperture', 'cinematic'],
   desc:'The focus pulls off A into soft shaped bokeh, and B racks into sharpness.',
   params:[ R('blur','Max blur',.03,0,.08,.001), I('blades','Aperture blades',6,0,9), R('boost','Highlight boost',3,0,8), R('breath','Focus breathing',.03,0,.1,.001) ],
   fs:`vec3 rack_gather(sampler2D t, vec2 uv, float r, float scale){
@@ -411,7 +411,7 @@ vec4 fx(vec2 uv){
 }` });
 
 /* ---- Focal plane sweep ---- */
-FX.register({ id:'tr-focal-sweep', name:'Focal plane sweep', cat:'transition', nonLocal:true, search:['depth of field', 'focus', 'tilt shift', 'depth', 'rack'],
+FX.register({ id:'tr-focal-sweep', name:'Focal plane sweep', cat:'transition', family:'physics', nonLocal:true, search:['depth of field', 'focus', 'tilt shift', 'depth', 'rack'],
   desc:'The focus travels back through the scene, and each part changes to B as the focal plane passes through it.',
   params:[ S('depth','Depth from',['Brightness and height','Height','Brightness'],0), R('contrast','Depth contrast',1,0,3), R('blur','Max blur',.02,0,.05,.001), R('soft','Swap softness',.06,.01,.2,.001), S('dir','Direction',['Near to far','Far to near'],0) ],
   fs:`float focal_depth(sampler2D t, vec2 uv){
@@ -448,7 +448,7 @@ vec4 fx(vec2 uv){
 }` });
 
 /* ---- Anamorphic flare ---- */
-FX.register({ id:'tr-anamorphic-flare', name:'Anamorphic flare', cat:'transition', nonLocal:true, search:['lens flare', 'streak', 'light leak', 'overexpose', 'flash', 'cinema'],
+FX.register({ id:'tr-anamorphic-flare', name:'Anamorphic flare', cat:'transition', family:'physics', nonLocal:true, search:['lens flare', 'streak', 'light leak', 'overexpose', 'flash', 'cinema'],
   desc:'A long blue anamorphic streak sweeps across, overexposes the frame and leaves B behind.',
   params:[ C('color','Streak colour','#6fb7ff',false), R('length','Streak length',1.2,.3,3), R('thresh','Threshold',.75,.4,.95), R('peak','Peak exposure',1.5,0,3), R('angle','Path angle',0,-90,90,1) ],
   fs:`vec3 flare_frame(vec2 uv, float x){ return mix(texture(uA, uv).rgb, texture(uB, uv).rgb, x); }
@@ -483,7 +483,7 @@ vec4 fx(vec2 uv){
 }` });
 
 /* ---- Rolling shutter whip ---- */
-FX.register({ id:'tr-rolling-shutter', name:'Rolling shutter whip', cat:'transition', nonLocal:true, search:['whip pan', 'swish', 'jello', 'skew', 'phone camera', 'cmos'],
+FX.register({ id:'tr-rolling-shutter', name:'Rolling shutter whip', cat:'transition', family:'physics', nonLocal:true, search:['whip pan', 'swish', 'jello', 'skew', 'phone camera', 'cmos'],
   desc:'A whip pan on a cheap sensor: the picture skews diagonally as it flicks across to B.',
   params:[ R('skew','Skew',.25,0,.6), R('blur','Motion blur',.5,0,1), S('dir','Direction',['Left','Right'],0), R('jello','Jello',.01,0,.04,.001), R('sharp','Snap',6,3,20,.1) ],
   fs:`float rs_ease(float t){
@@ -520,7 +520,7 @@ vec4 fx(vec2 uv){
 }` });
 
 /* ---- Shutter drag ---- */
-FX.register({ id:'tr-shutter-drag', name:'Shutter drag', cat:'transition', nonLocal:true, search:['long exposure', 'light trails', 'motion blur', 'slow shutter', 'ghost'],
+FX.register({ id:'tr-shutter-drag', name:'Shutter drag', cat:'transition', family:'physics', nonLocal:true, search:['long exposure', 'light trails', 'motion blur', 'slow shutter', 'ghost'],
   desc:'A long exposure smears A into light trails as it drifts off, and B ghosts in through the same exposure.',
   params:[ R('window','Exposure',.35,.05,.6), S('motion','Motion',['Pan','Zoom','Rotate'],0), R('boost','Highlight boost',1.5,0,4), R('travel','Travel',.2,0,.4) ],
   fs:`vec3 drag_frame(vec2 uv, float t){
@@ -550,7 +550,7 @@ vec4 fx(vec2 uv){
 }` });
 
 /* ---- Slit-scan corridor ---- */
-FX.register({ id:'tr-slit-scan', name:'Slit-scan corridor', cat:'transition', nonLocal:true, search:['stargate', 'time slice', 'tunnel', 'warp', 'hyperspace', '2001'],
+FX.register({ id:'tr-slit-scan', name:'Slit-scan corridor', cat:'transition', family:'physics', nonLocal:true, search:['stargate', 'time slice', 'tunnel', 'warp', 'hyperspace', '2001'],
   desc:'The middle of the frame races ahead in time, so A stretches into streaks and B pulls through.',
   params:[ R('spread','Time spread',.6,0,2), S('slit','Slit',['Vertical','Horizontal','Radial'],0), R('zoom','Zoom range',2.2,1,8), R('streak','Streaks',.5,0,1) ],
   fs:`float slit_g(vec2 uv){
@@ -584,7 +584,7 @@ vec4 fx(vec2 uv){
 }` });
 
 /* ---- Lenticular flip ---- */
-FX.register({ id:'tr-lenticular', name:'Lenticular flip', cat:'transition', search:['lenticular', 'postcard', 'tilt card', 'ridged', 'flicker card', 'hologram'],
+FX.register({ id:'tr-lenticular', name:'Lenticular flip', cat:'transition', family:'physics', search:['lenticular', 'postcard', 'tilt card', 'ridged', 'flicker card', 'hologram'],
   desc:'Like tilting a ridged lenticular postcard: A flips to B strip by strip, with that glossy ribbed sheen.',
   params:[ R('width','Lens width',30,6,60,1), R('parallax','Parallax',.5,0,2), R('shine','Highlight',.3,0,1), R('mag','Magnification',.6,0,.9), R('sharp','Flip sharpness',.05,.01,.3,.001) ],
   fs:`vec4 fx(vec2 uv){
@@ -613,7 +613,7 @@ FX.register({ id:'tr-lenticular', name:'Lenticular flip', cat:'transition', sear
 }` });
 
 /* ---- Prism sweep ---- */
-FX.register({ id:'tr-prism-sweep', name:'Prism sweep', cat:'transition', nonLocal:true, search:['spectrum', 'rainbow', 'dispersion', 'glass', 'refraction', 'light split'],
+FX.register({ id:'tr-prism-sweep', name:'Prism sweep', cat:'transition', family:'physics', nonLocal:true, search:['spectrum', 'rainbow', 'dispersion', 'glass', 'refraction', 'light split'],
   desc:'A large glass prism slides across the frame, splitting the light into a spectrum as it carries B in behind it.',
   params:[ R('size','Prism size',.5,.2,1.2), R('disp','Dispersion',.03,0,.08,.001), R('band','Spectrum band',.06,0,.15,.001), R('angle','Angle',15,-60,60,1), R('tint','Glass tint',.05,0,.3), S('dir','From',['Bottom','Top','Left','Right'],0) ],
   fs:`vec3 prism_b(vec2 uv){ return texture(uB, mirrorUv(uv)).rgb; }
@@ -653,7 +653,7 @@ vec4 fx(vec2 uv){
 }` });
 
 /* ---- Kaleidoscope settle ---- */
-FX.register({ id:'tr-kaleido-settle', name:'Kaleidoscope settle', cat:'transition', nonLocal:true, search:['kaleidoscope', 'mirror', 'symmetry', 'mandala', 'hypnotic'],
+FX.register({ id:'tr-kaleido-settle', name:'Kaleidoscope settle', cat:'transition', family:'physics', nonLocal:true, search:['kaleidoscope', 'mirror', 'symmetry', 'mandala', 'hypnotic'],
   desc:'A turns into a kaleidoscope, the pattern rotates, and when it unfolds again it is B.',
   params:[ I('segs','Segments',6,3,16), R('turn','Rotation',90,0,360,1), R('zoom','Zoom at peak',1.3,1,2), R('swap','Swap window',.1,.02,.3), R('x','Centre X',.5,0,1), R('y','Centre Y',.5,0,1) ],
   fs:`vec2 kal_fold(vec2 c, float k, float turn){
@@ -692,7 +692,7 @@ vec4 fx(vec2 uv){
 }` });
 
 /* ---- Fresnel lens ---- */
-FX.register({ id:'tr-fresnel-lens', name:'Fresnel lens', cat:'transition', nonLocal:true, search:['fresnel', 'lighthouse', 'projector', 'rings', 'stepped lens', 'concentric'],
+FX.register({ id:'tr-fresnel-lens', name:'Fresnel lens', cat:'transition', family:'physics', nonLocal:true, search:['fresnel', 'lighthouse', 'projector', 'rings', 'stepped lens', 'concentric'],
   desc:'A flat Fresnel lens slides over A and breaks it into stepped rings, which straighten out as B.',
   params:[ I('zones','Zones',14,4,40), R('power','Power',2.5,0,6), R('rim','Ring highlight',.3,0,1), R('chroma','Colour fringe',.01,0,.03,.001), R('x','Centre X',.5,0,1), R('y','Centre Y',.5,0,1) ],
   fs:`vec3 fres_s(sampler2D t, vec2 cen, vec2 d, float s){ return texture(t, mirrorUv(uncentered(cen + d * s))).rgb; }

@@ -238,7 +238,7 @@ state, `steps` per frame, and an optional `show` pass that turns state into colo
 (`sources.A.process` / `sources.B.process`) run treatments and `fx-reframe` only
 (`FX.laneEligible`) on each fitted source before the base. The inspector reads
 Prepare → Combine → Finish; those names are UI only. The picker can draw thumbnails from your image A ("On my image"), tooltips are a small shared system (any `title` becomes one), and Language versions are named snapshots of pinned values saved with the project. Randomise is scoped to
-those stages (and Finish categories); unchecked state is preserved; scope is
+those stages (plus Combine categories, transition families and Finish categories); unchecked state is preserved; scope is
 session/local UI, not saved in projects. Undo/Redo is snapshot-based,
 session-only, coalesced for continuous controls. Library search matches name,
 description, category, and optional `search` keywords. Saved looks are the

@@ -82,8 +82,13 @@ const markDirty = () => { App.dirty = true; };
 /* Session-only snapshot history. Not saved in projects. Media stays as refs. */
 const HIST_LIMIT = 80;
 const RAND_CATS = ['treatment', 'fx', 'overlay'];
+const RAND_BASES = ['transition', 'mix', 'generator'];
+/* Combine categories and transition families are keyed with a prefix so they never clash with Finish's */
 function defaultRandScope(){
-  return { prepareA:false, prepareB:false, combine:true, finish:true, treatment:true, fx:true, overlay:true };
+  const s = { prepareA:false, prepareB:false, combine:true, finish:true, treatment:true, fx:true, overlay:true };
+  for (const c of RAND_BASES) s[`base_${c}`] = true;
+  for (const f of TR_FAMILIES) s[`fam_${f.id}`] = true;
+  return s;
 }
 function loadRandScope(){
   try {
@@ -977,10 +982,15 @@ function randomPrepare(k){
   }
   state.sources[k].process = next;
 }
-function randomCombine(){
-  const bases = FX.modules.filter(m => ['transition', 'mix', 'generator'].includes(m.cat) && !m.noRandom);
-  if (!bases.length) return;
-  state.base = makeInst(pickMod(bases).id, true);
+function combinePool(scope){
+  return FX.modules.filter(m => RAND_BASES.includes(m.cat) && !m.noRandom && scope[`base_${m.cat}`]
+    && (m.cat !== 'transition' || scope[`fam_${trFamily(m)}`]));
+}
+function randomCombine(scope){
+  const pool = combinePool(scope);
+  if (!pool.length) return false;
+  state.base = makeInst(pickMod(pool).id, true);
+  return true;
 }
 function randomFinish(scope){
   const enabled = new Set(RAND_CATS.filter(c => scope[c]));
@@ -1008,18 +1018,24 @@ function randomise(){
   const s = App.randScope;
   const work = s.prepareA || s.prepareB || s.combine || (s.finish && RAND_CATS.some(c => s[c]));
   if (!work){ toast('Tick a stage in the Randomise menu first.'); return; }
+  if (s.combine && !combinePool(s).length && !(s.prepareA || s.prepareB || (s.finish && RAND_CATS.some(c => s[c])))){
+    toast('Nothing for Combine to pick from. Switch on a category or a transition family in the Randomise menu.');
+    return;
+  }
+  let combined = false;
   History.record('randomise', () => {
     resetAllFeedback();
     if (s.prepareA) randomPrepare('A');
     if (s.prepareB) randomPrepare('B');
-    if (s.combine) randomCombine();
+    if (s.combine) combined = randomCombine(s);
     if (s.finish) randomFinish(s);
     renderBase(); renderStack(); renderSlots(); renderLibrary(); markDirty();
   });
   const bits = [];
   if (s.prepareA) bits.push('Prepare A');
   if (s.prepareB) bits.push('Prepare B');
-  if (s.combine) bits.push((FX.byId[state.base.id] || {}).name || 'Combine');
+  if (combined) bits.push((FX.byId[state.base.id] || {}).name || 'Combine');
+  else if (s.combine) bits.push('Combine kept (nothing to pick from)');
   if (s.finish) bits.push(state.stack.map(x => (FX.byId[x.id] || {}).name).join(', ') || 'Finish');
   toast(bits.join(' · '));
 }
@@ -1031,9 +1047,32 @@ function setRandScope(partial){
 function syncRandMenu(){
   const s = App.randScope;
   document.querySelectorAll('#randMenu [data-rand]').forEach(inp => { inp.checked = !!s[inp.dataset.rand]; });
-  const cats = $('#randCats');
-  if (cats) cats.style.opacity = s.finish ? '1' : '.4';
-  document.querySelectorAll('#randCats [data-rand]').forEach(inp => { inp.disabled = !s.finish; });
+  const dim = (sel, on) => {
+    const el = $(sel); if (!el) return;
+    el.style.opacity = on ? '1' : '.4';
+    el.querySelectorAll('input, button').forEach(x => { x.disabled = !on; });
+  };
+  dim('#randCats', s.finish);
+  dim('#randBases', s.combine);
+  dim('#randFams', s.combine && s.base_transition);
+}
+/* family toggles are built from TR_FAMILIES so the list lives in one place */
+function buildRandFamilies(){
+  const box = $('#randFamList');
+  if (!box || box.childElementCount) return;
+  const counts = {};
+  for (const m of FX.modules) if (m.cat === 'transition') counts[trFamily(m)] = (counts[trFamily(m)] || 0) + 1;
+  for (const f of TR_FAMILIES){
+    const lab = document.createElement('label');
+    lab.className = 'chk';
+    lab.innerHTML = `<input type="checkbox" data-rand="fam_${f.id}"> ${f.label} <span class="n">${counts[f.id] || 0}</span>`;
+    box.appendChild(lab);
+  }
+}
+function setAllFamilies(on){
+  const next = {};
+  for (const f of TR_FAMILIES) next[`fam_${f.id}`] = on;
+  setRandScope(next);
 }
 function openRandMenu(open){
   const menu = $('#randMenu'), btn = $('#btnRandScope');
@@ -1044,7 +1083,10 @@ function openRandMenu(open){
   if (on) syncRandMenu();
 }
 function initRandomiseUi(){
+  buildRandFamilies();
   syncRandMenu();
+  $('#randFamAll').onclick = () => setAllFamilies(true);
+  $('#randFamNone').onclick = () => setAllFamilies(false);
   $('#btnRandom').onclick = () => { openRandMenu(true); randomise(); };
   $('#btnRandScope').onclick = e => { e.stopPropagation(); openRandMenu(); };
   document.querySelectorAll('#randMenu [data-rand]').forEach(inp => {

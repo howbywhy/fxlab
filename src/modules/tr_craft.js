@@ -3,7 +3,7 @@
    object carries A to B. They all start exactly on A and end exactly on B;
    the craft lives in the middle of the move. */
 
-FX.register({ id:'tr-screenprint', name:'Screenprint pass', cat:'transition', search:['screen print', 'silkscreen', 'squeegee', 'cmyk', 'misregistration', 'poster', 'pull', 'ink'],
+FX.register({ id:'tr-screenprint', name:'Screenprint pass', cat:'transition', family:'craft', search:['screen print', 'silkscreen', 'squeegee', 'cmyk', 'misregistration', 'poster', 'pull', 'ink'],
   desc:'B is printed onto fresh paper one ink at a time, each pulled across by a squeegee and slightly out of register until it settles.',
   params:[ S('inks','Inks',['Tonal layers from B','Process (CMY)'],0), S('dir','Pull',DIRS4,0), R('stagger','Pass stagger',.2,0,.33), R('misreg','Misregistration',.012,0,.04,.001), R('mesh','Screen mesh',.5,0,1), C('paper','Paper','#f4f0e6',false) ],
   fs:`float screenprint_coord(vec2 uv, int m){ return m == 0 ? 1. - uv.y : m == 1 ? uv.x : m == 2 ? uv.y : 1. - uv.x; }
@@ -53,7 +53,7 @@ vec4 fx(vec2 uv){
   return vec4(clamp(col, 0., 1.), 1.);
 }` });
 
-FX.register({ id:'tr-riso-drum', name:'Riso drum', cat:'transition', nonLocal:true, search:['risograph', 'riso', 'duotone', 'zine', 'grain', 'fluoro', 'spot colour', 'print'],
+FX.register({ id:'tr-riso-drum', name:'Riso drum', cat:'transition', family:'craft', nonLocal:true, search:['risograph', 'riso', 'duotone', 'zine', 'grain', 'fluoro', 'spot colour', 'print'],
   desc:'A fresh sheet feeds in over A carrying B in grainy, streaky spot ink, the second drum lays its colour on top, and then the grain clears to the photograph.',
   params:[ C('first','First ink','#ff48b0','accent'), C('second','Second ink','#3255a4','accent2'), R('grain','Grain (px)',2,1,5,.5), R('starve','Streaks',.35,0,.8), R('misreg','Misregistration',.006,0,.02,.0005), C('paper','Paper','#f3efe6',false) ],
   fs:`float riso_ink(vec2 su, float cov, float seed){
@@ -90,7 +90,7 @@ vec4 fx(vec2 uv){
   return vec4(col, 1.);
 }` });
 
-FX.register({ id:'tr-deboss', name:'Blind deboss', cat:'transition', search:['emboss', 'deboss', 'letterpress', 'blind emboss', 'paper', 'stationery', 'foil', 'press', 'packaging'],
+FX.register({ id:'tr-deboss', name:'Blind deboss', cat:'transition', family:'craft', search:['emboss', 'deboss', 'letterpress', 'blind emboss', 'paper', 'stationery', 'foil', 'press', 'packaging'],
   desc:'A turns to blank paper with B pressed into it, and then the ink floods into the impression, darkest parts first.',
   params:[ R('depth','Depth',1.5,0,4), R('light','Light angle',135,-180,180,1), R('soft','Flood softness',.1,.02,.3), R('hold','Blind hold',.5,.25,.75), C('paper','Paper','#efebe2',false) ],
   fs:`float deboss_h(vec2 uv){ return luma(texture(uB, clamp(uv, 0., 1.)).rgb); }
@@ -125,7 +125,7 @@ vec4 fx(vec2 uv){
   return vec4(clamp(col, 0., 1.), 1.);
 }` });
 
-FX.register({ id:'tr-cyanotype', name:'Cyanotype exposure', cat:'transition', search:['cyanotype', 'sun print', 'blueprint', 'prussian blue', 'alternative process', 'photogram', 'botanical'],
+FX.register({ id:'tr-cyanotype', name:'Cyanotype exposure', cat:'transition', family:'craft', search:['cyanotype', 'sun print', 'blueprint', 'prussian blue', 'alternative process', 'photogram', 'botanical'],
   desc:'A fades to a blue sun print, B exposes in Prussian blue on brush-coated paper, shadows first, and then its colour washes back in.',
   params:[ C('blue','Prussian','#1e3a6e',false), C('paper','Paper','#f2eedf',false), R('curve','Exposure curve',1.4,.5,3), R('rough','Coating roughness',.05,0,.15,.005), R('ret','Colour return',.75,.55,.92) ],
   fs:`vec3 cyanotype_tone(vec3 c, float k){ return mix(p_blue, p_paper, pow(clamp(luma(c), 0., 1.), k)); }
@@ -156,7 +156,7 @@ vec4 fx(vec2 uv){
   return vec4(col, 1.);
 }` });
 
-FX.register({ id:'tr-darkroom', name:'Darkroom tray', cat:'transition', search:['darkroom', 'developer', 'safelight', 'analogue', 'film', 'photographic print', 'develop', 'chemical'],
+FX.register({ id:'tr-darkroom', name:'Darkroom tray', cat:'transition', family:'craft', search:['darkroom', 'developer', 'safelight', 'analogue', 'film', 'photographic print', 'develop', 'chemical'],
   desc:'Under a red safelight A bleaches to blank paper and B develops out of it, shadows first, while the developer sloshes across the tray.',
   params:[ R('safelight','Safelight',.6,0,1), R('slosh','Slosh',.06,0,.2,.005), R('gamma','Shadows lead',1.5,.5,3), R('angle','Slosh direction',30,-180,180,1), C('paper','Paper','#f5f2ec',false) ],
   fs:`vec4 fx(vec2 uv){
@@ -184,7 +184,7 @@ FX.register({ id:'tr-darkroom', name:'Darkroom tray', cat:'transition', search:[
   return vec4(clamp(col, 0., 1.), 1.);
 }` });
 
-FX.register({ id:'tr-paper-fold', name:'Paper fold', cat:'transition', nonLocal:true, search:['fold', 'origami', 'crease', 'letter', 'sheet', 'paper', 'stationery', 'folding carton'],
+FX.register({ id:'tr-paper-fold', name:'Paper fold', cat:'transition', family:'craft', nonLocal:true, search:['fold', 'origami', 'crease', 'letter', 'sheet', 'paper', 'stationery', 'folding carton'],
   desc:'A folds in half along a crease like a sheet of paper, then in half again, and the folded packet slides away to leave B.',
   params:[ S('folds','Folds',['One','Two'],1), R('angle','Crease angle',0,-90,90,1), R('back','Show-through',.6,0,1), R('crease','Crease shadow',.45,0,1), R('shadow','Drop shadow',.5,0,1), C('paper','Paper','#f6f3ec',false) ],
   fs:`vec3 fold_front(vec2 x){ return texture(uA, uncentered(x)).rgb; }
@@ -265,7 +265,7 @@ vec4 fx(vec2 uv){
   return vec4(bcol * (1. - sh / 6. * p_shadow * .8 * smoothstep(0., .15, lift)), 1.);
 }` });
 
-FX.register({ id:'tr-accordion-pleat', name:'Accordion pleat', cat:'transition', nonLocal:true, search:['concertina', 'pleat', 'fold', 'brochure', 'zigzag', 'leaflet', 'fan fold'],
+FX.register({ id:'tr-accordion-pleat', name:'Accordion pleat', cat:'transition', family:'craft', nonLocal:true, search:['concertina', 'pleat', 'fold', 'brochure', 'zigzag', 'leaflet', 'fan fold'],
   desc:'A concertinas into pleats and folds away to one side while B unfolds from the other.',
   params:[ I('pleats','Pleats',10,4,40), R('contrast','Light',.38,0,.6), R('depth','Depth',.2,0,.4,.005), S('dir','A folds towards',['Right','Left'],0), C('bg','Behind','#141516','ground') ],
   fs:`vec3 pleat_sheet(sampler2D s, float local, float y, float alpha, out float inside){
@@ -304,7 +304,7 @@ vec4 fx(vec2 uv){
   return vec4(clamp(col, 0., 1.), 1.);
 }` });
 
-FX.register({ id:'tr-loom', name:'Loom', cat:'transition', search:['weave', 'woven', 'textile', 'thread', 'fabric', 'twill', 'warp', 'weft', 'cloth'],
+FX.register({ id:'tr-loom', name:'Loom', cat:'transition', family:'craft', search:['weave', 'woven', 'textile', 'thread', 'fabric', 'twill', 'warp', 'weft', 'cloth'],
   desc:'B is woven into A thread by thread, each weft passing over and under the warp before the cloth relaxes into B.',
   params:[ R('width','Thread width (px)',12,4,40,1), S('pattern','Weave',['Plain','Twill','Satin'],1), R('stagger','Stagger',.5,0,.9), R('shade','Thread shading',.3,0,.6), R('gap','Gap',.1,0,.3) ],
   fs:`bool loom_over(float i, float j, int pat){
@@ -354,7 +354,7 @@ vec4 fx(vec2 uv){
   return vec4(clamp(col, 0., 1.), 1.);
 }` });
 
-FX.register({ id:'tr-tesserae', name:'Tesserae', cat:'transition', search:['mosaic', 'tiles', 'roman', 'stone', 'grout', 'heritage', 'flip tiles'],
+FX.register({ id:'tr-tesserae', name:'Tesserae', cat:'transition', family:'craft', search:['mosaic', 'tiles', 'roman', 'stone', 'grout', 'heritage', 'flip tiles'],
   desc:'A sets into a mosaic of stone tiles, the tiles turn over one by one to B, and then the grout sinks away into the photograph.',
   params:[ R('size','Tile size (px)',30,8,80,1), R('jitter','Hand-set',.35,0,1), R('grout','Grout (px)',3,0,8,.5), R('rand','Flip randomness',.7,0,1), C('groutColor','Grout','#e8e4dc',false) ],
   fs:`vec4 fx(vec2 uv){
@@ -392,7 +392,7 @@ FX.register({ id:'tr-tesserae', name:'Tesserae', cat:'transition', search:['mosa
   return vec4(clamp(col, 0., 1.), 1.);
 }` });
 
-FX.register({ id:'tr-leaded-light', name:'Leaded light', cat:'transition', nonLocal:true, search:['stained glass', 'church window', 'rose window', 'glass', 'lead', 'came', 'cathedral', 'voronoi'],
+FX.register({ id:'tr-leaded-light', name:'Leaded light', cat:'transition', family:'craft', nonLocal:true, search:['stained glass', 'church window', 'rose window', 'glass', 'lead', 'came', 'cathedral', 'voronoi'],
   desc:'B lights up pane by pane like stained glass, spreading out from the centre of the window, and then the leading melts away.',
   params:[ R('size','Pane size',.1,.03,.3,.005), R('lead','Lead (px)',5,0,12,.5), R('refract','Refraction',.02,0,.06,.001), R('glow','Glow',.35,0,1), S('order','Order',['From the centre','Scattered','Top to bottom'],0), C('leadColor','Lead','#1a1a1a',false) ],
   fs:`vec2 leaded_point(vec2 cell){ return cell + .15 + .7 * hash22(cell + 11.); }
@@ -443,7 +443,7 @@ vec4 fx(vec2 uv){
   return vec4(clamp(col, 0., 1.), 1.);
 }` });
 
-FX.register({ id:'tr-cross-stitch', name:'Cross stitch', cat:'transition', search:['embroidery', 'needlework', 'stitch', 'aida', 'pixel', 'handmade', 'sampler', 'thread'],
+FX.register({ id:'tr-cross-stitch', name:'Cross stitch', cat:'transition', family:'craft', search:['embroidery', 'needlework', 'stitch', 'aida', 'pixel', 'handmade', 'sampler', 'thread'],
   desc:'B is stitched in row by row as small coloured crosses on cloth, and then the stitches resolve into the photograph.',
   params:[ R('size','Stitch size (px)',14,6,40,1), R('thick','Thread thickness',.34,.15,.45), I('levels','Thread colours',8,2,16), S('order','Order',['Rows','Scattered','From the centre'],0), C('cloth','Cloth','#f3efe5',false) ],
   fs:`float stitch_seg(vec2 q, vec2 a, vec2 b, float len, out float along){
@@ -507,7 +507,7 @@ vec4 fx(vec2 uv){
   return vec4(clamp(col, 0., 1.), 1.);
 }` });
 
-FX.register({ id:'tr-marbled-drop', name:'Marbled drop', cat:'transition', nonLocal:true, search:['marbling', 'suminagashi', 'ink drop', 'bookbinding', 'endpaper', 'rings', 'liquid'],
+FX.register({ id:'tr-marbled-drop', name:'Marbled drop', cat:'transition', family:'craft', nonLocal:true, search:['marbling', 'suminagashi', 'ink drop', 'bookbinding', 'endpaper', 'rings', 'liquid'],
   desc:'Drops of B land on A as if it were floating marbling ink, pushing A outward into fine rings, until the last drop covers the frame.',
   params:[ I('drops','Drops',7,2,16), R('size','Drop size',.5,.1,1), R('spread','Spread',.5,0,1), R('ring','Ring line',.25,0,1), S('layout','Layout',['Scattered','In a line','Spiral'],0) ],
   fs:`vec2 marble_centre(float k, float n, int lay){
@@ -550,7 +550,7 @@ vec4 fx(vec2 uv){
   return vec4(a * (1. - .6 * line), 1.);
 }` });
 
-FX.register({ id:'tr-ebru-comb', name:'Ebru comb', cat:'transition', nonLocal:true, search:['marbling', 'ebru', 'feather', 'comb', 'nonpareil', 'bookbinding', 'pattern', 'chevron'],
+FX.register({ id:'tr-ebru-comb', name:'Ebru comb', cat:'transition', family:'craft', nonLocal:true, search:['marbling', 'ebru', 'feather', 'comb', 'nonpareil', 'bookbinding', 'pattern', 'chevron'],
   desc:'Stripes of B are laid into A and combed through, like Turkish paper marbling, into feathered chevrons that settle into B.',
   params:[ R('spacing','Tine spacing',.08,.02,.3,.005), R('strength','Comb strength',.15,0,.4,.005), R('sharp','Sharpness',.02,.005,.1,.001), R('freq','Stripes',10,3,40,.5), R('angle','Comb direction',-90,-180,180,1), T('back','Comb back',false) ],
   fs:`float ebru_tine(vec2 x, vec2 perp, float shift){ float f = fract(dot(x, perp) / p_spacing + shift); return abs(f - .5) * p_spacing; }
@@ -579,7 +579,7 @@ vec4 fx(vec2 uv){
   return vec4(col, 1.);
 }` });
 
-FX.register({ id:'tr-engraving-relay', name:'Engraving relay', cat:'transition', search:['engraving', 'banknote', 'guilloche', 'etching', 'hatching', 'security print', 'line art', 'intaglio'],
+FX.register({ id:'tr-engraving-relay', name:'Engraving relay', cat:'transition', family:'craft', search:['engraving', 'banknote', 'guilloche', 'etching', 'hatching', 'security print', 'line art', 'intaglio'],
   desc:'A turns into a banknote-style engraving, the hatching turns and redraws itself as B, and then the colour comes back.',
   params:[ R('spacing','Line spacing (px)',9,3,24,.5), R('from','Angle from',30,-90,90,1), R('to','Angle to',-30,-90,90,1), R('wave','Guilloché wave',.4,0,2), C('ink','Ink','#1b2a3a',false), C('paper','Paper','#f6f3ea',false) ],
   fs:`float engrave_lines(vec2 c, float ang, float l, float sp){

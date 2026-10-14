@@ -3,7 +3,7 @@
    crush, particles and screened cuts. Every one returns A exactly at
    p = 0 and B exactly at p = 1, so they can sit on a hard cut. */
 
-FX.register({ id:'tr-chroma-dissolve', name:'Chromatic dissolve', cat:'transition', search:['rgb split', 'chromatic aberration', 'prism', 'colour fringe', 'lens', 'dispersion'],
+FX.register({ id:'tr-chroma-dissolve', name:'Chromatic dissolve', cat:'transition', family:'signal', search:['rgb split', 'chromatic aberration', 'prism', 'colour fringe', 'lens', 'dispersion'],
   desc:'A crossfade where both pictures split into colour fringes that peak in the middle, A pulling one way and B the other.',
   params:[ R('amount','Split',1,0,2), S('mode','Spread',['From the centre','Along an angle'],0), R('angle','Angle',0,-180,180,1), S('fringe','Fringe',['Spectrum','Red, green, blue'],0) ],
   fs:`vec3 chroma_w(float t){ return hsv2rgb(vec3(t * .72, 1., 1.)); }
@@ -30,7 +30,7 @@ vec4 fx(vec2 uv){
   return vec4(mix(a, b, smoothstep(.15, .85, p)), 1.);
 }` });
 
-FX.register({ id:'tr-rgb-slide', name:'RGB split slide', cat:'transition', search:['chromatic', 'whip', 'swipe', 'carousel', 'slideshow', 'aberration'],
+FX.register({ id:'tr-rgb-slide', name:'RGB split slide', cat:'transition', family:'signal', search:['chromatic', 'whip', 'swipe', 'carousel', 'slideshow', 'aberration'],
   desc:'B pushes A out of frame, with red, green and blue running at slightly different speeds so the fast middle fringes.',
   params:[ S('dir','Direction',['Left','Right','Up','Down'],0), S('mode','Mode',['Push','Slide over'],0), R('amount','Split',.7,0,2), R('blur','Motion blur',.4,0,1) ],
   fs:`vec3 rgbslide_at(vec2 uv, float p){
@@ -58,7 +58,7 @@ vec4 fx(vec2 uv){
   return vec4(col / 5., 1.);
 }` });
 
-FX.register({ id:'tr-tv-static', name:'TV static cut', cat:'transition', search:['noise', 'snow', 'interference', 'channel change', 'analogue', 'broadcast'],
+FX.register({ id:'tr-tv-static', name:'TV static cut', cat:'transition', family:'signal', search:['noise', 'snow', 'interference', 'channel change', 'analogue', 'broadcast'],
   desc:'A hard cut hidden behind a burst of television static, in coloured blocks or fine grey snow.',
   params:[ S('style','Static',['Colour blocks','Snow'],0), R('size','Block size',.025,.004,.1), R('peak','Coverage',1,.2,1.2), R('bright','Brightness',.85,.2,1.5), R('rate','Flicker rate',24,1,60,1) ],
   fs:`vec4 fx(vec2 uv){
@@ -86,7 +86,7 @@ FX.register({ id:'tr-tv-static', name:'TV static cut', cat:'transition', search:
   return vec4(mix(img, n, cover), 1.);
 }` });
 
-FX.register({ id:'tr-static-band', name:'Static band wipe', cat:'transition', search:['noise', 'interference', 'scan', 'signal', 'tear'],
+FX.register({ id:'tr-static-band', name:'Static band wipe', cat:'transition', family:'signal', search:['noise', 'interference', 'scan', 'signal', 'tear'],
   desc:'A straight wipe with a band of static riding the edge, widest in the middle of the move.',
   params:[ S('dir','Direction',DIRS4,1), R('span','Band width',.35,0,1), R('noise','Static',1,0,1), R('tear','Row jitter',.4,0,1), T('colour','Colour static') ],
   fs:`vec4 fx(vec2 uv){
@@ -112,7 +112,7 @@ FX.register({ id:'tr-static-band', name:'Static band wipe', cat:'transition', se
   return vec4(mix(col, n, band * p_noise), 1.);
 }` });
 
-FX.register({ id:'tr-lost-signal', name:'Lost signal', cat:'transition', search:['tracking', 'analogue', 'tv', 'interference', 'crt', 'dropout'],
+FX.register({ id:'tr-lost-signal', name:'Lost signal', cat:'transition', family:'signal', search:['tracking', 'analogue', 'tv', 'interference', 'crt', 'dropout'],
   desc:'The picture loses its signal for a moment: lines tear sideways, colour drains and scanlines show, and B comes back in its place.',
   params:[ I('lines','Lines',120,20,400), R('amount','Tracking',.6,0,1), R('drift','Shift',.6,0,1.5), R('scan','Scanlines',.35,0,1), R('fade','Signal loss',.5,0,1) ],
   fs:`vec4 fx(vec2 uv){
@@ -139,7 +139,7 @@ FX.register({ id:'tr-lost-signal', name:'Lost signal', cat:'transition', search:
   return vec4(col, 1.);
 }` });
 
-FX.register({ id:'tr-vhs-roll', name:'VHS roll', cat:'transition', search:['vertical hold', 'tape', 'vhs', 'analogue', 'retro', 'roll'],
+FX.register({ id:'tr-vhs-roll', name:'VHS roll', cat:'transition', family:'signal', search:['vertical hold', 'tape', 'vhs', 'analogue', 'retro', 'roll'],
   desc:'The tape loses vertical hold and the picture rolls, with a black blanking bar, until B settles into place.',
   params:[ I('rolls','Rolls',2,1,5), R('bar','Blanking bar',.1,0,.3), R('noise','Noise',.5,0,1), R('scan','Scanlines',.4,0,1), R('bleed','Colour bleed',.5,0,1) ],
   fs:`vec3 vhs_tape(sampler2D tex, vec2 st, float bleed){
@@ -184,7 +184,7 @@ vec4 fx(vec2 uv){
   return vec4(clamp(col, 0., 1.), 1.);
 }` });
 
-FX.register({ id:'tr-flicker-glitch', name:'Flicker glitch', cat:'transition', search:['glitch', 'stutter', 'strobe', 'flash', 'rgb split', 'ghost'],
+FX.register({ id:'tr-flicker-glitch', name:'Flicker glitch', cat:'transition', family:'signal', search:['glitch', 'stutter', 'strobe', 'flash', 'rgb split', 'ghost'],
   desc:'The cut flickers back and forth between A and B a few times before it commits, with colour ghosts and shifted blocks on each flash.',
   params:[ I('steps','Flicker steps',24,6,60), R('rgb','RGB offset',.9,0,2), R('ghost','Ghost',.75,0,1), R('blocks','Block shift',.5,0,1), R('scan','Scanlines',.3,0,1) ],
   fs:`vec3 flick_split(sampler2D tex, vec2 st, float ca){
@@ -215,7 +215,7 @@ vec4 fx(vec2 uv){
   return vec4(col, 1.);
 }` });
 
-FX.register({ id:'tr-datamosh-strips', name:'Datamosh strips', cat:'transition', search:['datamosh', 'glitch', 'tear', 'compression', 'corrupt', 'residue'],
+FX.register({ id:'tr-datamosh-strips', name:'Datamosh strips', cat:'transition', family:'signal', search:['datamosh', 'glitch', 'tear', 'compression', 'corrupt', 'residue'],
   desc:'Bars and slits of the frame tear sideways and leave stale copies of A behind, as if the file had been corrupted between the two shots.',
   params:[ I('bars','Bars',42,4,120), I('slits','Slits',18,0,60), R('tear','Tear',.18,0,.5), R('chroma','Chroma split',.5,0,2), R('residue','Residue',.6,0,1), R('flash','Flash',.2,0,1) ],
   fs:`vec3 mosh_tex(bool useB, vec2 st, float ca){
@@ -248,7 +248,7 @@ vec4 fx(vec2 uv){
   return vec4(clamp(col, 0., 1.), 1.);
 }` });
 
-FX.register({ id:'tr-shatter', name:'Shatter', cat:'transition', search:['glass', 'fracture', 'break', 'shards', 'smash', 'explode'],
+FX.register({ id:'tr-shatter', name:'Shatter', cat:'transition', family:'signal', search:['glass', 'fracture', 'break', 'shards', 'smash', 'explode'],
   desc:'A cracks from an impact point and breaks into pieces that spin and fall away to show B behind.',
   params:[ I('rows','Rows of pieces',7,3,10), R('x','Impact X',0,-1,1), R('y','Impact Y',.2,-1,1), R('force','Force',.6,0,2), R('gravity','Gravity',.8,0,2), R('spin','Spin',1,0,3), R('stagger','Stagger',.6,0,.9) ],
   fs:`vec2 shatter_seed(vec2 id){ return id + .5 + (hash22(id + 7.) - .5) * .8; }
@@ -328,7 +328,7 @@ vec4 fx(vec2 uv){
   return vec4(clamp(col, 0., 1.), 1.);
 }` });
 
-FX.register({ id:'tr-crush', name:'Crush', cat:'transition', search:['crumple', 'paper ball', 'scrunch', 'bin', 'fold'],
+FX.register({ id:'tr-crush', name:'Crush', cat:'transition', family:'signal', search:['crumple', 'paper ball', 'scrunch', 'bin', 'fold'],
   desc:'A crumples into a faceted ball of paper and shrinks away to a point, leaving B.',
   params:[ I('facets','Facets',9,4,30), R('crumple','Crumple',1,.2,1.5), R('x','Into X',0,-1,1), R('y','Into Y',0,-1,1), R('shade','Shading',.7,0,1), R('shadow','Shadow',.5,0,1) ],
   fs:`vec4 fx(vec2 uv){
@@ -369,7 +369,7 @@ FX.register({ id:'tr-crush', name:'Crush', cat:'transition', search:['crumple', 
   return vec4(mix(col, clamp(crumpled, 0., 1.), inside), 1.);
 }` });
 
-FX.register({ id:'tr-blow-away', name:'Blow away', cat:'transition', search:['particles', 'dust', 'disintegrate', 'wind', 'sand', 'thanos', 'dissolve'],
+FX.register({ id:'tr-blow-away', name:'Blow away', cat:'transition', family:'signal', search:['particles', 'dust', 'disintegrate', 'wind', 'sand', 'thanos', 'dissolve'],
   desc:'A breaks into fine particles that lift off in a gust, edge first, and drift away over B.',
   params:[ R('size','Particle size (px)',8,2,40,1), R('angle','Direction',20,-180,180,1), R('dist','Distance',.7,.1,2), R('turb','Turbulence',.5,0,1.5), R('life','Particle life',.45,.1,.9), R('rough','Ragged edge',.6,0,1) ],
   fs:`vec2 blow_dir(){ return vec2(cos(radians(p_angle)), sin(radians(p_angle))); }
@@ -416,7 +416,7 @@ vec4 fx(vec2 uv){
   return vec4(mix(b, pc * (1. + .25 * bestA), alpha), 1.);
 }` });
 
-FX.register({ id:'tr-wind-streaks', name:'Wind streaks', cat:'transition', search:['wind', 'streak', 'scanline wipe', 'speed lines', 'smear'],
+FX.register({ id:'tr-wind-streaks', name:'Wind streaks', cat:'transition', family:'signal', search:['wind', 'streak', 'scanline wipe', 'speed lines', 'smear'],
   desc:'B blows in on fine horizontal streaks that run ahead of the edge, each line at its own pace, smearing the picture as it passes.',
   params:[ S('dir','Direction',DIRS4,1), R('size','Streak length',.35,.02,1), R('row','Row height (px)',3,1,40,1), R('smear','Smear',.6,0,1), R('soft','Softness',.15,0,1) ],
   fs:`vec4 fx(vec2 uv){
@@ -444,7 +444,7 @@ FX.register({ id:'tr-wind-streaks', name:'Wind streaks', cat:'transition', searc
   return vec4(col, 1.);
 }` });
 
-FX.register({ id:'tr-halftone-morph', name:'Halftone morph', cat:'transition', search:['halftone', 'print', 'screen', 'dots', 'newsprint', 'am screen'],
+FX.register({ id:'tr-halftone-morph', name:'Halftone morph', cat:'transition', family:'signal', search:['halftone', 'print', 'screen', 'dots', 'newsprint', 'am screen'],
   desc:'The picture breaks into a halftone screen whose dots swell until they touch, swap to B underneath, and shrink back into the new photograph.',
   params:[ R('cell','Dot size',.022,.006,.06), R('angle','Screen angle',45,0,90,1), S('style','Dots',['Colour on paper','Ink on paper','Colour on black'],0), C('ink','Ink','#16171a','ink'), C('paper','Paper','#f2efe6','ground'), R('spread','Stagger',.3,0,.6) ],
   fs:`vec4 fx(vec2 uv){
@@ -473,7 +473,7 @@ FX.register({ id:'tr-halftone-morph', name:'Halftone morph', cat:'transition', s
   return vec4(mix(under, ht, h), 1.);
 }` });
 
-FX.register({ id:'tr-glyph-grid', name:'Glyph grid', cat:'transition', search:['ascii', 'character', 'terminal', 'dot matrix', 'mosaic', 'code'],
+FX.register({ id:'tr-glyph-grid', name:'Glyph grid', cat:'transition', family:'signal', search:['ascii', 'character', 'terminal', 'dot matrix', 'mosaic', 'code'],
   desc:'The frame turns into a grid of small marks, bars, dots or blocks set by brightness, which scramble and resolve into B.',
   params:[ I('rows','Rows',24,8,140), S('glyph','Marks',['Bars','Dots','Blocks'],1), S('colour','Colour',['From the image','Ink on ground'],0), C('ink','Ink','#e8e6df','ink'), C('ground','Ground','#121314','ground'), R('scramble','Scramble',.5,0,1) ],
   fs:`float glyph_mark(vec2 f, float L, int kind){
@@ -518,7 +518,7 @@ vec4 fx(vec2 uv){
   return vec4(mix(under, gl, h), 1.);
 }` });
 
-FX.register({ id:'tr-comic-pop', name:'Comic pop', cat:'transition', search:['comic', 'pop art', 'ben-day', 'burst', 'cartoon', 'halftone', 'starburst'],
+FX.register({ id:'tr-comic-pop', name:'Comic pop', cat:'transition', family:'signal', search:['comic', 'pop art', 'ben-day', 'burst', 'cartoon', 'halftone', 'starburst'],
   desc:'A turns to flat print colour with ink lines and dots, a starburst punches through, and B arrives the same way before settling back to a photograph.',
   params:[ I('levels','Colour levels',4,2,8), R('dot','Dot size (px)',10,3,40,1), R('line','Ink lines',.7,0,1), I('spikes','Burst points',14,6,30), C('burst','Burst','#ffd23a','accent'), C('burst2','Burst dots','#ff3b30','accent2'), C('ink','Ink','#111111','ink') ],
   fs:`vec3 comic_look(bool useB, vec2 uv, float amt){

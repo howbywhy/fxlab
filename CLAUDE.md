@@ -231,7 +231,7 @@ module needs a literal (paper, pen inks).
 
 ## Current shape (keep this roughly up to date)
 
-442 modules (each with a picker thumbnail): 64 effects, 49 treatments, 44 generators, 221 transitions,
+552 modules (each with a picker thumbnail): 64 effects, 49 treatments, 44 generators, 331 transitions,
 17 mix & mask, 14 overlays, 31 data visuals, 2 sources. Nineteen of the effects are vector (SVG) effects
 that redraw the geometry of an SVG source; two generators are simulations (`feedback:'float'`: half-float
 state, `steps` per frame, and an optional `show` pass that turns state into colour). No starter looks. Optional Prepare lists

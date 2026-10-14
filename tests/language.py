@@ -156,7 +156,7 @@ def main():
         page.evaluate("() => { const m = window.fxlab.Language.meta(); m.name = 'A <b>bold</b> & \\\\\"quoted\\\\\" name'; m.rule = '</script><img src=x onerror=window.__pwned=1>'; }")
         html = page.evaluate("async () => await window.fxlab.Language.tool()")
         tool = pathlib.Path(out) / 'tool.html'; tool.write_text(html)
-        if len(html) > 1_400_000: bad.append(f'the tool is {len(html)//1024} KB')
+        if len(html) > 1_700_000: bad.append(f'the tool is {len(html)//1024} KB')
         if 'const THUMBS = {};' not in html: bad.append('the tool still carries module thumbnails')
 
         tp = browser.new_page(viewport={'width': 1280, 'height': 800}); terrs = []

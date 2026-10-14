@@ -110,6 +110,9 @@ const TR_FAMILIES = [
   { id:'moves', label:'Moves' }, { id:'panels', label:'Panels' }, { id:'3d', label:'3D' },
   { id:'warp', label:'Warps' }, { id:'signal', label:'Signal & glitch' }, { id:'physics', label:'Physics & optics' },
   { id:'craft', label:'Print & craft' }, { id:'systems', label:'Systems & nature' },
+  { id:'cinema', label:'Film & animation' }, { id:'maths', label:'Geometry & maths' }, { id:'life', label:'Living systems' },
+  { id:'matter', label:'Materials' }, { id:'sky', label:'Sky & weather' }, { id:'machine', label:'Machines & codecs' },
+  { id:'reading', label:'Reads the images' }, { id:'space', label:'Architecture & space' },
 ];
 const trFamily = m => m.family || 'classic';
 const catRole = id => (CATS.find(c => c.id === id) || {}).role;

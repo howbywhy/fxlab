@@ -1,6 +1,6 @@
 # Transition catalogue
 
-The 192 transitions added in October 2026, by file. The 29 older ones live in `sources_transitions.js` and `library2/3/5.js`. Research behind them: gl-transitions (all 125), ffmpeg xfade (58 modes), Codrops and web motion libraries, the transition lists of Premiere, After Effects, Resolve, Final Cut, Keynote, PowerPoint and CapCut, plus original ideas from physics, print, optics, data and nature.
+The 302 transitions added in October 2026, by file: 192 in the first round and 110 in the second. The 29 older ones live in `sources_transitions.js` and `library2/3/5.js`. Research behind them: gl-transitions (all 125), ffmpeg xfade (58 modes), Codrops and web motion libraries, the transition lists of Premiere, After Effects, Resolve, Final Cut, Keynote, PowerPoint and CapCut, plus original ideas from physics, print, optics, data and nature.
 
 ## Blends and light (`tr_blend.js`, 24)
 
@@ -223,3 +223,141 @@ The 192 transitions added in October 2026, by file. The 29 older ones live in `s
 - **Modular fill** `tr-modular-fill`: The frame divides into a modular grid of different-sized fields, and each one brings B in from its own direction.
 - **Quasicrystal** `tr-quasicrystal`: A never-repeating lattice of rosettes spreads out from the centre, B fills its cells, then the lattice lines fade.
 - **Truchet flow** `tr-truchet-flow`: B flows through the frame along a maze of curving tubes made from quarter-circle tiles, then the tubes swell and merge.
+
+## Round 2
+
+110 more, invented rather than collected: each one is a new rule for how A becomes B, and many are driven by the two pictures themselves (their tones, edges, colours and structure), so they look different on every pair.
+
+## Film and animation (`tr_cinema.js`, 18)
+
+- **Dolly zoom** `tr-dolly-zoom`: The subject holds its size while everything around it looms towards the lens, and B comes out of the reverse move.
+- **Step printing** `tr-step-print`: The push is printed in steps, each frame held and smeared into the next, so the move stutters and trails like a step-printed chase.
+- **Bi-pack matte** `tr-bipack-matte`: B is printed in through a high-contrast matte cut from its own tones, and the matte and counter-matte never quite line up, so every edge carries a matte line.
+- **Stop trick** `tr-stop-trick`: The camera stops, part of the picture is swapped, the camera starts again: B replaces A in a few hard jumps, each with a jolt and a flare where things changed.
+- **Glass shot** `tr-glass-shot`: B is painted on a pane of glass in front of the lens: it comes in as a matte painting along a soft, wandering seam, then the painting goes live.
+- **Multiplane** `tr-multiplane`: A comes apart into painted planes by tone, the camera trucks through them so each plane sweeps past at its own speed, and B is the backdrop behind.
+- **Hidden cut** `tr-hidden-cut`: The camera drifts into the darkest part of A until shadow fills the frame, and the cut is hidden there before it pulls out of the darkest part of B.
+- **Rotoscope** `tr-rotoscope`: Both pictures are traced into flat cels, and the cel shapes melt from A’s outlines into B’s before the photograph returns.
+- **Silhouette and gel** `tr-silhouette-gel`: A drops to a black silhouette against a coloured gel, the silhouette reshapes into B’s dark shapes as the gel changes colour, and B is lit back up.
+- **Zoetrope** `tr-zoetrope`: The picture is seen through the slits of a spinning drum, each slit a few frames further on, so the change from A to B runs across the frame.
+- **Metric montage** `tr-metric-montage`: A and B are intercut in ever shorter shots that slow again at the end, and each cut reframes the picture, like a Soviet montage sequence.
+- **Ratio change** `tr-ratio-change`: The frame closes down to a wide letterbox, B arrives anamorphically squeezed and opens out across it, then the frame opens back to full height.
+- **Onion skin** `tr-onion-skin`: On the animator’s lightbox A turns into a red pencil drawing, B is traced over it in blue, and B is painted back in once the sheets line up.
+- **Changeover** `tr-changeover`: Two projectors share the screen: A’s runs down flickering as its lamp goes warm, while B’s comes up out of rack, frame lines rolling past, until it is racked into place.
+- **Painted emulsion** `tr-painted-emulsion`: Every frame is painted over by hand in dyes taken from B, each one differently, flickering between the two pictures until B comes through.
+- **Scratched leader** `tr-scratched-leader`: A sinks into black emulsion and B is scratched back through it in lines that run along the film and boil from frame to frame, B’s highlights first.
+- **One-point** `tr-one-point`: A folds into perfect mirror symmetry as the camera pushes down the centre line, and B unfolds out of the same symmetry.
+- **Rear projection** `tr-rear-projection`: B comes up as a back-projected plate behind A’s foreground, soft and hot in the middle, until the foreground walks off and the plate becomes the picture.
+
+## Geometry and maths (`tr_maths.js`, 12)
+
+- **Droste descent** `tr-droste-descent`: B opens as a picture hanging inside A, with B inside B again, and the camera falls through the frame into it.
+- **Loxodrome** `tr-loxodrome`: Both pictures stream along spiralling lines from a source to a sink: A drains into its brightest area while B pours out of its own.
+- **Riemann roll** `tr-riemann-roll`: The picture is treated as a sphere seen from above: it rolls over, A slides away to the far side and B comes round from the point at infinity.
+- **Apollonian gasket** `tr-apollonian`: The frame is packed with kissing circles, each tangent to its neighbours, and B fills them from the largest down to the smallest.
+- **Julia matte** `tr-julia-matte`: The two pictures’ average colours choose a Julia set; B closes in from far outside it, along its filigree edge, and the set itself goes last.
+- **Hybrid image** `tr-hybrid-image`: B’s fine detail arrives first over A’s broad shapes and colour, then the broad shapes hand over too, like a hybrid image seen from further and further away.
+- **Hyperbolic glide** `tr-hyperbolic-glide`: We pull back to find A is one tile of an endless hyperbolic floor in a Poincaré disc, glide across to the B tile next door, and settle into it.
+- **Globe turn** `tr-globe-turn`: The flat picture is read as a world map and curls up into a globe, the globe turns, and B unrolls from its far side as a map again.
+- **Vanishing line** `tr-vanishing-line`: A lies down as an endless floor and B hangs as an endless ceiling; the horizon where both run to infinity crosses the frame.
+- **Phyllotaxis** `tr-phyllotaxis`: The frame becomes a sunflower head, seeds set by the golden angle; B fills it seed by seed from the middle outward, with its bright seeds a little ahead.
+- **Voronoi to Delaunay** `tr-voronoi-dual`: A settles into flat Voronoi cells, each cell flips to its dual Delaunay triangles coloured from B, and the facets resolve into B.
+- **Cat map** `tr-cat-map`: Arnold’s cat map treats the frame as a torus: A is stretched and folded around it into fine diagonal ribbons, and B unfolds out of ribbons running the other way.
+
+## Living systems (`tr_life.js`, 14)
+
+- **Cell division** `tr-mitosis`: A rounds into a cell and divides, again and again, and B shows in the gaps between the daughter cells until they shrink away.
+- **Passing cloud** `tr-passing-cloud`: Dark bands ripple across the skin like a cuttlefish’s passing cloud, its pigment sacs swelling and closing, and the skin under them turns from A to B.
+- **Murmuration** `tr-murmuration`: A breaks into a flock of specks that gathers into a single turning murmuration over the sky, then spreads back out as B.
+- **Bioluminescence** `tr-bioluminescence`: A sinks into a night sea, B is traced in glowing plankton where its light and edges are, and then B surfaces through the glow.
+- **Diatom** `tr-diatom`: A turns to the glass shell of a diatom, rows of pores open from the centre out in radial symmetry, and B shows through them until the glass is gone.
+- **Mycelium** `tr-mycelium`: Fine white threads branch out from a few spores, forking as they go, and B grows in along them until the mat closes over A.
+- **Wing scales** `tr-wing-scales`: A settles into the shingled scales of a butterfly wing, each scale tips over to B with a flash of structural colour, and the scales melt back into the picture.
+- **Camouflage** `tr-camouflage`: B first appears only as texture inside A’s colours, hidden like an animal against its ground, then takes its own colour patch by patch.
+- **Cilia** `tr-cilia`: A carpet of fine hairs beats in rippling waves and passes the picture along stroke by stroke, carrying A out and B in.
+- **Blink** `tr-blink`: The eyelids close on A, light glows warm through them, and they open on B, which comes into focus.
+- **Moult** `tr-moult`: A clouds over like a snake’s old skin, its scales standing out, then the skin peels back and bunches up to show B fresh underneath.
+- **Heartbeat** `tr-heartbeat`: The frame thumps like a heart, lub-dub, swelling on each beat, and every beat pumps B a little further out from the centre.
+- **Afterimage** `tr-afterimage`: A is held until the eye tires of it, the frame goes to a plain wall where A lingers as its own complementary ghost, and B rises through the fading ghost.
+- **Slime mould** `tr-physarum`: B spreads like a slime mould: a fan-shaped front of fine veins that prunes itself to a few thick tubes, which swell, feeding on the light parts of B first.
+
+## Materials (`tr_matter.js`, 12)
+
+- **Mercury pool** `tr-mercury-pool`: Liquid metal floods the low, dark ground of A first, mirrors B in its surface, then beads up and rolls off B.
+- **Ferrofluid** `tr-ferrofluid`: Black magnetic fluid gathers on the bright areas first and rises into a field of spikes that draws the picture in relief, then drains to show B.
+- **Incandescence** `tr-incandescent`: A heats until it glows, its brightest parts first, holds as an ember picture, then cools into B with B’s darkest parts cooling first.
+- **Oil slick** `tr-oil-slick`: A drop of oil spreads over A, its colour fringes travelling outwards as the film thins, and B lies under it once it has gone clear.
+- **Rust bloom** `tr-rust-bloom`: Corrosion starts in the dark crevices of A and blooms across it, then eats through in holes where B shows.
+- **Gold leaf** `tr-gold-leaf`: Sheets of gold leaf are laid over A one by one, pressed with its relief, then rubbed through to B, darkest parts first.
+- **Wind ripples** `tr-wind-ripple`: Wind combs A into sand ripples that march downwind and bend around its shapes, and B settles into the troughs until the ripples flatten.
+- **Charcoal rubbing** `tr-charcoal-rubbing`: A sheet of paper goes over A and charcoal is rubbed across it, picking up B’s relief, then the paper is lifted away.
+- **Wiped glass** `tr-wiped-glass`: Breath fogs the glass over A, then a hand wipes it clear in sweeps, leaving finger streaks, beaded edges and drips, with B behind.
+- **Wet paint** `tr-wet-paint`: B is brushed on as a wet coat, dark and glossy, then dries patchily to matt, its lightest parts first.
+- **Poured wax** `tr-poured-wax`: B is poured down over A as molten wax in rounded tongues, warm and translucent where it is fresh and setting opaque behind.
+- **Bleach** `tr-bleach-out`: Bleach spatters across A and its darks lift through rust to cream as the spots spread, then B develops out of the pale, darks first.
+
+## Sky and weather (`tr_sky.js`, 16)
+
+- **Eclipse** `tr-sky-eclipse`: A dark moon slides across the sun, the light drains from A, the corona flares at totality and B comes back as the moon moves off.
+- **Aurora** `tr-sky-aurora`: Night falls on A and folded curtains of light ripple across it; B shows through wherever they glow, until it is all lit.
+- **Golden hour** `tr-sky-golden-hour`: The sun sets across A, raking over its forms in warm light down to blue hour, then rises on B from the other side.
+- **Lightning** `tr-sky-lightning`: A storm darkens A, a bolt comes down, and B is what the flashes light up.
+- **Fog bank** `tr-sky-fog-bank`: Fog rolls in from the far distance, swallows A, and lifts off B from the foreground back.
+- **Cloud shadow** `tr-sky-cloud-shadow`: Cloud shadows drift over a sunlit A; under them B waits in flat overcast light, and when the sky clears again it is B in the sun.
+- **Terminator line** `tr-sky-terminator`: Night sweeps across the frame on a curved line, through dusk and dark with the lights coming on, and dawn breaks behind it on B.
+- **Star trails** `tr-sky-star-trails`: Night falls and the sky turns: the lights of A streak into arcs around the pole, and unwind as B.
+- **Rainbow** `tr-sky-rainbow`: A rainbow rises out of the ground and widens across the sky; inside the bow the light is brighter and it is B.
+- **Snowfall** `tr-sky-snow-settle`: Snow falls and settles on every ledge and ridge of A until it is buried, then melts off B, darkest parts first.
+- **Monsoon** `tr-sky-monsoon`: A sheet of heavy rain sweeps across and leaves B soaked and gleaming behind it, then it dries.
+- **Dust storm** `tr-sky-haboob`: A towering wall of dust rolls over A, the light goes ochre and flat, and B is there when it has passed.
+- **Day for night** `tr-sky-day-for-night`: A goes to night by its own tones, shadows first and reds before blues, with its brightest spots left burning; B wakes highlights first.
+- **Fata Morgana** `tr-sky-fata-morgana`: The horizon of A towers up into stacked, flipped copies of itself, as in a sea or desert mirage, and B settles out of the same towers.
+- **Day to night slices** `tr-sky-time-slices`: The frame is cut into slices of time, each a little later in the day, so A goes through dusk and night and comes out as B in the morning.
+- **Contrail** `tr-sky-contrail`: A plane draws thin white lines across A that spread and drift in the wind, and B shows through as the trails widen into cloud.
+
+## Machines and codecs (`tr_machine.js`, 14)
+
+- **JPEG coefficients** `tr-dct-zigzag`: A loses its detail coefficient by coefficient in 8×8 blocks, the way JPEG throws it away, each block swaps to B at its coarsest, and B is rebuilt the same way.
+- **Interlaced load** `tr-interlace-passes`: B loads over A the way an interlaced PNG or GIF does: coarse passes sweep down the frame, each doubling the detail, until the full picture lands.
+- **Z-fighting** `tr-zfight`: A and B become two surfaces at the same depth and fight for every pixel in shimmering bands, until B comes out in front.
+- **Mip streaming** `tr-mip-stream`: Streaming tiles drop A down its mip levels and pull B back up them, each tile popping a level at its own moment.
+- **Phosphor persistence** `tr-phosphor`: The tube switches off and A fades on its phosphors, red and green lingering longest, while the beam paints B back in two interlaced fields.
+- **E-paper refresh** `tr-eink`: An e-paper page refresh: A drops to grey ink, flashes through its negative, black and white, and B settles with a ghost of A before its colour comes up.
+- **LED wall switch** `tr-led-cabinets`: A video wall switches input cabinet by cabinet along its data chain, its diodes showing through, each panel a little off in colour until the wall settles on B.
+- **Split-flap board** `tr-split-flap`: The frame becomes a split-flap board: every tile clatters through a few pieces of picture before it lands on B, more turns where the two pictures differ most.
+- **Palette swap** `tr-palette-swap`: A drops to indexed colour, its palette is swapped for B's entry by entry (or cycled through it), then B's index map takes over tone by tone.
+- **Bitrate climb** `tr-bitrate-climb`: B is sent as a cheap update to A: the blocks that changed most arrive first as a flat colour shift, and the detail comes through in coarse steps as the bitrate climbs.
+- **Shading modes** `tr-shading-modes`: The frame is drawn as a triangle mesh: A drops from textured to smooth to flat shading to wireframe, and B builds back up the same pipeline, triangle by triangle down the frame.
+- **Progressive render** `tr-path-trace`: Like a path tracer restarting: A breaks into a coarse, noisy few samples a pixel with stray fireflies, and B converges out of the grain.
+- **Raw sensor** `tr-raw-sensor`: A goes back to raw sensor data, dark and green behind its colour filter mosaic, the readout swaps in B row by row, and it is demosaiced and white-balanced back into a photograph.
+- **Blur-up placeholder** `tr-blurhash`: A melts into the handful of soft cosine waves a web placeholder keeps of it, the waves trade over one by one into B's, and B loads in on top.
+
+## Reads the images (`tr_reading.js`, 12)
+
+- **Hue families** `tr-hue-family`: The picture changes over one colour family at a time, from the start hue out to its opposite on the wheel, so every pair of images hands over in its own order.
+- **Contours then fill** `tr-contour-fill`: B’s own contours are drawn over A, strongest first, and then its colour floods out from the lines, busy areas before open ones.
+- **Luma parallax** `tr-luma-parallax`: Both pictures are read as relief from their own light and shade, the camera drifts over them, and the layers hand over nearest first.
+- **Salient first** `tr-salient-first`: Whatever catches the eye in B arrives first, as islands that spread, and the quiet background settles in last.
+- **Grade match** `tr-grade-match`: The two pictures meet on a shared grade measured from both, swap where their tones agree, and then B releases into its own colour.
+- **Scale relay** `tr-scale-relay`: B’s light and colour arrive first and its detail last, so the middle is A’s drawing in B’s colour; or the other way round.
+- **Palette borrow** `tr-palette-borrow`: B appears painted in A’s colours, each tone taking the colour A gives that tone, and then its own colours come through.
+- **Least difference** `tr-least-difference`: A wipe whose edge lingers where the two pictures agree and races across where they differ, so the seam hides in what they share.
+- **Light flood** `tr-light-flood`: B pours out from its own brightest point and spreads across the frame, running fast through tones like the light and slowly through what is unlike it.
+- **Grain smear** `tr-grain-smear`: A is brushed out along the run of its own forms and B is brushed back in along its, as if the paint were still wet.
+- **Codec morph** `tr-codec-morph`: B is first rebuilt from blocks of A, each moved to where it best matches, as a video codec would predict it, and then the real B refreshes block by block.
+- **Figure and ground** `tr-figure-ground`: Reads each picture’s subject against its own background: A’s subject is lifted out to leave bare ground, the ground changes over, and B’s subject lands on it with a soft shadow.
+
+## Architecture and space (`tr_space.js`, 12)
+
+- **Camera obscura** `tr-obscura`: The room goes dark, B is thrown onto it upside down through a pinhole, then turns upright and sharpens as the room light goes.
+- **Anamorphic resolve** `tr-anamorph`: B is painted across A’s wall so that it only makes sense from one spot, and the camera walks to that spot until it resolves.
+- **Enfilade** `tr-enfilade`: A doorway opens in A onto a line of rooms, each a step closer to B, and the camera walks through them until B fills the frame.
+- **Window light** `tr-blind-light`: Sun through a window falls across the room in bars, B is whatever the light lands on, and the blinds open until the room is all light.
+- **Scenery flats** `tr-stage-flats`: Both pictures are cut into theatre flats along their tones, and the sets run past on tracks at different speeds, A’s going off as B’s come on.
+- **Projection mapping** `tr-proj-boxes`: The frame pushes out into a wall of boxes carrying A on their faces, light traces their edges, the faces change to B box by box, and the wall flattens again.
+- **Shoji screens** `tr-shoji`: A turns into paper screens, B glows through them from behind, brightest parts first, and then the screens slide apart on their tracks.
+- **Light painting** `tr-light-painting`: The room goes to night and a torch beam paints B onto the wall in long-exposure strokes, overlapping and uneven, before the lights come up.
+- **Vanishing point** `tr-vanishing`: A folds back into a corridor of itself, its middle becoming the far wall, and the camera walks down it to B waiting at the end.
+- **Shop window** `tr-shop-window`: A is a reflection on a sheet of glass and B is behind it; you step closer, the reflection slides away and fades, first where B is brightest.
+- **Scrim** `tr-scrim`: A is painted on a theatre gauze; the light moves behind it and B bleeds through the weave, highlights first, then the gauze flies out.
+- **Infinity mirror** `tr-infinity-mirror`: A opens into a tunnel of its own reflections between two mirrors; B arrives in the deepest one and is passed forward reflection by reflection.

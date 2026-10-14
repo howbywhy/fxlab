@@ -59,6 +59,12 @@ computer does not transfer them. Save a project (`.fxlab.json`) and a kit
 The screen is one tab per task: **Images**, **Combine**, **Finish**, **Data**,
 **Colour**, **Language**, **Export**. The stage, timeline and Undo stay put; the panel changes.
 
+Keys 1–7 switch tabs and ⌘K or `/` opens the picker. `[` and `]` swap the layer you last
+touched for the previous or next module, in picker order, so you can audition looks on the
+picture; Shift+`[` / `]` jumps a whole category. The tab decides what steps: Images steps
+Prepare on the open source, Combine steps the base, every other tab steps Finish (adding a
+layer if Finish is empty). A run of steps undoes in one go.
+
 Each frame is built the same way:
 
 ```

@@ -96,12 +96,16 @@ function initWorkspaces(){
     else if (e.key === 'ArrowUp'){ e.preventDefault(); if (i > 0) items[i - 1].focus(); else $('#search').focus(); }
     else if (e.key === 'Enter' && document.activeElement === $('#search') && items[0]){ e.preventDefault(); items[0].click(); }
   });
-  /* number keys switch tabs; ⌘K or / opens the picker */
+  /* number keys switch tabs; ⌘K or / opens the picker; [ ] step modules */
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape' && App.libTarget && !e.metaKey && !e.ctrlKey){ e.preventDefault(); setLibTarget(null); return; }
     if (e.metaKey || e.ctrlKey || e.altKey){
       if ((e.key === 'k' || e.key === 'K') && (e.metaKey || e.ctrlKey)){ e.preventDefault(); setLibTarget('all'); }
       return;
+    }
+    /* [ and ] step the current layer through the modules; they also work with a slider or checkbox focused */
+    if ((e.code === 'BracketLeft' || e.code === 'BracketRight') && !typingField(e.target) && !App.player && !App.libTarget){
+      e.preventDefault(); stepModule(e.code === 'BracketRight' ? 1 : -1, e.shiftKey); return;
     }
     if (typingField(e.target) || /input|textarea|select/i.test(e.target.tagName)) return;
     const n = +e.key;

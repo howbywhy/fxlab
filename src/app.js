@@ -53,6 +53,8 @@ const App = {
   /* Session-only inspector disclosure. Not saved in projects. Key instances by uid. */
   ui:{ stages:{ prepare:true, combine:true, finish:true }, inst:Object.create(null), more:Object.create(null) },
   libTarget:null, libReplace:null,
+  /* the layer [ and ] step through: the last one clicked or focused, session-only */
+  stepUid:null,
   exportDir:null, exportDirPending:null, exportDirPersisted:false,
 };
 
@@ -631,6 +633,71 @@ function chooseModuleNow(id, m, ctx){
   }
 }
 
+/* ---------- stepping through modules from the keyboard ---------- */
+/* [ and ] swap the layer you last touched for the previous or next module in picker order, so a look
+   can be auditioned on the picture without opening the picker. Shift jumps a whole category. The tab
+   decides which list: Images steps Prepare on the open source, Combine steps the base, anything else
+   steps Finish. A run of steps is one undo. */
+function stepTarget(){
+  if (App.ws === 'combine') return { kind:'combine', list:null, label:'Combine', eligible:m => catRole(m.cat) === 'base' };
+  if (App.ws === 'images'){
+    const k = App.srcTab;
+    return { kind:'prepare' + k, list:state.sources[k].process, label:`Prepare ${k}`, eligible:m => FX.laneEligible(m) };
+  }
+  return { kind:'finish', list:state.stack, label:'Finish', eligible:m => catRole(m.cat) === 'stack' };
+}
+function stepPool(eligible){
+  const out = [];
+  for (const cat of CATS) for (const m of FX.modules) if (m.cat === cat.id && eligible(m)) out.push(m);
+  return out;
+}
+/* touching a card makes it the one [ and ] step */
+function stepFocus(card, inst){
+  const mark = () => {
+    if (App.stepUid === inst.uid) return;
+    App.stepUid = inst.uid;
+    document.querySelectorAll('.card.stepping').forEach(c => c.classList.remove('stepping'));
+    card.classList.add('stepping');
+  };
+  card.addEventListener('pointerdown', mark);
+  card.addEventListener('focusin', mark);
+}
+let stepTimer = 0;
+function stepModule(dir, byCategory){
+  const tg = stepTarget(), pool = stepPool(tg.eligible);
+  if (!pool.length) return;
+  let idx = -1, cur = null;
+  if (tg.list){
+    idx = tg.list.findIndex(i => i.uid === App.stepUid);
+    if (idx < 0) idx = tg.list.length - 1;
+    cur = tg.list[idx] || null;
+  } else cur = state.base;
+  const at = cur ? pool.findIndex(m => m.id === cur.id) : -1;
+  let next;
+  if (byCategory){
+    const cats = CATS.filter(c => pool.some(m => m.cat === c.id)).map(c => c.id);
+    const ci = at < 0 ? (dir > 0 ? -1 : 0) : cats.indexOf(pool[at].cat);
+    const cat = cats[(ci + dir + cats.length) % cats.length];
+    next = pool.find(m => m.cat === cat);
+  } else next = at < 0 ? pool[dir > 0 ? 0 : pool.length - 1] : pool[(at + dir + pool.length) % pool.length];
+  /* one undo per run of steps: the transaction closes once the keys go quiet */
+  if (!History.txn) History.begin('step');
+  clearTimeout(stepTimer); stepTimer = setTimeout(() => { if (History.txn && History.txn.label === 'step') History.end(); }, 900);
+  let n = 1, of = 1;
+  if (!tg.list){
+    state.base = makeInst(next.id);
+    renderBase();
+  } else {
+    if (!cur){ const added = makeInst(next.id); openNewInst(added.uid); tg.list.push(added); idx = tg.list.length - 1; }
+    else replaceInst(tg.list, idx, next.id);
+    App.stepUid = tg.list[idx].uid; n = idx + 1; of = tg.list.length;
+    if (tg.kind === 'finish') renderStack(); else renderSlots();
+  }
+  markDirty();
+  const cat = CATS.find(c => c.id === next.cat), inCat = pool.filter(m => m.cat === next.cat);
+  toast(`${tg.label}${of > 1 ? ` ${n} of ${of}` : ''} · ${next.name}\n${cat ? cat.label : ''} ${inCat.indexOf(next) + 1} of ${inCat.length}`, false, 1800);
+}
+
 /* ---------- inspector: params ---------- */
 function paramRow(inst, p, onChange){
   const row = el('div', 'prm');
@@ -737,7 +804,7 @@ function changeBtn(target, idx){
   const b = el('button', 'ghost', 'Change');
   b.dataset.change = target;
   b.dataset.idx = String(idx);
-  b.title = 'Replace this module';
+  b.title = 'Replace this module. [ and ] step through the others on the picture, Shift jumps a category';
   b.onclick = ev => { ev.stopPropagation(); setLibTarget(target === 'A' ? 'replacePrepareA' : target === 'B' ? 'replacePrepareB' : 'replaceFinish', idx); };
   return b;
 }
@@ -818,7 +885,7 @@ function renderBase(){
   if (cat) title.append(el('small', null, cat.label));
   const acts = el('span');
   if (m.params.length){ const rb = el('button', 'ghost', 'Reset'); rb.onclick = () => History.record('reset', () => { state.base = makeInst(m.id); renderBase(); markDirty(); }); acts.append(rb); }
-  const chg = el('button', 'ghost', 'Change'); chg.dataset.add = 'combine'; chg.onclick = () => setLibTarget('combine'); acts.append(chg);
+  const chg = el('button', 'ghost', 'Change'); chg.dataset.add = 'combine'; chg.title = 'Replace this module. [ and ] step through the others on the picture, Shift jumps a category'; chg.onclick = () => setLibTarget('combine'); acts.append(chg);
   head.append(title, acts);
   sec.append(head, el('p', 'desc', m.desc || ''));
   if (m.cat === 'transition') sec.querySelector('.desc').textContent += ' Timing follows the timeline length, easing and hold.';
@@ -840,6 +907,8 @@ function renderStack(){
     const m = FX.byId[inst.id];
     const card = el('div', 'card'); if (!inst.on) card.classList.add('off'); if (!instIsOpen(inst.uid)) card.classList.add('collapsed');
     if (App.libTarget === 'replaceFinish' && App.libReplace === idx) card.classList.add('replacing');
+    if (inst.uid === App.stepUid) card.classList.add('stepping');
+    stepFocus(card, inst);
     const ch = el('div', 'ch'); ch.draggable = true;
     const num = el('span', 'step', String(idx + 1)); num.title = `Runs ${['first', 'second', 'third'][idx] || `${idx + 1}th`}`;
     const nm = el('div', 'nm'); nm.append(m.name, el('small', null, (CATS.find(c => c.id === m.cat) || {}).label));
@@ -905,6 +974,8 @@ function renderSlots(){
       if (!m) return;
       const card = el('div', 'card'); if (!inst.on) card.classList.add('off'); if (!instIsOpen(inst.uid)) card.classList.add('collapsed');
       if ((App.libTarget === 'replacePrepareA' && k === 'A' || App.libTarget === 'replacePrepareB' && k === 'B') && App.libReplace === idx) card.classList.add('replacing');
+      if (inst.uid === App.stepUid) card.classList.add('stepping');
+      stepFocus(card, inst);
       const ch = el('div', 'ch');
       const nm = el('div', 'nm'); nm.append(m.name);
       if (!inst.on) nm.append(el('small', 'hiddenTag', 'off'));

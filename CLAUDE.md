@@ -45,8 +45,9 @@ thing anyone sees is an image being directed, not an effect stack.
 
 One tab per task, in the order the work goes: **Images** (sources and Prepare),
 **Combine**, **Finish**, **Data**, **Colour**, **Language**, **Export**. The stage,
-timeline and Undo are constant; only the panel beside them changes. Keys 1–7 switch tabs, and
-⌘K or `/` opens the module picker for everything.
+timeline and Undo are constant; only the panel beside them changes. Keys 1–7 switch tabs,
+⌘K or `/` opens the module picker for everything, and `[` / `]` step the last-touched layer
+through the modules (Shift jumps a category; `stepModule` in `src/app.js`).
 
 - The module picker is a drawer over the panel (`#lib`), opened by an Add or
   Change button and closed when a module is chosen. It is never a hidden mode.

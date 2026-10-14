@@ -231,14 +231,14 @@ module needs a literal (paper, pen inks).
 
 ## Current shape (keep this roughly up to date)
 
-250 modules (each with a picker thumbnail): 64 effects, 49 treatments, 44 generators, 29 transitions,
+552 modules (each with a picker thumbnail): 64 effects, 49 treatments, 44 generators, 331 transitions,
 17 mix & mask, 14 overlays, 31 data visuals, 2 sources. Nineteen of the effects are vector (SVG) effects
 that redraw the geometry of an SVG source; two generators are simulations (`feedback:'float'`: half-float
 state, `steps` per frame, and an optional `show` pass that turns state into colour). No starter looks. Optional Prepare lists
 (`sources.A.process` / `sources.B.process`) run treatments and `fx-reframe` only
 (`FX.laneEligible`) on each fitted source before the base. The inspector reads
 Prepare → Combine → Finish; those names are UI only. The picker can draw thumbnails from your image A ("On my image"), tooltips are a small shared system (any `title` becomes one), and Language versions are named snapshots of pinned values saved with the project. Randomise is scoped to
-those stages (and Finish categories); unchecked state is preserved; scope is
+those stages (plus Combine categories, transition families and Finish categories); unchecked state is preserved; scope is
 session/local UI, not saved in projects. Undo/Redo is snapshot-based,
 session-only, coalesced for continuous controls. Library search matches name,
 description, category, and optional `search` keywords. Saved looks are the

@@ -59,6 +59,15 @@ computer does not transfer them. Save a project (`.fxlab.json`) and a kit
 The screen is one tab per task: **Images**, **Combine**, **Finish**, **Data**,
 **Colour**, **Language**, **Export**. The stage, timeline and Undo stay put; the panel changes.
 
+**Poster** (switch at the top left) is a separate, lightweight layout tool for
+stills and collage: drop or paste images, add text and shapes, then move, scale,
+rotate, blend and adjust each layer. Pictures can be cut out (erase and restore
+brushes, colour key, crop), given torn, scissor or deckle edges with a paper rim,
+a sticker outline, clipped inside another layer, and take any FX Lab treatment or
+effect. Marks layers take pencil, charcoal, marker, spray, ink and stipple brushes.
+It exports PNG or JPEG at up to 3× and saves `.fxposter.json` files that carry
+their images.
+
 Each frame is built the same way:
 
 ```

@@ -64,6 +64,26 @@ timeline and Undo are constant; only the panel beside them changes. Keys 1–7 s
 - Don't introduce presets, templates or "start from a look". Sample *data* is
   fine; a sample *composition* is not.
 
+### Poster mode
+
+The top bar switches between **Motion** (everything above) and **Poster**, a small
+layout tool for stills: image, text and shape layers you move, scale and rotate on
+the canvas, with opacity, Canvas 2D blend modes, adjustments (CSS filters) and a drop
+shadow. It lives in `src/poster.js` and has its own document, undo, save file
+(`.fxposter.json`, images embedded) and autosave (IndexedDB meta key `poster`). It
+never writes to the motion project.
+
+- Image layers can take treatments and effects (`Poster.fxEligible`: treatment and fx
+  categories, no feedback, no vector-only `fx-svg-*`). They are rendered once through
+  `Engine.frame` at up to 2048 px, the engine's size and media are put back
+  afterwards, and the result is cached per layer. The image's own alpha is restored
+  over the opaque engine output.
+- "Motion frame" adds the current motion composition at full size as an image layer.
+- Text layers are in Poster at Mark's request (Oct 2026). They use system font
+  stacks or a font installed on the computer; fxlab still ships no fonts, and the
+  module library stays type-free. No poster templates or starter layouts.
+- `tests/poster.py` covers it.
+
 ### Craft rules (from `docs/research/premium_craft.md`)
 
 - Numbers use tabular numerals; nothing shifts width while a value changes.
@@ -126,7 +146,7 @@ After Library search or `search:` metadata changes: `tests/search.py`.
 After Data changes: `tests/data.py` (add `--live` to fetch every curated public
 source from a `file://` page; it needs a network and is not part of `run_all`).
 After UI changes: `tests/workspaces.py`, and look at the tabs at 1280×800.
-After Language or tool changes: `tests/language.py`. After adding a module: regenerate thumbnails (see below).
+After Language or tool changes: `tests/language.py`. After Poster changes: `tests/poster.py`. After adding a module: regenerate thumbnails (see below).
 **Look at the output** with `tests/sheet.py` before saying it works — most bugs
 here are visual, not thrown errors. Goldens in `tests/goldens/` are regenerated
 with `tests/compositions.py --write`; look at them before committing them.

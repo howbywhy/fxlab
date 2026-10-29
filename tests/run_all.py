@@ -5,7 +5,7 @@
 import subprocess, sys, pathlib
 
 HERE = pathlib.Path(__file__).resolve().parent
-SUITE = ['render_all.py', 'seams.py', 'tiles.py', 'compositions.py', 'exports.py', 'search.py', 'lifecycle.py', 'data.py', 'workspaces.py', 'language.py', 'arena.py', 'thumbs.py', 'svg.py']
+SUITE = ['render_all.py', 'seams.py', 'tiles.py', 'compositions.py', 'exports.py', 'search.py', 'lifecycle.py', 'data.py', 'workspaces.py', 'language.py', 'arena.py', 'thumbs.py', 'svg.py', 'poster.py']
 
 
 def main():

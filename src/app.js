@@ -1535,6 +1535,7 @@ function initDrop(){
     e.preventDefault();
     clearFileDrag();
     const all = [...(e.dataTransfer?.files || [])];
+    if (App.mode === 'poster'){ if (all.length) Poster.onDrop(e, all); return; }
     const assetLike = f => /\.(zip|fxkit)$/i.test(f.name);
     const dataLike = f => /\.(csv|tsv|json|geojson|ndjson|txt)$/i.test(f.name) && !/\.fxlab\.json$/i.test(f.name);
     if (all.some(assetLike)){ importAssets(all); return; }
@@ -1548,6 +1549,7 @@ function initDrop(){
   window.addEventListener('dragend', clearFileDrag);
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') clearFileDrag();
+    if (App.mode === 'poster'){ Poster.onKey(e); return; }
     const mod = e.metaKey || e.ctrlKey;
     if (mod && e.code === 'KeyZ'){
       if (typingField(e.target)) return;
@@ -1604,12 +1606,13 @@ function boot(){
   const tick = now => {
     requestAnimationFrame(tick);
     const dt = Math.max(0, Math.min(.1, (now - last) / 1000)); last = now;
-    if (App.exporting) return;
+    if (App.exporting || App.mode === 'poster') return;
     if (App.playing){ App.t = (App.t + dt) % state.duration; App.dirty = true; }
     if (App.dirty || Engine.hasVideo()){ renderAt(App.t); App.dirty = false; updateTimeUI(); }
   };
   requestAnimationFrame(tick);
-  window.fxlab = { setLibTarget, renderLibrary, FX, Engine, Assets, Data, Language, Arena, renderArena, renderLanguage, exportBoard, Identity, showWorkspace, updateBadges, toggleBindPopover, Print, PRINT_SIZES, setPrintPreset, applyLook, lookFromState, projectFromState, exportBatch, searchLibrary, state, App, History, renderAt, makeInst, loadProject, restoreProject, randomise, setRandScope, projectName, slugName, setProjectName, saveProject, saveProjectAs, fileStem, replaceInst, clearFileDrag, refresh:() => { renderLibrary(); renderBase(); renderStack(); renderSlots(); markDirty(); } };
+  Poster.init();
+  window.fxlab = { Poster, setLibTarget, renderLibrary, FX, Engine, Assets, Data, Language, Arena, renderArena, renderLanguage, exportBoard, Identity, showWorkspace, updateBadges, toggleBindPopover, Print, PRINT_SIZES, setPrintPreset, applyLook, lookFromState, projectFromState, exportBatch, searchLibrary, state, App, History, renderAt, makeInst, loadProject, restoreProject, randomise, setRandScope, projectName, slugName, setProjectName, saveProject, saveProjectAs, fileStem, replaceInst, clearFileDrag, refresh:() => { renderLibrary(); renderBase(); renderStack(); renderSlots(); markDirty(); } };
   initAssetsUI(); initSystemUI(); initWorkspaces(); initDataUI(); renderArena(); initLanguageUI();
 }
 

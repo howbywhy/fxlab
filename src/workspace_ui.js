@@ -98,6 +98,7 @@ function initWorkspaces(){
   });
   /* number keys switch tabs; ⌘K or / opens the picker */
   document.addEventListener('keydown', e => {
+    if (App.mode === 'poster') return;
     if (e.key === 'Escape' && App.libTarget && !e.metaKey && !e.ctrlKey){ e.preventDefault(); setLibTarget(null); return; }
     if (e.metaKey || e.ctrlKey || e.altKey){
       if ((e.key === 'k' || e.key === 'K') && (e.metaKey || e.ctrlKey)){ e.preventDefault(); setLibTarget('all'); }

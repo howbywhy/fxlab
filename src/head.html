@@ -30,7 +30,7 @@ body.mode-poster #top .poster-only{display:flex}
 body.mode-poster #top .motion-only{display:none}
 body.mode-poster #rail,body.mode-poster #panel,body.mode-poster #stagebar,body.mode-poster #stageWrap,body.mode-poster #time{visibility:hidden}
 .player .modeseg{display:none}
-#poster{display:none;grid-area:2/1/5/4;grid-template-columns:264px minmax(0,1fr) 300px;grid-template-rows:40px minmax(0,1fr);grid-template-areas:"pl bar pr" "pl stage pr";min-height:0;background:var(--ground);z-index:5}
+#poster{display:none;grid-area:2/1/5/4;grid-template-columns:240px 44px minmax(0,1fr) 292px;grid-template-rows:40px minmax(0,1fr);grid-template-areas:"pl tools bar pr" "pl tools stage pr";min-height:0;background:var(--ground);z-index:5}
 body.mode-poster #poster{display:grid}
 #pLeft{grid-area:pl;background:var(--panel);border-right:1px solid var(--rule);display:flex;flex-direction:column;min-height:0}
 .padd{display:flex;flex-wrap:wrap;gap:6px;padding:12px 16px;border-bottom:1px solid var(--rule)}
@@ -51,8 +51,21 @@ body.mode-poster #poster{display:grid}
 .player-row:hover .plock,.plock.on,.plock:focus-visible{opacity:1}
 .plock.on{color:var(--lamp)}
 #pBar{grid-area:bar;display:flex;align-items:center;gap:8px;padding:0 12px;border-bottom:1px solid var(--rule);background:var(--panel);min-width:0;overflow:hidden}
-#pBar input[type=number]{width:74px}
-#pSize{max-width:190px}
+#pBar input[type=number]{width:62px}
+#pBar>*,.pbarg>*{flex:none}
+#pBar .push{margin-left:auto}
+.pbarg{display:flex;align-items:center;gap:8px;min-width:0}
+.pbarg[hidden]{display:none}
+#pBarBrush input[type=range]{width:80px}
+#pBarBrush input[type=number]{width:56px}
+#pBarBrush select{width:110px}
+#pTools{grid-area:tools;display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 0;background:var(--panel);border-right:1px solid var(--rule)}
+#pTools button{width:34px;height:34px;padding:0;display:grid;place-items:center;background:transparent;border-color:transparent;color:var(--muted)}
+#pTools button:hover{background:var(--raise);color:var(--ink)}
+#pTools button.on{background:var(--raise);color:var(--lamp);border-color:var(--rule2)}
+#pStage.picking{cursor:crosshair !important}
+.psub{margin:8px 0 2px;font-size:12px;font-weight:500;color:var(--muted)}
+#pSize{width:150px}
 #pBar input[type=color]{width:30px;height:24px;padding:0;border:1px solid var(--ctl);border-radius:4px;background:none}
 .pzoom{min-width:42px;text-align:center;font-variant-numeric:tabular-nums}
 #pStageWrap{grid-area:stage;position:relative;min-height:0;min-width:0;overflow:hidden}
@@ -711,21 +724,32 @@ button.add-mod{height:30px;font-size:12px}
         <button id="pAddRect" type="button" title="Add a rectangle">Rectangle</button>
         <button id="pAddEllipse" type="button" title="Add an ellipse">Ellipse</button>
         <button id="pAddMotion" type="button" title="Add the current Motion frame as an image layer">Motion frame</button>
+        <button id="pAddMarks" type="button" title="A clear layer the size of the poster to draw on">Marks layer</button>
+        <button id="pStamp" type="button" title="The whole poster as one picture on top, to cut or apply effects to">Layer from visible</button>
       </div>
       <h3 class="plh">Layers</h3>
       <div id="pLayers" role="listbox" aria-label="Layers, top first"></div>
     </aside>
+    <nav id="pTools" aria-label="Poster tools"><button type="button" data-tool="move" class="on" aria-pressed="true" title="Move, scale and rotate (V)" aria-label="Move tool"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3.5l13 7-5.6 1.4L10 17.5z"/></svg></button><button type="button" data-tool="erase" aria-pressed="false" title="Erase brush: cut parts of a picture away (E)" aria-label="Erase brush"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 4.5l5 5-8.5 8.5h-5l-2.5-2.5z"/><path d="M9.5 9.5l5 5"/><path d="M11 18h8.5"/></svg></button><button type="button" data-tool="restore" aria-pressed="false" title="Restore brush: paint cut-away parts back (R)" aria-label="Restore brush"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12a7 7 0 1 0 2.1-5"/><path d="M5 4v4h4"/></svg></button><button type="button" data-tool="paint" aria-pressed="false" title="Mark-making brushes on a marks layer (B)" aria-label="Paint brush"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18.5 3.5l2 2-9 9-3-3z"/><path d="M8.5 11.5c-3 0-4 2-4 4.5 0 1.5-1 2.5-1.5 2.5 2 1.5 7 1.5 8.5-1.5.8-1.7 0-3-.5-3.5"/></svg></button></nav>
     <div id="pBar">
+      <div id="pBarCanvas" class="pbarg">
       <select id="pSize" title="Canvas size" aria-label="Canvas size"></select>
       <input id="pW" type="number" min="16" max="8192" title="Canvas width" aria-label="Canvas width"><span class="dim">×</span><input id="pH" type="number" min="16" max="8192" title="Canvas height" aria-label="Canvas height">
       <button id="pSwap" class="ghost icon" type="button" title="Swap width and height" aria-label="Swap width and height">⇄</button>
       <div class="sep"></div>
-      <label class="dim" for="pBg">Background</label><input id="pBg" type="color" value="#ffffff">
+      <input id="pBg" type="color" value="#ffffff" title="Background colour" aria-label="Background colour">
       <label class="chk"><input type="checkbox" id="pClear"> Transparent</label>
+      </div>
+      <div id="pBarBrush" class="pbarg" hidden>
+        <select id="pBrush" class="ponly" title="Brush" aria-label="Brush"></select>
+        <label class="dim" for="pBSize">Size</label><input id="pBSize" type="range" min="1" max="400" step="1" aria-label="Brush size"><input id="pBSizeN" type="number" min="1" max="600" aria-label="Brush size in pixels">
+        <span id="pBHardW" class="pbarg"><label class="dim" for="pBHard">Hardness</label><input id="pBHard" type="range" min="0" max="100" step="1" aria-label="Brush hardness"></span>
+        <label class="dim" for="pBOpac">Strength</label><input id="pBOpac" type="range" min="1" max="100" step="1" aria-label="Brush strength">
+        <input id="pBColor" class="ponly" type="color" title="Brush colour" aria-label="Brush colour">
+        <button id="pBPick" class="ghost ponly" type="button" title="Pick a colour from the poster (I, or Alt-click)">Pick</button>
+      </div>
       <div class="tgroup push">
-        <button id="pZoomOut" class="ghost icon" type="button" title="Zoom out" aria-label="Zoom out">−</button>
-        <span id="pZoom" class="dim pzoom">100%</span>
-        <button id="pZoomIn" class="ghost icon" type="button" title="Zoom in" aria-label="Zoom in">+</button>
+        <span id="pZoom" class="dim pzoom" title="Zoom: ⌘ or Ctrl and scroll, or + and −">100%</span>
         <button id="pFit" class="ghost" type="button" title="Fit the canvas in view (⌘0)">Fit</button>
         <button id="p100" class="ghost" type="button" title="Actual pixels">100%</button>
       </div>

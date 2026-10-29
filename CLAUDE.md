@@ -79,6 +79,14 @@ never writes to the motion project.
   afterwards, and the result is cached per layer. The image's own alpha is restored
   over the opaque engine output.
 - "Motion frame" adds the current motion composition at full size as an image layer.
+- Poster is for image-making and collage (Mark, Oct 2026). Image layers have a cut
+  pipeline in `processed()`: colour key → painted mask (erase/restore brushes) →
+  crop → edge (shape, torn/scissors/deckle, paper rim, feather) → sticker outline,
+  cached per layer at up to 2560 px. Edge and brush maths live in `src/poster_marks.js`
+  (`Marks`). Masks and marks are canvases stored as media; each stroke makes a new
+  one, so undo is still a document snapshot. A layer marked `clip` shows only inside
+  the nearest unclipped layer below. Merge down, Layer from visible and Turn into
+  image all produce plain image layers, so cut-outs and effects work on anything.
 - Text layers are in Poster at Mark's request (Oct 2026). They use system font
   stacks or a font installed on the computer; fxlab still ships no fonts, and the
   module library stays type-free. No poster templates or starter layouts.

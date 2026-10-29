@@ -101,5 +101,72 @@ def run():
     return bad
 
 
+def collage():
+    """Cut-outs, edges, clipping, marks, merge, and that a mask survives save and open."""
+    bad = []
+    tmp = pathlib.Path(tempfile.mkdtemp())
+    with sync_playwright() as p:
+        browser, page, errors = launch(p, viewport=(1280, 800), downloads=True)
+        f = page.evaluate
+        data = f(MAKE, [640, 400, False]).split(',', 1)[1]
+        (tmp / 'wide.png').write_bytes(base64.b64decode(data))
+        page.click('#modePoster'); page.wait_for_timeout(300)
+        page.set_input_files('#pFile', [str(tmp / 'wide.png')]); page.wait_for_timeout(500)
+        # alpha of the layer's own picture at a point given in 0-1 of its box
+        alpha = """([u, v]) => { const P = window.fxlab.Poster, L = P.P.doc.layers[0], r = P.processed(L), c = document.createElement('canvas'); c.width = c.height = 1;
+          const w = (r.canvas.width || r.canvas.naturalWidth) - r.pad * 2, h = (r.canvas.height || r.canvas.naturalHeight) - r.pad * 2;
+          const x = c.getContext('2d'); x.drawImage(r.canvas, r.pad + u * w, r.pad + v * h, 1, 1, 0, 0, 1, 1); return x.getImageData(0, 0, 1, 1).data[3]; }"""
+        # remove a colour: the red half goes
+        f("() => { const L = window.fxlab.Poster.P.doc.layers[0]; L.key.on = true; L.key.color = '#d04020'; }")
+        if f(alpha, [.25, .5]) != 0 or f(alpha, [.75, .5]) != 255: bad.append('colour key did not remove only the red half')
+        f("() => { window.fxlab.Poster.P.doc.layers[0].key.on = false; }")
+        # crop the left half: the box halves and what's left stays where it was
+        x0 = f("() => window.fxlab.Poster.P.doc.layers[0].x")
+        page.click('#pProps summary:has-text("Cut out")')
+        page.fill('input[aria-label="Left value"]', '50'); page.locator('input[aria-label="Left value"]').dispatch_event('change')
+        L = f("() => { const L = window.fxlab.Poster.P.doc.layers[0]; return { x:L.x, l:L.crop.l, sx:L.sx, w:L.image.w }; }")
+        if abs(L['l'] - .5) > .001 or abs((L['x'] - x0) - L['w'] * L['sx'] / 4) > .5: bad.append(f'crop moved the picture: {L}, x0 {x0}')
+        page.locator('#pStage').focus(); page.keyboard.press('Control+z')
+        if f("() => window.fxlab.Poster.P.doc.layers[0].crop.l") != 0: bad.append('undo did not take the crop off')
+        # erase a stroke across the middle
+        f("() => { const P = window.fxlab.Poster; P.setTool('erase'); P.P.brush.size = 60; }")
+        box = page.locator('#pStage').bounding_box(); v = f("() => window.fxlab.Poster.P.view")
+        X = lambda x: box['x'] + v['ox'] + x * v['k']; Y = lambda y: box['y'] + v['oy'] + y * v['k']
+        page.mouse.move(X(300), Y(675)); page.mouse.down(); page.mouse.move(X(780), Y(675), steps=12); page.mouse.up()
+        if not f("() => !!window.fxlab.Poster.P.doc.layers[0].mask"): bad.append('erase made no mask')
+        if f(alpha, [.5, .5]) > 10 or f(alpha, [.5, .05]) < 240: bad.append('erase did not cut only along the stroke')
+        # torn edge with a rim, then a sticker outline grows the picture
+        f("() => { const L = window.fxlab.Poster.P.doc.layers[0]; L.edge.style = 'torn'; L.edge.depth = 30; L.edge.rim = true; }")
+        if f(alpha, [.002, .002]) != 0: bad.append('torn edge left the corner')
+        f("() => { const L = window.fxlab.Poster.P.doc.layers[0]; L.outline.on = true; }")
+        if f("() => window.fxlab.Poster.processed(window.fxlab.Poster.P.doc.layers[0]).pad") < 5: bad.append('outline added no border')
+        # marks: painting with nothing suitable selected starts a marks layer
+        f("() => { const P = window.fxlab.Poster; P.setTool('paint'); P.P.brush.brush = 'charcoal'; }")
+        page.mouse.move(X(200), Y(200)); page.mouse.down(); page.mouse.move(X(700), Y(260), steps=10); page.mouse.up()
+        if f("() => window.fxlab.Poster.P.doc.layers.filter(l => l.paint).length") != 1: bad.append('paint did not start a marks layer')
+        page.keyboard.press('Escape')
+        # clipping: a rectangle clipped to a small ellipse shows only inside it
+        f("""() => { const P = window.fxlab.Poster, d = P.P.doc; P.addShape('ellipse'); const E = d.layers[d.layers.length - 1]; E.x = 900; E.y = 1200; E.shape.w = E.shape.h = 100;
+            P.addShape('rect'); const R = d.layers[d.layers.length - 1]; R.x = 900; R.y = 1200; R.shape.w = R.shape.h = 300; R.shape.fill = '#00ff00'; R.clip = true; }""")
+        px = f("""([x, y]) => { const c = document.createElement('canvas'); c.width = 1080; c.height = 1350; window.fxlab.Poster.drawDoc(c.getContext('2d'), 1); return [...c.getContext('2d').getImageData(x, y, 1, 1).data]; }""", [900, 1200])
+        out = f("""([x, y]) => { const c = document.createElement('canvas'); c.width = 1080; c.height = 1350; window.fxlab.Poster.drawDoc(c.getContext('2d'), 1); return [...c.getContext('2d').getImageData(x, y, 1, 1).data]; }""", [1020, 1200])
+        if px[:3] != [0, 255, 0] or out[1] == 255 and out[0] == 0: bad.append(f'clipping: inside {px}, outside {out}')
+        n = f("() => window.fxlab.Poster.P.doc.layers.length")
+        f("() => window.fxlab.Poster.mergeDown()")
+        if f("() => window.fxlab.Poster.P.doc.layers.length") != n - 1: bad.append('merge down did not join two layers')
+        f("() => { const P = window.fxlab.Poster; P.addText(); P.rasterise(); }")
+        if f("() => window.fxlab.Poster.P.doc.layers.at(-1).type") != 'image': bad.append('turn into image did not')
+        # save and open keep the mask
+        with page.expect_download() as d: page.click('#pSave')
+        saved = tmp / 'c.fxposter.json'; d.value.save_as(saved)
+        f("() => { window.fxlab.Poster.P.doc.layers = []; }")
+        page.set_input_files('#pFileProject', str(saved)); page.wait_for_timeout(800)
+        f("() => { const L = window.fxlab.Poster.P.doc.layers[0]; L.outline.on = false; L.edge.style = 'none'; }")
+        if f(alpha, [.5, .5]) > 10: bad.append('the erased stroke came back after save and open')
+        browser.close()
+        bad += [e for e in errors if 'favicon' not in e]
+    return bad
+
+
 if __name__ == '__main__':
-    sys.exit(report('poster', run(), 'layers, drag, undo, effect, export, save and open'))
+    sys.exit(report('poster', run() + collage(), 'layers, effects, export, save and open, cut-outs, edges, clipping, marks, merge'))

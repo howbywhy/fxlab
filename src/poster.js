@@ -46,6 +46,19 @@ const Poster = (() => {
   const MAX_SIDE = 8192, MEDIA_CAP = 4096, FX_CAP = 2048;
   const ADJ0 = { brightness:100, contrast:100, saturate:100, hue:0, blur:0 };
   const SHADOW0 = { on:false, color:'#000000', alpha:.45, blur:40, x:0, y:16 };
+  /* collage: how an image layer is cut. Crop is in fractions of the picture; edge
+     depth, rim and outline widths are in the picture's own pixels. */
+  const CROP0 = { l:0, t:0, r:0, b:0 };
+  const KEY0 = { on:false, color:'#ffffff', tol:12, soft:10 };
+  const EDGE0 = { style:'none', shape:'rect', depth:24, feather:0, seed:1, rim:false, rimColor:'#f4f1ea', rimWidth:10 };
+  const OUTLINE0 = { on:false, color:'#ffffff', width:14 };
+  const PROC_CAP = 2560;
+  function imageDefaults(L){
+    L.crop = { ...CROP0, ...L.crop }; L.key = { ...KEY0, ...L.key }; L.edge = { ...EDGE0, ...L.edge }; L.outline = { ...OUTLINE0, ...L.outline };
+    if (L.mask === undefined) L.mask = null;
+    L.fx = L.fx || [];
+    return L;
+  }
 
   /* ---------- layers ---------- */
   function baseLayer(type, name){
@@ -66,7 +79,7 @@ const Poster = (() => {
   }
   /* natural, unscaled size of a layer's box */
   function size(L){
-    if (L.type === 'image') return { w:L.image.w, h:L.image.h };
+    if (L.type === 'image'){ const c = L.crop || CROP0; return { w:Math.max(1, L.image.w * (1 - c.l - c.r)), h:Math.max(1, L.image.h * (1 - c.t - c.b)) }; }
     if (L.type === 'shape') return { w:L.shape.w, h:L.shape.h };
     const t = L.text; setTextCtx(measure, t);
     const lines = textLines(t);
@@ -85,7 +98,7 @@ const Poster = (() => {
   function fitScale(w, h, frac){ return Math.min(P.doc.W * frac / w, P.doc.H * frac / h); }
   function addImageLayer(m, at, name){
     const L = baseLayer('image', labelFor('image', name));
-    L.image = { media:m.id, w:m.w, h:m.h }; L.fx = [];
+    L.image = { media:m.id, w:m.w, h:m.h }; imageDefaults(L);
     const s = Math.min(1, fitScale(m.w, m.h, .8)); L.sx = L.sy = s;
     return addLayer(L, at);
   }
@@ -211,6 +224,77 @@ const Poster = (() => {
     return c;
   }
 
+  /* ---------- collage: crop, key, mask, edge, outline ----------
+     Worked out once per change at up to PROC_CAP px and cached per layer. While a
+     brush stroke is going, `live` holds the mask or pixels being painted. */
+  const procs = new Map();
+  const live = { layer:null, mask:null, pixels:null, rev:0 };
+  const dims = c => ({ w:c.width || c.naturalWidth || 1, h:c.height || c.naturalHeight || 1 });
+  function newCanvas(w, h){ const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(w)); c.height = Math.max(1, Math.round(h)); return c; }
+  function sourceOf(L){
+    if (live.pixels && live.layer === L.id) return live.pixels;
+    const m = P.media[L.image.media];
+    return bakedFor(L) || (m && m.el) || null;
+  }
+  function maskOf(L){
+    if (live.mask && live.layer === L.id) return live.mask;
+    return L.mask && P.media[L.mask] ? P.media[L.mask].el : null;
+  }
+  /* the full, uncropped picture size the pipeline works at */
+  function procSize(L){
+    const m = P.media[L.image.media], d = m ? { w:m.w, h:m.h } : { w:L.image.w, h:L.image.h };
+    const s = Math.min(1, PROC_CAP / Math.max(d.w, d.h));
+    return { w:Math.max(1, Math.round(d.w * s)), h:Math.max(1, Math.round(d.h * s)) };
+  }
+  const isPlain = L => { const c = L.crop, e = L.edge; return !c.l && !c.t && !c.r && !c.b && !L.key.on && !maskOf(L) && e.style === 'none' && e.shape === 'rect' && !e.feather && !L.outline.on; };
+  function processed(L){
+    const src = sourceOf(L); if (!src) return null;
+    const sd = dims(src);
+    if (isPlain(L)) return { canvas:src, pad:0, ps:sd.w / L.image.w };
+    const key = [L.image.media, fxKey(L), JSON.stringify([L.crop, L.key, L.edge, L.outline, L.mask]), live.layer === L.id ? live.rev : 0, src === live.pixels ? 'p' : sd.w].join('|');
+    const had = procs.get(L.id); if (had && had.key === key) return had;
+    const { w:fw, h:fh } = procSize(L), ps = fw / L.image.w;
+    const full = newCanvas(fw, fh), fx = full.getContext('2d', { willReadFrequently:L.key.on });
+    fx.drawImage(src, 0, 0, fw, fh);
+    if (L.key.on) Marks.colourKey(fx, fw, fh, L.key.color, L.key.tol, L.key.soft);
+    const mask = maskOf(L);
+    if (mask){ fx.globalCompositeOperation = 'destination-in'; fx.drawImage(mask, 0, 0, fw, fh); fx.globalCompositeOperation = 'source-over'; }
+    const c = L.crop, cx = Math.round(c.l * fw), cy = Math.round(c.t * fh);
+    const cw = Math.max(1, Math.round(fw * (1 - c.l - c.r))), ch = Math.max(1, Math.round(fh * (1 - c.t - c.b)));
+    let out = newCanvas(cw, ch);
+    out.getContext('2d').drawImage(full, cx, cy, cw, ch, 0, 0, cw, ch);
+    const e = L.edge;
+    if (e.style !== 'none' || e.shape !== 'rect' || e.feather) out = cutEdge(out, e, ps);
+    let pad = 0;
+    if (L.outline.on && L.outline.width > 0){ const o = Marks.outlineOf(out, L.outline.width * ps, L.outline.color); out = o.canvas; pad = o.pad; }
+    const res = { key, canvas:out, pad, ps };
+    procs.set(L.id, res);
+    return res;
+  }
+  function cutEdge(img, e, ps){
+    const w = img.width, h = img.height, out = newCanvas(w, h), x = out.getContext('2d');
+    const depth = e.depth * ps, feather = e.feather * ps;
+    const shapePath = (inset, extra, seed) => e.style === 'none'
+      ? Marks.edgePath('deckle', e.shape, w, h, 0, seed, -inset)
+      : Marks.edgePath(e.style, e.shape, w, h, depth, seed, extra - inset);
+    if (e.rim && e.style !== 'none'){
+      /* the rim is paper too: only where the picture hasn't been erased or keyed out */
+      x.fillStyle = e.rimColor; Marks.fillPath(x, shapePath(0, 0, e.seed));
+      x.globalCompositeOperation = 'destination-in'; x.drawImage(img, 0, 0); x.globalCompositeOperation = 'source-over';
+      const m = newCanvas(w, h), mx = m.getContext('2d'); mx.fillStyle = '#fff';
+      Marks.fillPath(mx, shapePath(0, -e.rimWidth * ps, e.seed + 101));
+      const pic = newCanvas(w, h), px = pic.getContext('2d');
+      px.drawImage(img, 0, 0); px.globalCompositeOperation = 'destination-in'; px.drawImage(m, 0, 0);
+      x.drawImage(pic, 0, 0);
+      return out;
+    }
+    const m = newCanvas(w, h), mx = m.getContext('2d'); mx.fillStyle = '#fff';
+    if (feather) mx.filter = `blur(${feather / 2}px)`;
+    Marks.fillPath(mx, shapePath(feather, 0, e.seed));
+    x.drawImage(img, 0, 0); x.globalCompositeOperation = 'destination-in'; x.drawImage(m, 0, 0);
+    return out;
+  }
+
   /* ---------- drawing ---------- */
   function filterOf(a, k){
     const f = [];
@@ -221,22 +305,17 @@ const Poster = (() => {
     if (a.blur) f.push(`blur(${a.blur * k}px)`);
     return f.length ? f.join(' ') : 'none';
   }
-  function drawLayer(ctx, L, k){
+  /* plain: full opacity, normal blend, no shadow, for drawing into a clipping group */
+  function drawLayer(ctx, L, k, plain){
     const { w, h } = size(L);
     ctx.save();
-    ctx.globalAlpha = L.opacity; ctx.globalCompositeOperation = L.blend;
+    ctx.globalAlpha = plain ? 1 : L.opacity; ctx.globalCompositeOperation = plain ? 'source-over' : L.blend;
     ctx.filter = filterOf(L.adjust, k);
-    const sh = L.shadow;
-    if (sh.on){
-      const [r, g, b] = Util.hexToRgb(sh.color);
-      ctx.shadowColor = `rgba(${r},${g},${b},${sh.alpha})`;
-      ctx.shadowBlur = sh.blur * k; ctx.shadowOffsetX = sh.x * k; ctx.shadowOffsetY = sh.y * k;
-    }
+    if (!plain) setShadow(ctx, L.shadow, k);
     ctx.translate(L.x, L.y); ctx.rotate(L.rot * DEG); ctx.scale(L.sx * (L.flipX ? -1 : 1), L.sy * (L.flipY ? -1 : 1));
     if (L.type === 'image'){
-      const m = P.media[L.image.media];
-      const src = bakedFor(L) || (m && m.el);
-      if (src) ctx.drawImage(src, -w / 2, -h / 2, w, h);
+      const pr = processed(L);
+      if (pr){ const pl = pr.pad / pr.ps; ctx.drawImage(pr.canvas, -w / 2 - pl, -h / 2 - pl, w + pl * 2, h + pl * 2); }
     } else if (L.type === 'shape'){
       const s = L.shape; ctx.fillStyle = s.fill; ctx.beginPath();
       if (s.kind === 'ellipse') ctx.ellipse(0, 0, w / 2, h / 2, 0, 0, Math.PI * 2);
@@ -251,13 +330,47 @@ const Poster = (() => {
     }
     ctx.restore();
   }
+  function setShadow(ctx, sh, k){
+    if (!sh.on) return;
+      const [r, g, b] = Util.hexToRgb(sh.color);
+      ctx.shadowColor = `rgba(${r},${g},${b},${sh.alpha})`;
+      ctx.shadowBlur = sh.blur * k; ctx.shadowOffsetX = sh.x * k; ctx.shadowOffsetY = sh.y * k;
+  }
+  /* Layers in order, with clipping: a layer marked clip shows only where the nearest
+     unclipped layer below it is opaque. The group is built on scratch canvases and
+     put down with the base layer's opacity, blend and shadow. */
+  const scratch = [newCanvas(1, 1), newCanvas(1, 1), newCanvas(1, 1)];
+  function drawLayers(ctx, layers, k){
+    const W = ctx.canvas.width, H = ctx.canvas.height;
+    for (let i = 0; i < layers.length; i++){
+      const L = layers[i];
+      if (L.clip && i > 0) continue;
+      const group = [];
+      for (let j = i + 1; j < layers.length && layers[j].clip; j++) if (layers[j].visible) group.push(layers[j]);
+      if (!L.visible) continue;
+      if (!group.length){ drawLayer(ctx, L, k); continue; }
+      const [g, base, tmp] = scratch.map(c => { if (c.width !== W || c.height !== H){ c.width = W; c.height = H; } const x = c.getContext('2d'); x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, W, H); x.setTransform(k, 0, 0, k, 0, 0); return x; });
+      drawLayer(base, L, k, true);
+      g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(base.canvas, 0, 0);
+      for (const C of group){
+        drawLayer(tmp, C, k, true);
+        tmp.setTransform(1, 0, 0, 1, 0, 0); tmp.globalCompositeOperation = 'destination-in'; tmp.drawImage(base.canvas, 0, 0); tmp.globalCompositeOperation = 'source-over';
+        g.globalAlpha = C.opacity; g.globalCompositeOperation = C.blend; g.drawImage(tmp.canvas, 0, 0);
+        g.globalAlpha = 1; g.globalCompositeOperation = 'source-over';
+        tmp.clearRect(0, 0, W, H); tmp.setTransform(k, 0, 0, k, 0, 0);
+      }
+      ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.globalAlpha = L.opacity; ctx.globalCompositeOperation = L.blend; setShadow(ctx, L.shadow, k);
+      ctx.drawImage(g.canvas, 0, 0); ctx.restore();
+    }
+  }
   /* the whole poster into ctx, at k output pixels per poster pixel */
   function drawDoc(ctx, k, opaque){
     const d = P.doc;
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
     ctx.setTransform(k, 0, 0, k, 0, 0);
     if (!d.transparent || opaque){ ctx.fillStyle = d.transparent ? '#ffffff' : d.bg; ctx.fillRect(0, 0, d.W, d.H); }
-    for (const L of d.layers) if (L.visible) drawLayer(ctx, L, k);
+    drawLayers(ctx, d.layers, k);
     ctx.setTransform(1, 0, 0, 1, 0, 0);
   }
 
@@ -283,10 +396,27 @@ const Poster = (() => {
     const at = (u, v) => { const lx = u * w * L.sx / 2, ly = v * h * L.sy / 2; return { x:L.x + lx * c - ly * s, y:L.y + lx * s + ly * c }; };
     return { at, w:w * L.sx, h:h * L.sy };
   }
+  /* a poster point in the layer's own unscaled, unflipped box, centred on 0 */
+  function toLocal(L, p){
+    const c = Math.cos(-L.rot * DEG), s = Math.sin(-L.rot * DEG), dx = p.x - L.x, dy = p.y - L.y;
+    return { x:(dx * c - dy * s) / L.sx * (L.flipX ? -1 : 1), y:(dx * s + dy * c) / L.sy * (L.flipY ? -1 : 1) };
+  }
+  const probe = newCanvas(1, 1).getContext('2d', { willReadFrequently:true });
+  /* inside the box, and for a picture, on a pixel that isn't cut away */
   function hit(L, p){
-    const { w, h } = size(L), c = Math.cos(-L.rot * DEG), s = Math.sin(-L.rot * DEG);
-    const dx = p.x - L.x, dy = p.y - L.y, lx = dx * c - dy * s, ly = dx * s + dy * c;
-    return Math.abs(lx) <= Math.abs(w * L.sx) / 2 && Math.abs(ly) <= Math.abs(h * L.sy) / 2;
+    const { w, h } = size(L), q = toLocal(L, p);
+    if (Math.abs(q.x) > w / 2 || Math.abs(q.y) > h / 2) return false;
+    if (L.type !== 'image') return true;
+    const pr = processed(L); if (!pr) return true;
+    const d = dims(pr.canvas), iw = d.w - pr.pad * 2, ih = d.h - pr.pad * 2;
+    probe.clearRect(0, 0, 1, 1);
+    probe.drawImage(pr.canvas, pr.pad + (q.x / w + .5) * iw, pr.pad + (q.y / h + .5) * ih, 1, 1, 0, 0, 1, 1);
+    return probe.getImageData(0, 0, 1, 1).data[3] > 12;
+  }
+  /* a poster point on the full, uncropped picture of an image layer, in target pixels */
+  function toSource(L, p, tw, th){
+    const { w, h } = size(L), q = toLocal(L, p), c = L.crop;
+    return { x:(c.l + (q.x / w + .5) * (1 - c.l - c.r)) * tw, y:(c.t + (q.y / h + .5) * (1 - c.t - c.b)) * th, k:tw / L.image.w / Math.abs(L.sx) };
   }
   const HANDLES = [[-1, -1], [0, -1], [1, -1], [1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0]];
   function handleAt(L, cx, cy){
@@ -338,17 +468,99 @@ const Poster = (() => {
         for (const [u, v] of HANDLES){ const q = at(u, v), p = toScreen(q.x, q.y); sctx.fillStyle = '#1a1b1d'; sctx.fillRect(p.x - 4.5, p.y - 4.5, 9, 9); sctx.strokeRect(p.x - 4.5, p.y - 4.5, 9, 9); }
       }
     }
+    if (BRUSH_TOOLS.includes(P.tool) && P.pointer && !spaceHeld){
+      const rad = Math.max(2, P.brush.size * k / 2);
+      sctx.lineWidth = 1; sctx.strokeStyle = 'rgba(0,0,0,.6)'; sctx.beginPath(); sctx.arc(P.pointer.x, P.pointer.y, rad + 1, 0, Math.PI * 2); sctx.stroke();
+      sctx.strokeStyle = 'rgba(255,255,255,.9)'; sctx.beginPath(); sctx.arc(P.pointer.x, P.pointer.y, rad, 0, Math.PI * 2); sctx.stroke();
+    }
     $('#pZoom').textContent = `${Math.round(k * 100)}%`;
     $('#pEmpty').hidden = d.layers.length > 0;
   }
 
+  /* ---------- brushes: erase and restore paint a layer's mask, paint adds marks ---------- */
+  const BRUSH0 = { brush:'charcoal', size:40, hardness:.6, opacity:1, color:'#161616' };
+  P.brush = (() => { try { return { ...BRUSH0, ...JSON.parse(localStorage.getItem('fxlab.posterBrush') || '{}') }; } catch { return { ...BRUSH0 }; } })();
+  const saveBrush = () => { try { localStorage.setItem('fxlab.posterBrush', JSON.stringify(P.brush)); } catch { /* private mode */ } };
+  P.tool = 'move';
+  const BRUSH_TOOLS = ['erase', 'restore', 'paint'];
+  function setTool(t){
+    P.tool = t;
+    document.querySelectorAll('#pTools button[data-tool]').forEach(b => { const on = b.dataset.tool === t; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
+    syncBrushBar(); P.dirty = true;
+  }
+  /* a transparent image layer the size of the poster, for marks */
+  function newPaintLayer(above){
+    const W = P.doc.W, H = P.doc.H, s = Math.min(1, 2048 / Math.max(W, H)), c = newCanvas(W * s, H * s);
+    const m = { id:mid(), el:c, w:c.width, h:c.height, name:'Marks', blob:null };
+    P.media[m.id] = m;
+    const L = imageDefaults(baseLayer('image', labelFor('image', 'Marks ' + (P.doc.layers.filter(l => l.paint).length + 1))));
+    L.image = { media:m.id, w:m.w, h:m.h }; L.paint = true; L.sx = L.sy = 1 / s;
+    const i = above ? P.doc.layers.indexOf(above) + 1 : P.doc.layers.length;
+    P.doc.layers.splice(i, 0, L); P.sel = L.id; touch();
+    return L;
+  }
+  function startStroke(e, p){
+    let L = cur();
+    if (P.tool === 'paint' && e.altKey){ pickAt(e, 'brush'); return null; }
+    if (P.tool === 'paint'){
+      hist.begin();
+      if (!L || L.type !== 'image' || !L.paint) L = newPaintLayer(L);
+      renderPanels();
+    } else {
+      if (!L || L.type !== 'image'){ toast(L ? 'Erase works on pictures and marks. Use “Turn into image” on text or shapes first.' : 'Select a picture to erase from.', true); return null; }
+      hist.begin();
+    }
+    const { w:fw, h:fh } = P.tool === 'paint' ? dims(P.media[L.image.media].el) : procSize(L);
+    const c = newCanvas(fw, fh), x = c.getContext('2d');
+    if (P.tool === 'paint'){ x.drawImage(P.media[L.image.media].el, 0, 0, fw, fh); live.pixels = c; }
+    else { const m = maskOf(L); if (m) x.drawImage(m, 0, 0, fw, fh); else { x.fillStyle = '#fff'; x.fillRect(0, 0, fw, fh); } live.mask = c; }
+    live.layer = L.id; live.rev++;
+    if (P.tool === 'erase') x.globalCompositeOperation = 'destination-out';
+    const q = toSource(L, p, fw, fh), b = P.brush;
+    const opts = P.tool === 'paint' ? { ...b, size:b.size * q.k } : { brush:'round', size:b.size * q.k, hardness:b.hardness, opacity:b.opacity, color:'#ffffff' };
+    const st = Marks.stroke(x, opts, Date.now() & 0xffff);
+    st.to(q.x, q.y, e.pressure);
+    P.dirty = true;
+    return { L, st, fw, fh, canvas:c, paint:P.tool === 'paint' };
+  }
+  function moveStroke(e){
+    const S = drag.stroke, evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
+    for (const ev of evs.length ? evs : [e]){ const q = toSource(S.L, toDoc(ev.clientX, ev.clientY), S.fw, S.fh); S.st.to(q.x, q.y, ev.pressure); }
+    live.rev++; P.dirty = true;
+  }
+  function endStroke(){
+    const S = drag.stroke;
+    const m = { id:mid(), el:S.canvas, w:S.fw, h:S.fh, name:S.paint ? 'marks' : 'mask', blob:null };
+    P.media[m.id] = m;
+    if (S.paint) S.L.image.media = m.id; else S.L.mask = m.id;
+    live.layer = live.mask = live.pixels = null;
+    bakes.delete(S.L.id);
+    touch(); hist.end(); renderLayers();
+  }
+  /* the colour under the pointer, as shown on the stage */
+  function pickAt(e, target){
+    const r = stage.getBoundingClientRect(), s = dpr();
+    const px = sctx.getImageData(Math.round((e.clientX - r.left) * s), Math.round((e.clientY - r.top) * s), 1, 1).data;
+    const hex = '#' + [px[0], px[1], px[2]].map(v => v.toString(16).padStart(2, '0')).join('');
+    if (target === 'brush'){ P.brush.color = hex; saveBrush(); syncBrushBar(); return; }
+    const L = cur(); if (!L || L.type !== 'image') return;
+    hist.record(() => { L.key.on = true; L.key.color = hex; touch(); });
+    renderProps();
+  }
+
   /* pointer: select, move, scale from the opposite handle, rotate */
-  let drag = null;
+  let drag = null, picking = null;
   function onDown(e){
     if (e.button === 1 || (e.button === 0 && spaceHeld)){ drag = { pan:true, sx:e.clientX, sy:e.clientY, ox:P.view.ox, oy:P.view.oy }; stage.setPointerCapture(e.pointerId); return; }
     if (e.button) return;
     stage.focus({ preventScroll:true });
     const p = toDoc(e.clientX, e.clientY);
+    if (picking){ pickAt(e, picking); picking = null; stage.classList.remove('picking'); return; }
+    if (BRUSH_TOOLS.includes(P.tool)){
+      const st = startStroke(e, p);
+      if (st){ drag = { stroke:st }; stage.setPointerCapture(e.pointerId); }
+      return;
+    }
     let L = cur(), h = L && !L.locked && L.visible ? handleAt(L, e.clientX, e.clientY) : null;
     if (!h){
       const top = [...P.doc.layers].reverse().find(l => l.visible && !l.locked && hit(l, p));
@@ -367,11 +579,14 @@ const Poster = (() => {
     P.dirty = true;
   }
   function onMove(e){
+    const r = stage.getBoundingClientRect(); P.pointer = { x:e.clientX - r.left, y:e.clientY - r.top };
+    if (BRUSH_TOOLS.includes(P.tool) && !drag){ stage.style.cursor = spaceHeld ? 'grab' : 'none'; P.dirty = true; return; }
     if (!drag){
       const L = cur(), h = L && !L.locked ? handleAt(L, e.clientX, e.clientY) : null;
-      stage.style.cursor = spaceHeld ? 'grab' : h ? (h.rot ? 'crosshair' : 'pointer') : 'default';
+      stage.style.cursor = picking ? 'crosshair' : spaceHeld ? 'grab' : h ? (h.rot ? 'crosshair' : 'pointer') : 'default';
       return;
     }
+    if (drag.stroke){ moveStroke(e); return; }
     if (drag.pan){ P.view.ox = drag.ox + e.clientX - drag.sx; P.view.oy = drag.oy + e.clientY - drag.sy; P.view.fit = false; P.dirty = true; return; }
     const L = drag.L, p = toDoc(e.clientX, e.clientY);
     if (drag.move){
@@ -400,6 +615,7 @@ const Poster = (() => {
   }
   function onUp(){
     if (!drag) return;
+    if (drag.stroke){ endStroke(); drag = null; return; }
     const was = drag; drag = null; P.guides = []; P.dirty = true;
     if (!was.pan){ hist.end(); syncFields(); }
   }
@@ -437,11 +653,13 @@ const Poster = (() => {
 
   /* ---------- save, open, autosave ---------- */
   const blobToDataURL = b => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(b); });
-  const usedMedia = () => [...new Set(P.doc.layers.filter(l => l.type === 'image').map(l => l.image.media))].filter(id => P.media[id]);
+  const usedMedia = () => [...new Set(P.doc.layers.filter(l => l.type === 'image').flatMap(l => [l.image.media, l.mask]))].filter(id => id && P.media[id]);
+  /* masks and marks are canvases; they become PNGs only when saved */
+  async function blobOf(m){ if (!m.blob) m.blob = await canvasToBlob(m.el); return m.blob; }
   const posterName = () => (P.doc.name && P.doc.name.trim()) || 'poster';
   async function save(){
     const media = {};
-    for (const id of usedMedia()) media[id] = { name:P.media[id].name, data:await blobToDataURL(P.media[id].blob) };
+    for (const id of usedMedia()) media[id] = { name:P.media[id].name, data:await blobToDataURL(await blobOf(P.media[id])) };
     const out = JSON.stringify({ fxposter:1, doc:P.doc, media });
     triggerDownload(new Blob([out], { type:'application/json' }), `${slugName(posterName())}.fxposter.json`);
     toast('Saved the poster file. It carries its images, so it opens on any computer.');
@@ -458,14 +676,15 @@ const Poster = (() => {
   function normalise(d){
     const doc = { W:1080, H:1350, sizeId:'custom', bg:'#ffffff', transparent:false, name:'', layers:[], ...d };
     doc.layers = (doc.layers || []).filter(l => l && ['image', 'text', 'shape'].includes(l.type)).map(l => ({ ...baseLayer(l.type, l.name), ...l, adjust:{ ...ADJ0, ...l.adjust }, shadow:{ ...SHADOW0, ...l.shadow } }));
+    doc.layers.forEach(l => { if (l.type === 'image') imageDefaults(l); });
     doc.layers.forEach(l => { if (l.fx) l.fx = l.fx.filter(i => FX.byId[i.id]).map(i => ({ ...makeInst(i.id), on:i.on !== false, params:{ ...makeInst(i.id).params, ...i.params } })); });
     return doc;
   }
   let saveTimer = 0;
   function touch(){ P.dirty = true; clearTimeout(saveTimer); saveTimer = setTimeout(autosave, 900); }
-  function autosave(){
+  async function autosave(){
     if (!Assets.metaPut) return;
-    const media = {}; for (const id of usedMedia()) media[id] = { name:P.media[id].name, blob:P.media[id].blob };
+    const media = {}; for (const id of usedMedia()) media[id] = { name:P.media[id].name, blob:await blobOf(P.media[id]) };
     Assets.metaPut('poster', { doc:JSON.parse(JSON.stringify(P.doc)), media });
   }
   async function restoreSaved(){
@@ -597,6 +816,68 @@ const Poster = (() => {
     });
     renderLayers();
   }
+  /* cropping keeps what's left of the picture where it was on the poster */
+  function setCrop(L, side, v){
+    const c = L.crop, off = () => {
+      const ox = (c.l - c.r) / 2 * L.image.w * L.sx * (L.flipX ? -1 : 1), oy = (c.t - c.b) / 2 * L.image.h * L.sy * (L.flipY ? -1 : 1);
+      const cs = Math.cos(L.rot * DEG), sn = Math.sin(L.rot * DEG);
+      return { x:ox * cs - oy * sn, y:ox * sn + oy * cs };
+    };
+    const a = off(), other = { l:'r', r:'l', t:'b', b:'t' }[side];
+    c[side] = Util.clamp(v, 0, .97 - c[other]);
+    const b = off(); L.x += b.x - a.x; L.y += b.y - a.y;
+  }
+  /* draw some layers into a new picture the size of the poster */
+  function flatten(layers, withBg){
+    const W = P.doc.W, H = P.doc.H, q = Math.min(1, 3072 / Math.max(W, H)), c = newCanvas(W * q, H * q), x = c.getContext('2d');
+    x.setTransform(q, 0, 0, q, 0, 0);
+    if (withBg && !P.doc.transparent){ x.fillStyle = P.doc.bg; x.fillRect(0, 0, W, H); }
+    drawLayers(x, layers, q);
+    const m = { id:mid(), el:c, w:c.width, h:c.height, name:'flattened', blob:null };
+    P.media[m.id] = m;
+    const L = imageDefaults(baseLayer('image', ''));
+    L.image = { media:m.id, w:m.w, h:m.h }; L.sx = L.sy = 1 / q;
+    return L;
+  }
+  function mergeDown(){
+    const L = cur(); if (!L) return;
+    const i = P.doc.layers.indexOf(L), B = P.doc.layers[i - 1];
+    if (!B){ toast('There is no layer below to merge into.', true); return; }
+    hist.record(() => {
+      const M = flatten([{ ...B, clip:false, visible:true }, { ...L, visible:true }], false);
+      M.name = B.name; M.clip = !!B.clip;
+      P.doc.layers.splice(i - 1, 2, M); P.sel = M.id; touch();
+    });
+    renderPanels();
+  }
+  function stampVisible(){
+    hist.record(() => { const M = flatten(P.doc.layers, true); M.name = 'Visible'; P.doc.layers.push(M); P.sel = M.id; touch(); });
+    renderPanels();
+    toast('Added the whole poster as one picture on top. Effects and cut-outs now work on all of it.');
+  }
+  /* text or a shape becomes a picture, so it can be erased, torn or given effects */
+  function rasterise(){
+    const L = cur(); if (!L || L.type === 'image') return;
+    const { w, h } = size(L), dw = w * Math.abs(L.sx), dh = h * Math.abs(L.sy);
+    const q = Math.min(2, 3072 / Math.max(dw, dh)), c = newCanvas(dw * q, dh * q), x = c.getContext('2d');
+    x.setTransform(c.width / w, 0, 0, c.height / h, 0, 0);
+    drawLayer(x, { ...L, x:w / 2, y:h / 2, rot:0, sx:1, sy:1, flipX:false, flipY:false, adjust:{ ...ADJ0 } }, q, true);
+    const m = { id:mid(), el:c, w:c.width, h:c.height, name:L.name, blob:null };
+    P.media[m.id] = m;
+    hist.record(() => {
+      L.type = 'image'; L.image = { media:m.id, w:m.w, h:m.h }; L.sx = dw / m.w; L.sy = dh / m.h;
+      delete L.text; delete L.shape; imageDefaults(L); touch();
+    });
+    renderPanels();
+  }
+  async function invertMask(L){
+    const { w, h } = procSize(L), c = newCanvas(w, h), x = c.getContext('2d');
+    x.fillStyle = '#fff'; x.fillRect(0, 0, w, h);
+    const m = maskOf(L); if (m){ x.globalCompositeOperation = 'destination-out'; x.drawImage(m, 0, 0, w, h); }
+    const md = { id:mid(), el:c, w, h, name:'mask', blob:null }; P.media[md.id] = md;
+    hist.record(() => { L.mask = md.id; touch(); });
+    renderProps();
+  }
   function duplicate(){
     const L = cur(); if (!L) return;
     hist.record(() => {
@@ -631,11 +912,11 @@ const Poster = (() => {
 
     const tr = section('Position');
     const grid = el('div', 'pgrid');
-    const dims = () => size(L);
+    const lsize = () => size(L);
     const fields = [
       numField('X', () => L.x, v => { L.x = v; }), numField('Y', () => L.y, v => { L.y = v; }),
-      numField('W', () => dims().w * L.sx, v => { const f = Math.max(1, v) / dims().w; if (L._lockAspect !== false){ L.sy *= f / L.sx; } L.sx = f; }),
-      numField('H', () => dims().h * L.sy, v => { const f = Math.max(1, v) / dims().h; if (L._lockAspect !== false){ L.sx *= f / L.sy; } L.sy = f; }),
+      numField('W', () => lsize().w * L.sx, v => { const f = Math.max(1, v) / lsize().w; if (L._lockAspect !== false){ L.sy *= f / L.sx; } L.sx = f; }),
+      numField('H', () => lsize().h * L.sy, v => { const f = Math.max(1, v) / lsize().h; if (L._lockAspect !== false){ L.sx *= f / L.sy; } L.sy = f; }),
       numField('Rotate °', () => L.rot, v => { L.rot = ((v % 360) + 540) % 360 - 180; }, 1),
     ];
     fields.forEach(f => { grid.append(f); fieldSyncs.push(f._sync); });
@@ -649,8 +930,8 @@ const Poster = (() => {
     tr.append(flips);
     const fits = el('div', 'pacts');
     fits.append(
-      btn('Fit', 'Scale to fit inside the canvas', () => { hist.record(() => { const s = fitScale(dims().w, dims().h, 1); L.sx = L.sy = s; L.rot = 0; L.x = P.doc.W / 2; L.y = P.doc.H / 2; touch(); }); syncFields(); }),
-      btn('Fill', 'Scale to cover the whole canvas', () => { hist.record(() => { const d = dims(), s = Math.max(P.doc.W / d.w, P.doc.H / d.h); L.sx = L.sy = s; L.rot = 0; L.x = P.doc.W / 2; L.y = P.doc.H / 2; touch(); }); syncFields(); }),
+      btn('Fit', 'Scale to fit inside the canvas', () => { hist.record(() => { const s = fitScale(lsize().w, lsize().h, 1); L.sx = L.sy = s; L.rot = 0; L.x = P.doc.W / 2; L.y = P.doc.H / 2; touch(); }); syncFields(); }),
+      btn('Fill', 'Scale to cover the whole canvas', () => { hist.record(() => { const d = lsize(), s = Math.max(P.doc.W / d.w, P.doc.H / d.h); L.sx = L.sy = s; L.rot = 0; L.x = P.doc.W / 2; L.y = P.doc.H / 2; touch(); }); syncFields(); }),
       btn('Reset', 'Back to natural size, no rotation', () => { hist.record(() => { L.sx = L.sy = 1; L.rot = 0; L.flipX = L.flipY = false; touch(); }); syncFields(); }),
     );
     tr.append(fits);
@@ -659,11 +940,16 @@ const Poster = (() => {
     const look = section('Blend');
     look.append(rangeRow('Opacity', () => L.opacity * 100, v => { L.opacity = v / 100; }, 0, 100, 1, 100, '%'));
     look.append(selectRow('Blend', BLENDS, () => L.blend, v => { L.blend = v; }));
+    if (P.doc.layers.indexOf(L) > 0) look.append(checkRow('Clip to the layer below', () => L.clip, v => { L.clip = v; }));
+    const ops = el('div', 'pacts');
+    if (P.doc.layers.indexOf(L) > 0) ops.append(btn('Merge down', 'Merge into the layer below as one picture', mergeDown));
+    if (L.type !== 'image') ops.append(btn('Turn into image', 'Make this a picture, so it can be erased, torn or given effects', rasterise));
+    look.append(ops);
     box.append(look);
 
     if (L.type === 'text') box.append(textSection(L));
     if (L.type === 'shape') box.append(shapeSection(L));
-    if (L.type === 'image') box.append(effectsSection(L));
+    if (L.type === 'image') box.append(cutSection(L), edgeSection(L), effectsSection(L));
 
     const adj = section('Adjust', Object.keys(ADJ0).some(k => L.adjust[k] !== ADJ0[k]));
     adj.append(rangeRow('Brightness', () => L.adjust.brightness, v => { L.adjust.brightness = v; }, 0, 200, 1, 100, '%'));
@@ -715,6 +1001,49 @@ const Poster = (() => {
     s.append(colourRow('Fill', () => sh.fill, v => { sh.fill = v; }));
     if (sh.kind === 'rect') s.append(rangeRow('Corners', () => sh.radius, v => { sh.radius = v; }, 0, 1000, 1, 0, ' px'));
     s.append(el('p', 'hint2', 'Width and height are in Position. Scaling a shape keeps its edges sharp.'));
+    return s;
+  }
+  function cutSection(L){
+    const s = section('Cut out', !!(L.mask || L.key.on || L.crop.l || L.crop.t || L.crop.r || L.crop.b));
+    const tools = el('div', 'pacts');
+    tools.append(btn('Erase brush', 'Paint away parts of the picture (E)', () => setTool('erase')), btn('Restore brush', 'Paint parts back (R)', () => setTool('restore')));
+    if (L.mask) tools.append(btn('Invert', 'Swap what is kept and what is cut away', () => invertMask(L)), btn('Clear', 'Bring back the whole picture', () => { hist.record(() => { L.mask = null; touch(); }); renderProps(); }));
+    s.append(tools);
+    s.append(checkRow('Remove a colour', () => L.key.on, v => { L.key.on = v; }));
+    if (L.key.on){
+      const row = colourRow('Colour', () => L.key.color, v => { L.key.color = v; });
+      const pk = btn('Pick', 'Click the poster to pick the colour to remove', () => { picking = 'key'; stage.classList.add('picking'); toast('Click the colour to remove'); });
+      row.querySelector('.pcol').append(pk);
+      s.append(row);
+      const q = el('div', 'pacts'); q.append(btn('White', 'Remove white, for scans and product shots', () => { hist.record(() => { L.key.color = '#ffffff'; touch(); }); renderProps(); }), btn('Black', 'Remove black', () => { hist.record(() => { L.key.color = '#000000'; touch(); }); renderProps(); }));
+      s.append(q);
+      s.append(rangeRow('Range', () => L.key.tol, v => { L.key.tol = v; }, 0, 100, 1, 12));
+      s.append(rangeRow('Softness', () => L.key.soft, v => { L.key.soft = v; }, 0, 100, 1, 10));
+    }
+    s.append(el('h4', 'psub', 'Crop'));
+    [['l', 'Left'], ['t', 'Top'], ['r', 'Right'], ['b', 'Bottom']].forEach(([k, n]) => s.append(rangeRow(n, () => L.crop[k] * 100, v => { setCrop(L, k, v / 100); syncFields(); }, 0, 95, .5, 0, '%')));
+    return s;
+  }
+  function edgeSection(L){
+    const e = L.edge, s = section('Edge', e.style !== 'none' || e.shape !== 'rect' || e.feather > 0 || L.outline.on);
+    s.append(selectRow('Shape', [['rect', 'Rectangle'], ['ellipse', 'Oval']], () => e.shape, v => { e.shape = v; }));
+    s.append(selectRow('Cut', [['none', 'Clean'], ['torn', 'Torn paper'], ['scissors', 'Scissors'], ['deckle', 'Deckle']], () => e.style, v => { e.style = v; renderProps(); }));
+    if (e.style !== 'none'){
+      s.append(rangeRow('Depth', () => e.depth, v => { e.depth = v; }, 0, 300, 1, 24, ' px'));
+      const t = el('div', 'pacts'); t.append(btn('Tear again', 'Same kind of edge, a different tear', () => { hist.record(() => { e.seed = (e.seed % 9973) + 1 + Math.floor(Math.random() * 500); touch(); }); })); s.append(t);
+      s.append(checkRow('Paper rim', () => e.rim, v => { e.rim = v; renderProps(); }));
+      if (e.rim){
+        s.append(colourRow('Rim colour', () => e.rimColor, v => { e.rimColor = v; }));
+        s.append(rangeRow('Rim width', () => e.rimWidth, v => { e.rimWidth = v; }, 1, 120, 1, 10, ' px'));
+      }
+    }
+    s.append(rangeRow('Feather', () => e.feather, v => { e.feather = v; }, 0, 300, 1, 0, ' px'));
+    s.append(checkRow('Sticker outline', () => L.outline.on, v => { L.outline.on = v; renderProps(); }));
+    if (L.outline.on){
+      s.append(colourRow('Outline colour', () => L.outline.color, v => { L.outline.color = v; }));
+      s.append(rangeRow('Outline width', () => L.outline.width, v => { L.outline.width = v; }, 1, 200, 1, 14, ' px'));
+    }
+    s.append(el('p', 'hint2', 'Sizes are in the picture’s own pixels, so they scale with it. The outline follows anything you have cut or erased.'));
     return s;
   }
   function effectsSection(L){
@@ -770,7 +1099,8 @@ const Poster = (() => {
     const b = btn('Export image', null, exportImage, 'primary'); ex.append(b);
     box.append(ex);
     const ks = section('Keys', false);
-    ks.append(el('p', 'hint2', 'Drag to move, corners to scale (Shift frees the proportions), the dot above to rotate (Shift snaps to 15°). Arrows nudge (Shift ×10). Delete removes, ⌘D duplicates, [ and ] reorder, ⌘Z undoes. Hold Space and drag, or scroll, to pan; ⌘ or Ctrl and scroll to zoom. Alt while moving skips the centre snap.'));
+    ks.append(el('p', 'hint2', 'Drag to move, corners to scale (Shift frees the proportions), the dot above to rotate (Shift snaps to 15°). Arrows nudge (Shift ×10). Delete removes, ⌘D duplicates, [ and ] reorder, ⌘Z undoes. Hold Space and drag, or scroll, to pan; ⌘ or Ctrl and scroll, or + and −, to zoom. Alt while moving skips the centre snap.'));
+    ks.append(el('p', 'hint2', 'Tools: V move, E erase, R restore, B paint, I pick a colour (or Alt-click while painting). In a brush, [ and ] change the size. Painting with nothing suitable selected starts a new marks layer. Escape goes back to Move.'));
     box.append(ks);
   }
   function renderPanels(){ renderLayers(); renderProps(); P.dirty = true; }
@@ -828,8 +1158,6 @@ const Poster = (() => {
     $('#pClear').onchange = () => { hist.record(() => { P.doc.transparent = $('#pClear').checked; touch(); }); syncCanvasBar(); renderProps(); };
     $('#pFit').onclick = () => { fitView(); P.dirty = true; };
     $('#p100').onclick = () => zoomAt(1 / dpr());
-    $('#pZoomIn').onclick = () => zoomAt(P.view.k * 1.25);
-    $('#pZoomOut').onclick = () => zoomAt(P.view.k / 1.25);
     $('#pAddImage').onclick = () => { replaceTarget = null; $('#pFile').click(); };
     $('#pEmptyAdd').onclick = () => { replaceTarget = null; $('#pFile').click(); };
     $('#pEmptyMotion').onclick = addMotionFrame;
@@ -860,11 +1188,32 @@ const Poster = (() => {
       if (P.doc.layers.length && !confirm('Start a new poster? This one is cleared; Undo brings it back.')) return;
       hist.record(() => { P.doc = { ...P.doc, layers:[], name:'' }; P.sel = null; touch(); }); bakes.clear(); renderAll();
     };
+    document.querySelectorAll('#pTools button[data-tool]').forEach(b => { b.onclick = () => setTool(b.dataset.tool); });
+    $('#pAddMarks').onclick = () => { hist.record(() => newPaintLayer(cur())); renderPanels(); setTool('paint'); };
+    $('#pStamp').onclick = stampVisible;
+    const bsel = $('#pBrush'); Marks.BRUSHES.forEach(([v, n]) => { const o = el('option', null, n); o.value = v; bsel.append(o); });
+    bsel.onchange = () => { P.brush.brush = bsel.value; saveBrush(); };
+    const bnum = (id, key, f = v => v, g = v => v) => { const i = $(id); i.oninput = () => { const v = parseFloat(i.value); if (!isNaN(v)){ P.brush[key] = f(v); saveBrush(); syncBrushBar(i); P.dirty = true; } }; };
+    bnum('#pBSize', 'size'); bnum('#pBSizeN', 'size', v => Util.clamp(v, 1, 600));
+    bnum('#pBHard', 'hardness', v => v / 100); bnum('#pBOpac', 'opacity', v => v / 100);
+    $('#pBColor').oninput = () => { P.brush.color = $('#pBColor').value; saveBrush(); };
+    $('#pBPick').onclick = () => { picking = 'brush'; stage.classList.add('picking'); };
+    syncBrushBar();
     sync();
     const loop = () => { requestAnimationFrame(loop); if (P.on && P.dirty){ P.dirty = false; drawStage(); } };
     requestAnimationFrame(loop);
   }
 
+  /* the options bar shows the canvas in Move, and the brush while painting */
+  function syncBrushBar(except){
+    if (!$('#pBarBrush')) return;
+    const brush = BRUSH_TOOLS.includes(P.tool), paint = P.tool === 'paint', b = P.brush;
+    $('#pBarCanvas').hidden = brush; $('#pBarBrush').hidden = !brush;
+    document.querySelectorAll('#pBarBrush .ponly').forEach(n => { n.hidden = !paint; });
+    const set = (id, v) => { const i = $(id); if (i && i !== except) i.value = v; };
+    set('#pBrush', b.brush); set('#pBSize', b.size); set('#pBSizeN', b.size); set('#pBHard', Math.round(b.hardness * 100)); set('#pBOpac', Math.round(b.opacity * 100)); set('#pBColor', b.color);
+    $('#pBHardW').hidden = paint && b.brush !== 'round';
+  }
   function onKey(e){
     if (!P.on) return false;
     const mod = e.metaKey || e.ctrlKey, typing = typingField(e.target) || /input|textarea|select/i.test(e.target.tagName);
@@ -873,6 +1222,15 @@ const Poster = (() => {
     if (typing) return true;
     if (e.code === 'Space' && e.target.tagName !== 'BUTTON'){ e.preventDefault(); spaceHeld = true; return true; }
     const L = cur();
+    if (!mod && !e.altKey){
+      const t = { KeyV:'move', KeyE:'erase', KeyR:'restore', KeyB:'paint' }[e.code];
+      if (t){ setTool(t); return true; }
+      if (e.key === '+' || e.key === '='){ zoomAt(P.view.k * 1.25); return true; }
+      if (e.key === '-'){ zoomAt(P.view.k / 1.25); return true; }
+      if (e.code === 'KeyI'){ picking = P.tool === 'paint' ? 'brush' : 'key'; stage.classList.add('picking'); return true; }
+      if (BRUSH_TOOLS.includes(P.tool) && (e.key === '[' || e.key === ']')){ P.brush.size = Util.clamp(Math.round(P.brush.size * (e.key === ']' ? 1.2 : 1 / 1.2)), 1, 600); saveBrush(); syncBrushBar(); P.dirty = true; return true; }
+    }
+    if (e.key === 'Escape' && (picking || P.tool !== 'move')){ picking = null; stage.classList.remove('picking'); setTool('move'); return true; }
     if (mod && e.code === 'KeyD'){ e.preventDefault(); duplicate(); return true; }
     if (mod && e.code === 'Digit0'){ e.preventDefault(); fitView(); P.dirty = true; return true; }
     if (!L) return true;
@@ -908,7 +1266,7 @@ const Poster = (() => {
     if (m === 'poster') setMode('poster');
   }
 
-  return { init, setMode, onKey, onDrop, addFiles, addText, addShape, addMotionFrame, exportImage, drawDoc, bakeAll, hist, P,
+  return { setTool, mergeDown, stampVisible, rasterise, newPaintLayer, processed, init, setMode, onKey, onDrop, addFiles, addText, addShape, addMotionFrame, exportImage, drawDoc, bakeAll, hist, P,
     get on(){ return P.on; }, select:id => { P.sel = id; renderPanels(); }, render:() => drawStage(), fxEligible };
 })();
 const LOCK_ICON = '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><rect x="3.5" y="7" width="9" height="6.5" rx="1.2" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M5.5 7V5.2a2.5 2.5 0 015 0V7" fill="none" stroke="currentColor" stroke-width="1.3"/></svg>';
